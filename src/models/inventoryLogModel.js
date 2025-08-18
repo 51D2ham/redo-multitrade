@@ -35,22 +35,25 @@ inventoryLogSchema.statics.getLowStockProducts = async function() {
   const alerts = [];
   products.forEach(product => {
     product.variants?.forEach(variant => {
-      if (variant.qty <= variant.thresholdQty) {
+      // Use the variant's own threshold or default to 5
+      const variantThreshold = variant.thresholdQty || 5;
+      if (variant.qty <= variantThreshold) {
         alerts.push({
           productId: product._id,
           title: product.title,
           brand: product.brand?.name,
           category: product.category?.name,
           sku: variant.sku,
+          stock: variant.qty,
           currentStock: variant.qty,
-          threshold: variant.thresholdQty,
+          threshold: variantThreshold,
           status: variant.qty === 0 ? 'out_of_stock' : 'low_stock'
         });
       }
     });
   });
   
-  return alerts;
+  return alerts.sort((a, b) => a.stock - b.stock); // Sort by stock level, lowest first
 };
 
 // Static method for stock movement report

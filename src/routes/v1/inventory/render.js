@@ -5,9 +5,7 @@ const authMiddleware = require('../../../middlewares/auth');
 
 router.use(authMiddleware);
 
-// Dashboard
-router.get('/', inventoryController.getDashboard);
-router.get('/dashboard', inventoryController.getDashboard);
+// Dashboard route removed; now handled by report dashboard
 
 // Stock alerts
 router.get('/low-stock', inventoryController.getLowStock);

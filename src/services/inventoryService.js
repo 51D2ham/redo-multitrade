@@ -3,102 +3,117 @@ const { Product } = require('../models/productModel');
 const mongoose = require('mongoose');
 
 class InventoryService {
-  
   // Log stock movement with enhanced validation
   static async logMovement(productId, variantSku, type, quantity, previousStock, newStock, adminId, orderId = null, notes = '') {
-    try {
-      // Validate inputs
-      if (!mongoose.Types.ObjectId.isValid(productId)) {
-        throw new Error('Invalid product ID');
-      }
-      if (!variantSku || typeof variantSku !== 'string') {
-        throw new Error('Valid variant SKU is required');
-      }
-      if (!['sale', 'restock', 'adjustment'].includes(type)) {
-        throw new Error('Invalid movement type');
-      }
-      if (typeof quantity !== 'number' || quantity <= 0) {
-        throw new Error('Quantity must be a positive number');
-      }
-      
-      const log = new InventoryLog({
-        product: productId,
-        variantSku,
-        type,
-        quantity,
-        previousStock,
-        newStock,
-        orderId,
-        admin: adminId,
-        notes: notes || `${type} operation: ${quantity} units`
-      });
-      
-      await log.save();
-      return log;
-    } catch (error) {
-      console.error('Inventory log error:', error);
-      throw error;
+    // Validate inputs
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      throw new Error('Invalid product ID');
     }
+    if (!variantSku || typeof variantSku !== 'string') {
+      throw new Error('Valid variant SKU is required');
+    }
+    if (!['sale', 'restock', 'adjustment'].includes(type)) {
+      throw new Error('Invalid movement type');
+    }
+    if (typeof quantity !== 'number' || quantity <= 0) {
+      throw new Error('Quantity must be a positive number');
+    }
+    if (type === 'sale' && !orderId) {
+      throw new Error('Sales movement must have a valid orderId');
+    }
+    // For adjustment/restock, allow both increase and decrease, but log reason
+    const log = new InventoryLog({
+      product: productId,
+      variantSku,
+      type,
+      quantity,
+      previousStock,
+      newStock,
+      orderId,
+      admin: adminId,
+      notes: notes || `${type} operation: ${quantity} units`
+    });
+    await log.save();
+    return log;
   }
-  
-  // Log sale with proper variant matching
+
+  // Log sale movements for order items
   static async logSale(orderItems, orderId, adminId = null) {
     const logs = [];
+    const errors = [];
     
     for (const item of orderItems) {
       try {
         const product = await Product.findById(item.productId);
         if (!product) {
-          console.warn(`Product not found for sale logging: ${item.productId}`);
+          errors.push(`Product not found: ${item.productId}`);
           continue;
         }
         
-        // Find variant by SKU if provided, otherwise use default
-        let variant;
-        if (item.variantSku) {
-          variant = product.variants.find(v => v.sku === item.variantSku);
-        }
+        // Find the variant
+        let variant = product.variants.find(v => v.isDefault) || product.variants[0];
         if (!variant) {
-          variant = product.variants.find(v => v.isDefault) || product.variants[0];
+          errors.push(`No variant found for product: ${item.productTitle}`);
+          continue;
         }
         
-        if (variant && variant.qty >= item.qty) {
-          const previousStock = variant.qty;
-          
-          // Update stock in product
-          variant.qty -= item.qty;
-          
-          // Update variant status based on new stock
-          if (variant.qty === 0) {
-            variant.status = 'out_of_stock';
-          } else if (variant.qty <= variant.thresholdQty) {
-            variant.status = 'low_stock';
-          }
-          
-          await product.save();
-          
-          const log = await this.logMovement(
-            item.productId,
-            variant.sku,
-            'sale',
-            item.qty,
-            previousStock,
-            variant.qty,
-            adminId || new mongoose.Types.ObjectId(), // System admin if none provided
-            orderId,
-            `Sale from order ${orderId}`
-          );
-          logs.push(log);
-        } else {
-          console.warn(`Insufficient stock for ${variant?.sku || 'unknown variant'}: requested ${item.qty}, available ${variant?.qty || 0}`);
-        }
+        // Log the sale
+        const log = await this.logMovement(
+          item.productId,
+          variant.sku,
+          'sale',
+          item.qty,
+          variant.qty + item.qty, // Previous stock (before deduction)
+          variant.qty, // Current stock (after deduction)
+          adminId,
+          orderId,
+          `Sale: ${item.qty} units of ${item.productTitle} (Order: ${orderId})`
+        );
+        
+        logs.push(log);
       } catch (error) {
-        console.error(`Error logging sale for item ${item.productId}:`, error);
+        console.error(`Error logging sale for ${item.productTitle}:`, error);
+        errors.push(`Error logging ${item.productTitle}: ${error.message}`);
       }
     }
     
-    return logs;
+    return { logs, errors };
   }
+
+  // Restore stock for cancelled order
+  static async restoreStockForCancelledOrder(order) {
+    if (!order || !order.items || !order._id) return;
+    const adminId = process.env.SYSTEM_ADMIN_ID || null;
+    for (const item of order.items) {
+      const product = await Product.findById(item.productId);
+      if (!product) continue;
+      let variant = product.variants.find(v => v.sku === item.variantSku);
+      if (!variant) variant = product.variants[0];
+      const previousStock = variant.qty;
+      variant.qty += item.qty;
+      if (variant.qty > variant.thresholdQty) {
+        variant.status = 'in_stock';
+      } else if (variant.qty > 0) {
+        variant.status = 'low_stock';
+      } else {
+        variant.status = 'out_of_stock';
+      }
+      await product.save();
+      await InventoryService.logMovement(
+        item.productId,
+        variant.sku,
+        'restock',
+        item.qty,
+        previousStock,
+        variant.qty,
+        adminId,
+        order._id,
+        `Restock due to order cancellation (${order._id})`
+      );
+    }
+  }
+  
+  // Complete the rest of the methods as in the original file...
   
   // Enhanced restock with validation
   static async restock(productId, variantSku, quantity, adminId, notes = '', unitCost = null) {
@@ -207,15 +222,28 @@ class InventoryService {
   // Enhanced dashboard data with more metrics
   static async getDashboardData() {
     try {
-      const [lowStockAlerts, recentMovements, totalProducts, totalVariants] = await Promise.all([
-        this.getLowStockAlerts().catch(() => []),
-        this.getMovementReport({ limit: 10 }).catch(() => []),
-        Product.countDocuments({ status: 'active' }).catch(() => 0),
+      const [lowStockAlerts, recentMovements, totalProducts, totalVariants, stockStats] = await Promise.all([
+        InventoryService.getLowStockAlerts(),
+        InventoryService.getMovementReport({ limit: 10 }),
+        Product.countDocuments({}),
         Product.aggregate([
-          { $match: { status: 'active' } },
-          { $project: { variantCount: { $size: '$variants' } } },
-          { $group: { _id: null, total: { $sum: '$variantCount' } } }
-        ]).then(result => result[0]?.total || 0).catch(() => 0)
+          { $unwind: '$variants' },
+          { $group: { _id: null, total: { $sum: 1 } } }
+        ]).then(result => result[0]?.total || 0),
+        Product.aggregate([
+          { $unwind: '$variants' },
+          {
+            $group: {
+              _id: null,
+              activeProducts: { $sum: { $cond: [{ $eq: ['$status', 'active'] }, 1, 0] } },
+              draftProducts: { $sum: { $cond: [{ $eq: ['$status', 'draft'] }, 1, 0] } },
+              inactiveProducts: { $sum: { $cond: [{ $eq: ['$status', 'inactive'] }, 1, 0] } },
+              inStock: { $sum: { $cond: [{ $gt: ['$variants.qty', '$variants.thresholdQty'] }, 1, 0] } },
+              lowStock: { $sum: { $cond: [{ $and: [{ $gt: ['$variants.qty', 0] }, { $lte: ['$variants.qty', '$variants.thresholdQty'] }] }, 1, 0] } },
+              outOfStock: { $sum: { $cond: [{ $eq: ['$variants.qty', 0] }, 1, 0] } }
+            }
+          }
+        ]).then(result => result[0] || {})
       ]);
       
       // Calculate stock value
@@ -238,25 +266,32 @@ class InventoryService {
       ]).then(result => result[0]?.totalValue || 0).catch(() => 0);
       
       return {
+        // Stock alerts
         lowStockCount: lowStockAlerts.length,
-        criticalStockCount: lowStockAlerts.filter(a => a.status === 'out_of_stock').length,
-        recentMovements: recentMovements || [],
-        lowStockAlerts: lowStockAlerts.slice(0, 5),
+        criticalStockCount: lowStockAlerts.filter(a => (a.stock || a.currentStock || 0) === 0).length,
+        lowStockAlerts: lowStockAlerts,
+        
+        // Product counts
         totalProducts,
         totalVariants,
-        stockValue: Math.round(stockValue)
+        activeProducts: stockStats.activeProducts || 0,
+        draftProducts: stockStats.draftProducts || 0,
+        inactiveProducts: stockStats.inactiveProducts || 0,
+        
+        // Stock status
+        inStockVariants: stockStats.inStock || 0,
+        lowStockVariants: stockStats.lowStock || 0,
+        outOfStockVariants: stockStats.outOfStock || 0,
+        
+        // Financial
+        stockValue: Math.round(stockValue),
+        
+        // Recent activity
+        recentMovements: recentMovements || []
       };
     } catch (error) {
       console.error('Dashboard data error:', error);
-      return {
-        lowStockCount: 0,
-        criticalStockCount: 0,
-        recentMovements: [],
-        lowStockAlerts: [],
-        totalProducts: 0,
-        totalVariants: 0,
-        stockValue: 0
-      };
+      throw error; // Let the controller handle the error
     }
   }
   
@@ -332,11 +367,17 @@ class InventoryService {
   
   // Get stock alerts with enhanced filtering
   static async getStockAlerts(filters = {}) {
-    const { status, category, brand, minStock, maxStock } = filters;
+    const { status, category, brand, minStock, maxStock, search } = filters;
     
     const matchStage = { status: 'active' };
     if (category) matchStage.category = new mongoose.Types.ObjectId(category);
     if (brand) matchStage.brand = new mongoose.Types.ObjectId(brand);
+    if (search) {
+      matchStage.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { 'variants.sku': { $regex: search, $options: 'i' } }
+      ];
+    }
     
     const products = await Product.find(matchStage)
       .populate('brand category', 'name')
@@ -345,27 +386,45 @@ class InventoryService {
     const alerts = [];
     products.forEach(product => {
       product.variants?.forEach(variant => {
+        const currentStock = variant.qty || 0;
+        const threshold = variant.thresholdQty || 5;
+        
+        // Filter by status
+        let includeByStatus = true;
+        if (status === 'critical') {
+          includeByStatus = currentStock === 0;
+        } else if (status === 'low') {
+          includeByStatus = currentStock > 0 && currentStock <= threshold;
+        }
+        
         const shouldInclude = (
-          (!status || variant.status === status) &&
-          (!minStock || variant.qty >= minStock) &&
-          (!maxStock || variant.qty <= maxStock) &&
-          (variant.qty <= variant.thresholdQty)
+          includeByStatus &&
+          (!minStock || currentStock >= minStock) &&
+          (!maxStock || currentStock <= maxStock) &&
+          (currentStock <= threshold)
         );
         
         if (shouldInclude) {
           alerts.push({
             productId: product._id,
             title: product.title,
+            productTitle: product.title,
             brand: product.brand?.name,
             category: product.category?.name,
             sku: variant.sku,
+            variantSku: variant.sku,
             color: variant.color,
             size: variant.size,
-            currentStock: variant.qty,
-            threshold: variant.thresholdQty,
-            status: variant.qty === 0 ? 'out_of_stock' : 'low_stock',
+            stock: currentStock,
+            currentStock: currentStock,
+            remainingStock: currentStock,
+            threshold: threshold,
+            thresholdQty: threshold,
+            status: currentStock === 0 ? 'out_of_stock' : 'low_stock',
             price: variant.price,
-            costPrice: variant.costPrice
+            costPrice: variant.costPrice,
+            lastSaleDate: null, // TODO: Get from inventory logs
+            recentSales: 0 // TODO: Calculate from recent sales
           });
         }
       });

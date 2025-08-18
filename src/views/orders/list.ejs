@@ -224,6 +224,7 @@
                         <i class="fas fa-eye"></i>
                         <span class="hidden sm:inline">View</span>
                       </a>
+
                       <a href="/admin/v1/order/<%= order._id %>/edit" class="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-yellow-100 text-yellow-700 hover:bg-yellow-200 transition-colors text-sm font-medium" title="Edit Order">
                         <i class="fas fa-edit"></i>
                         <span class="hidden sm:inline">Edit</span>
@@ -239,36 +240,67 @@
     </div>
 
     <!-- Pagination -->
-    <% if (totalPages > 1) { %>
-      <div class="flex justify-between items-center mt-6">
+    <% if (typeof totalPages !== 'undefined' && totalPages > 1) { %>
+      <div class="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4">
         <div class="text-sm text-gray-600">
-          Showing <%= (currentPage - 1) * limit + 1 %> - <%= Math.min(currentPage * limit, totalOrders) %> of <%= totalOrders %> orders
+          <% 
+            const itemsPerPage = limit || 10;
+            const startItem = (currentPage - 1) * itemsPerPage + 1;
+            const endItem = Math.min(currentPage * itemsPerPage, totalOrders || 0);
+          %>
+          Showing <%= startItem %> - <%= endItem %> of <%= totalOrders || 0 %> orders
         </div>
-        <div class="flex gap-2">
+        
+        <div class="flex items-center gap-2">
+          <!-- Items per page selector -->
+          <div class="flex items-center gap-2 mr-4">
+            <label class="text-sm text-gray-600">Show:</label>
+            <select onchange="changeLimit(this.value)" class="px-2 py-1 border border-gray-300 rounded text-sm">
+              <option value="10" <%= (limit || 10) === 10 ? 'selected' : '' %>>10</option>
+              <option value="25" <%= limit === 25 ? 'selected' : '' %>>25</option>
+              <option value="50" <%= limit === 50 ? 'selected' : '' %>>50</option>
+              <option value="100" <%= limit === 100 ? 'selected' : '' %>>100</option>
+            </select>
+          </div>
+          
+          <!-- Previous -->
           <% if (currentPage > 1) { %>
-            <a href="?page=<%= currentPage - 1 %>&<%= Object.entries(filters).filter(([k,v]) => v).map(([k,v]) => `${k}=${encodeURIComponent(v)}`).join('&') %>" 
+            <a href="?page=<%= currentPage - 1 %>&<%= Object.entries(filters || {}).filter(([k,v]) => v).map(([k,v]) => `${k}=${encodeURIComponent(v)}`).join('&') %>&limit=<%= limit || 10 %>" 
                class="px-4 py-2 rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">
               <i class="fas fa-chevron-left mr-1"></i>Previous
             </a>
           <% } %>
           
+          <!-- Page numbers -->
           <% for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) { %>
-            <a href="?page=<%= i %>&<%= Object.entries(filters).filter(([k,v]) => v).map(([k,v]) => `${k}=${encodeURIComponent(v)}`).join('&') %>" 
+            <a href="?page=<%= i %>&<%= Object.entries(filters || {}).filter(([k,v]) => v).map(([k,v]) => `${k}=${encodeURIComponent(v)}`).join('&') %>&limit=<%= limit || 10 %>" 
                class="px-4 py-2 rounded-lg <%= i === currentPage ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50' %> transition-colors">
               <%= i %>
             </a>
           <% } %>
           
+          <!-- Next -->
           <% if (currentPage < totalPages) { %>
-            <a href="?page=<%= currentPage + 1 %>&<%= Object.entries(filters).filter(([k,v]) => v).map(([k,v]) => `${k}=${encodeURIComponent(v)}`).join('&') %>" 
+            <a href="?page=<%= currentPage + 1 %>&<%= Object.entries(filters || {}).filter(([k,v]) => v).map(([k,v]) => `${k}=${encodeURIComponent(v)}`).join('&') %>&limit=<%= limit || 10 %>" 
                class="px-4 py-2 rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">
               Next<i class="fas fa-chevron-right ml-1"></i>
             </a>
           <% } %>
         </div>
       </div>
+      
+      <script>
+        function changeLimit(newLimit) {
+          const url = new URL(window.location);
+          url.searchParams.set('limit', newLimit);
+          url.searchParams.set('page', '1');
+          window.location.href = url.toString();
+        }
+      </script>
     <% } %>
   </div>
 </div>
+
+
 
 <%- include('../partials/footer.ejs') %>

@@ -8,7 +8,8 @@
     "dev": "nodemon app.js",
     "seed:dev": "node src/seed/devSeed.js",
     "seed:cleanDb": "node src/seed/cleanDatabase.js",
-    "seed:products": "node src/seed/productSeed.js"
+    "seed:products": "node src/seed/productSeed.js",
+    "seed:dashboard": "node src/seed/dashboardSeed.js"
   },
   "keywords": [],
   "author": "",

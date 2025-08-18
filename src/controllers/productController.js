@@ -58,10 +58,7 @@ module.exports = {
       const limit = parseInt(req.query.limit) || 20;
       const skip = (page - 1) * limit;
       
-      const adminId = req.admin?._id || req.user?._id;
-      console.log('Admin ID for product listing:', adminId);
-      const filter = {}; // Temporarily remove admin filter
-      console.log('Total products in DB:', await Product.countDocuments({}));
+      const filter = {};
       
       if (req.query.status) filter.status = req.query.status;
       if (req.query.category) filter.category = req.query.category;
@@ -70,7 +67,7 @@ module.exports = {
         filter.$text = { $search: req.query.search };
       }
       
-      const [products, total, categories, brands] = await Promise.all([
+      const [productsRaw, total, categories, brands] = await Promise.all([
         Product.find(filter)
           .populate('category', 'name')
           .populate('subCategory', 'name')
@@ -84,11 +81,22 @@ module.exports = {
         Brand.find().sort({ name: 1 })
       ]);
       
+
+
+      // Calculate totalStock for each product from variants
+      const products = productsRaw.map(product => {
+        const totalStock = product.variants && product.variants.length > 0
+          ? product.variants.reduce((sum, v) => sum + (v.qty || 0), 0)
+          : 0;
+        return { ...product.toObject(), totalStock };
+      });
+
       const totalPages = Math.ceil(total / limit);
-      
+
       res.render('products/list', {
         title: 'Manage Products',
         products,
+
         categories,
         brands,
         pagination: {
@@ -106,7 +114,19 @@ module.exports = {
     } catch (error) {
       console.error('List products error:', error);
       req.flash('error', 'Error loading products');
-      res.redirect('/admin/v1/staff/dashboard');
+      
+      // Fallback render with basic data
+      res.render('products/list', {
+        title: 'Manage Products',
+        products: [],
+
+        categories: [],
+        brands: [],
+        pagination: { current: 1, total: 1, hasNext: false, hasPrev: false, next: 1, prev: 1 },
+        filters: {},
+        success: req.flash('success'),
+        error: req.flash('error')
+      });
     }
   },
 
@@ -116,7 +136,7 @@ module.exports = {
       const [categories, brands, specLists] = await Promise.all([
         Category.find().sort({ name: 1 }),
         Brand.find().sort({ name: 1 }),
-        SpecList.find({ admin: req.user._id }).sort({ title: 1 })
+        SpecList.find().sort({ title: 1 })
       ]);
       
       res.render('products/new', {
@@ -200,7 +220,7 @@ module.exports = {
         status: status || 'draft',
         featured: featured === 'true',
         isDiscounted: req.body.isDiscounted === 'true',
-        admin: req.user._id
+        // admin: req.user._id
       };
 
       // Add business fields
@@ -252,8 +272,7 @@ module.exports = {
       }
 
       const product = await Product.findOne({
-        _id: req.params.id,
-        admin: req.user._id
+        _id: req.params.id
       })
         .populate('category', 'name')
         .populate('subCategory', 'name')
@@ -294,12 +313,12 @@ module.exports = {
       }
 
       const [product, categories, subCategories, types, brands, specLists, specifications] = await Promise.all([
-        Product.findOne({ _id: req.params.id, admin: req.user._id }),
+        Product.findOne({ _id: req.params.id }),
         Category.find().sort({ name: 1 }),
         SubCategory.find().sort({ name: 1 }),
         Type.find().sort({ name: 1 }),
         Brand.find().sort({ name: 1 }),
-        SpecList.find({ admin: req.user._id }).sort({ title: 1 }),
+        SpecList.find().sort({ title: 1 }),
         ProductSpecs.find({ product: req.params.id }).populate('specList', 'title')
       ]);
 
@@ -335,7 +354,7 @@ module.exports = {
         return res.redirect('/admin/v1/products');
       }
 
-      const product = await Product.findOne({ _id: req.params.id, admin: req.user._id });
+      const product = await Product.findOne({ _id: req.params.id });
       if (!product) {
         req.flash('error', 'Product not found');
         return res.redirect('/admin/v1/products');
@@ -452,8 +471,7 @@ module.exports = {
       }
 
       const product = await Product.findOneAndDelete({
-        _id: req.params.id,
-        admin: req.user._id
+        _id: req.params.id
       });
 
       if (!product) {

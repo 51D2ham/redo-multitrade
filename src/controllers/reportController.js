@@ -22,24 +22,104 @@ module.exports = {
       const parsedYear = Math.max(parseInt(year, 10) || new Date().getFullYear(), 1970);
       const parsedThreshold = Math.max(parseInt(lowStockThreshold, 10) || 5, 0);
 
-      const report = await salesService.getComprehensiveReport({
-        startDate,
-        endDate,
-        year: parsedYear,
-        lowStockThreshold: parsedThreshold
+      const InventoryService = require('../services/inventoryService');
+      
+      // Get both sales and inventory data in parallel
+      const [salesReport, inventoryData] = await Promise.all([
+        salesService.getComprehensiveReport({
+          startDate,
+          endDate,
+          year: parsedYear,
+          lowStockThreshold: parsedThreshold
+        }).catch(err => {
+          console.error('Sales service error:', err);
+          return {
+            revenueSummary: { totalRevenue: 0, totalOrders: 0 },
+            aov: { averageOrderValue: 0, orderCount: 0 },
+            topProducts: [],
+            salesByCat: [],
+            monthlyTrend: [],
+            salesMetrics: { totalItemsSold: 0, uniqueProductCount: 0, avgItemsPerOrder: 0, maxOrderValue: 0, minOrderValue: 0 },
+            recentOrders: []
+          };
+        }),
+        InventoryService.getDashboardData().catch(err => {
+          console.error('Inventory service error:', err);
+          return {
+            lowStockAlerts: [],
+            recentMovements: [],
+            totalProducts: 0,
+            totalVariants: 0,
+            activeProducts: 0,
+            draftProducts: 0,
+            inStockVariants: 0,
+            lowStockVariants: 0,
+            outOfStockVariants: 0,
+            stockValue: 0
+          };
+        })
+      ]);
+
+      // Merge sales and inventory data
+      // Transform recent movements into a Map for quick lookup
+      const movementsMap = new Map();
+      if (inventoryData.recentMovements && Array.isArray(inventoryData.recentMovements)) {
+        inventoryData.recentMovements.forEach(movement => {
+          if (movement.variantSku) {
+            const key = movement.variantSku;
+            if (!movementsMap.has(key) || movementsMap.get(key).createdAt < movement.createdAt) {
+              movementsMap.set(key, movement);
+            }
+          }
+        });
+      }
+
+      // Process low stock alerts to include last sale data
+      const lowStockAlerts = (inventoryData.lowStockAlerts || []).map(alert => ({
+        ...alert,
+        lastSale: movementsMap.get(alert.variantSku) || null
+      }));
+
+      // Count critical stock (items with stock <= 2)
+      const criticalStockCount = lowStockAlerts.filter(item => item.remainingStock <= 2).length;
+
+      const report = {
+        ...salesReport,
+        ...inventoryData,
+        lowStockThreshold: parsedThreshold,
+        // Ensure we have all required properties with proper defaults
+        revenueSummary: {
+          totalRevenue: salesReport?.revenueSummary?.totalRevenue || 0,
+          totalOrders: salesReport?.revenueSummary?.totalOrders || 0
+        },
+        monthlyTrend: salesReport?.monthlyTrend || [],
+        salesByCat: salesReport?.salesByCat || [],
+        topProducts: salesReport?.topProducts || [],
+        recentMovements: Array.isArray(inventoryData.recentMovements) ? inventoryData.recentMovements : [],
+        lowStockAlerts,
+        criticalStockCount,
+        stockValue: parseFloat(inventoryData?.stockValue || 0),
+        totalProducts: parseInt(inventoryData?.totalProducts || 0, 10),
+        totalVariants: parseInt(inventoryData?.totalVariants || 0, 10)
+      };
+
+      // Debug logging to see what data we're getting
+      console.log('Dashboard Report Data:', {
+        totalProducts: report.totalProducts,
+        totalRevenue: report.revenueSummary?.totalRevenue,
+        lowStockCount: report.lowStockAlerts?.length,
+        recentMovementsCount: report.recentMovements?.length,
+        topProductsCount: report.topProducts?.length
       });
 
       if (req.accepts('html')) {
-        return res.render('reports/comprehensiveDashboard', {
+        return res.render('reports/optimizedDashboard', {
+          title: 'Business Dashboard',
           report,
           startDate,
           endDate,
           year: parsedYear,
-          lowStockThreshold: parsedThreshold,
-          inventoryMonth: req.query.inventoryMonth || '',
-          inventoryYear: req.query.inventoryYear || '',
-          lowStockPage: parseInt(req.query.lowStockPage) || 1,
-          invPage: parseInt(req.query.invPage) || 1
+          lowStockThreshold: parsedThreshold
         });
       }
 
@@ -192,9 +272,13 @@ module.exports = {
   },
   async downloadTopProductsCSV(req, res) {
     try {
-      const { startDate, endDate, year } = req.query;
+      const { startDate, endDate, year, by } = req.query;
       const parsedYear = Math.max(parseInt(year, 10) || new Date().getFullYear(), 1970);
+      // If requested 'by=revenue', pull revenue-sorted list, otherwise quantity-sorted
       const report = await salesService.getComprehensiveReport({ startDate, endDate, year: parsedYear });
+      const byMode = (by || 'quantity').toLowerCase();
+      const dataSource = byMode === 'revenue' ? report.topProductsByRevenue : report.topProducts;
+
       const fields = [
         { label: '#', value: (row, idx) => idx + 1 },
         { label: 'Product Name', value: 'name' },
@@ -202,7 +286,7 @@ module.exports = {
         { label: 'Total Revenue (₹)', value: row => row.totalRevenue?.toLocaleString('en-IN', { minimumFractionDigits: 2 }) || '0.00' }
       ];
       // Add index for row number
-      const data = (report.topProducts || []).map((row, idx) => ({ ...row, idx }));
+      const data = (dataSource || []).map((row, idx) => ({ ...row, idx }));
       const parser = new Parser({ fields });
       const csv = parser.parse(data);
       res.header('Content-Type', 'text/csv');

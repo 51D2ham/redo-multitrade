@@ -5,6 +5,7 @@ const Sale = require('../models/saleModel');
 const PriceLog = require('../models/priceLogModel');
 
 const DEFAULT_SALE_STATUSES = ['Completed', 'Confirmed', 'Delivered', 'Shipped'];
+const DEFAULT_REPORT_LIMIT = 10;
 
 //validate date range
 function parseDateRange({ startDate, endDate }) {
@@ -123,7 +124,7 @@ module.exports = {
       // By quantity and by revenue, ranked descending.
       // limit: number of top results to return (default 10).
    
-  async getTopSellingProducts({ startDate, endDate, limit = 10, onlyStatuses = DEFAULT_SALE_STATUSES }) {
+  async getTopSellingProducts({ startDate, endDate, limit = 10, onlyStatuses = DEFAULT_SALE_STATUSES, sortBy = 'quantity' }) {
     const { start, end } = parseDateRange({ startDate, endDate });
 
     const topProducts = await Sale.aggregate([
@@ -167,11 +168,20 @@ module.exports = {
           totalRevenue: 1
         }
       },
-      { $sort: { totalQuantity: -1 } },
-      { $limit: limit }
+      // We'll sort after aggregation to allow dynamic sortBy (quantity or revenue)
     ]);
 
-    return Array.isArray(topProducts) ? topProducts : [];
+    const normalized = Array.isArray(topProducts) ? topProducts : [];
+    // sort dynamically by requested metric
+    const sorted = normalized.sort((a, b) => {
+      if (sortBy === 'revenue') {
+        return (b.totalRevenue || 0) - (a.totalRevenue || 0);
+      }
+      // default: sort by quantity
+      return (b.totalQuantity || 0) - (a.totalQuantity || 0);
+    });
+
+    return sorted.slice(0, limit);
   },
 
 
@@ -444,6 +454,59 @@ module.exports = {
     }));
   },
 
+  // Enhanced sales metrics
+  async getSalesMetrics({ startDate, endDate, onlyStatuses = DEFAULT_SALE_STATUSES }) {
+    const { start, end } = parseDateRange({ startDate, endDate });
+    
+    const metrics = await Sale.aggregate([
+      { $match: { soldAt: { $gte: start, $lte: end } } },
+      {
+        $lookup: {
+          from: 'orders',
+          localField: 'orderId',
+          foreignField: '_id',
+          as: 'orderInfo'
+        }
+      },
+      { $unwind: { path: '$orderInfo', preserveNullAndEmptyArrays: true } },
+      { $match: onlyStatuses && onlyStatuses.length > 0 ? { 'orderInfo.status': { $in: onlyStatuses } } : {} },
+      {
+        $group: {
+          _id: null,
+          totalItemsSold: { $sum: '$quantity' },
+          totalRevenue: { $sum: '$totalLinePrice' },
+          uniqueProducts: { $addToSet: '$product' },
+          uniqueOrders: { $addToSet: '$orderId' },
+          avgItemsPerOrder: { $avg: '$quantity' },
+          maxOrderValue: { $max: '$totalLinePrice' },
+          minOrderValue: { $min: '$totalLinePrice' }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          totalItemsSold: 1,
+          totalRevenue: 1,
+          uniqueProductCount: { $size: '$uniqueProducts' },
+          totalOrders: { $size: '$uniqueOrders' },
+          avgItemsPerOrder: { $round: ['$avgItemsPerOrder', 2] },
+          maxOrderValue: 1,
+          minOrderValue: 1
+        }
+      }
+    ]);
+    
+    return metrics[0] || {
+      totalItemsSold: 0,
+      totalRevenue: 0,
+      uniqueProductCount: 0,
+      totalOrders: 0,
+      avgItemsPerOrder: 0,
+      maxOrderValue: 0,
+      minOrderValue: 0
+    };
+  },
+
   
    // 9) getComprehensiveReport:
    //  Combines revenue summary, AOV, top products, category breakdown,
@@ -451,36 +514,103 @@ module.exports = {
    //     all in one JSON payload. Useful for a single “master dashboard” call.
    
   async getComprehensiveReport({ startDate, endDate, lowStockThreshold = 5, year, onlyStatuses = DEFAULT_SALE_STATUSES }) {
-    // Note: we await each sub-report in parallel
+    const InventoryService = require('../services/inventoryService');
+    const limit = DEFAULT_REPORT_LIMIT;
+
+    // Get comprehensive data in parallel
     const [
       revenueSummary,
       aov,
-      topProducts,
+      topProductsByQty,
       salesByCat,
-      lowStockAlerts,
+      inventoryData,
       monthlyTrend,
       inventoryLogSummary,
-      priceChangeEvents
+      priceChangeEvents,
+      salesMetrics,
+      recentOrders
     ] = await Promise.all([
       this.getRevenueSummary({ startDate, endDate, onlyStatuses }),
       this.getAverageOrderValue({ startDate, endDate, onlyStatuses }),
-      this.getTopSellingProducts({ startDate, endDate, limit: 10, onlyStatuses }),
+      this.getTopSellingProducts({ startDate, endDate, limit, onlyStatuses, sortBy: 'quantity' }),
       this.getSalesByCategory({ startDate, endDate, onlyStatuses }),
-      this.getLowStockAlerts({ threshold: lowStockThreshold }),
+      InventoryService.getDashboardData(),
       this.getMonthlySalesTrend({ year, onlyStatuses }),
       this.getInventoryLogSummary({ startDate, endDate }),
-      this.getPriceChangeEvents({ startDate, endDate })
+      this.getPriceChangeEvents({ startDate, endDate }),
+      this.getSalesMetrics({ startDate, endDate, onlyStatuses }),
+      this.getRecentOrders({ limit: 10 })
     ]);
-    // Always return a fully structured report
+
+    // Get top products by revenue
+    const topProductsByRevenue = await this.getTopSellingProducts({ startDate, endDate, limit, onlyStatuses, sortBy: 'revenue' });
+    // Return comprehensive report with pure database data
     return {
+      // Sales data - pure from database
       revenueSummary: revenueSummary || { totalRevenue: 0, totalOrders: 0 },
       aov: aov || { averageOrderValue: 0, orderCount: 0 },
-      topProducts: Array.isArray(topProducts) ? topProducts : [],
+      topProducts: Array.isArray(topProductsByQty) ? topProductsByQty : [],
+      topProductsByRevenue: Array.isArray(topProductsByRevenue) ? topProductsByRevenue : [],
       salesByCat: Array.isArray(salesByCat) ? salesByCat : [],
-      lowStockAlerts: Array.isArray(lowStockAlerts) ? lowStockAlerts : [],
       monthlyTrend: Array.isArray(monthlyTrend) ? monthlyTrend : [],
+      
+      // Enhanced sales metrics - pure from database
+      salesMetrics: salesMetrics || {
+        totalItemsSold: 0,
+        uniqueProductCount: 0,
+        avgItemsPerOrder: 0,
+        maxOrderValue: 0,
+        minOrderValue: 0
+      },
+      
+      // Inventory data - pure from database
+      lowStockAlerts: inventoryData.lowStockAlerts || [],
+      criticalStockCount: inventoryData.criticalStockCount || 0,
+      recentMovements: inventoryData.recentMovements || [],
+      
+      // Product statistics - pure from database
+      totalProducts: inventoryData.totalProducts || 0,
+      totalVariants: inventoryData.totalVariants || 0,
+      activeProducts: inventoryData.activeProducts || 0,
+      draftProducts: inventoryData.draftProducts || 0,
+      inactiveProducts: inventoryData.inactiveProducts || 0,
+      
+      // Stock status - pure from database
+      inStockVariants: inventoryData.inStockVariants || 0,
+      lowStockVariants: inventoryData.lowStockVariants || 0,
+      outOfStockVariants: inventoryData.outOfStockVariants || 0,
+      
+      // Financial - pure from database
+      stockValue: inventoryData.stockValue || 0,
+
+      // Additional analytics - pure from database
       inventoryLogSummary: inventoryLogSummary || {},
-      priceChangeEvents: Array.isArray(priceChangeEvents) ? priceChangeEvents : []
+      priceChangeEvents: Array.isArray(priceChangeEvents) ? priceChangeEvents : [],
+      recentOrders: Array.isArray(recentOrders) ? recentOrders : []
     };
+  },
+
+  // Get recent orders
+  async getRecentOrders({ limit = 10 }) {
+    try {
+      const orders = await Order.find({})
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .populate('customer', 'fullname email')
+        .lean();
+      
+      return orders.map(order => ({
+        _id: order._id,
+        orderId: order.orderId || order._id,
+        customerName: order.customer?.fullname || order.shippingAddress?.fullName || 'Guest',
+        totalAmount: order.totalAmount || 0,
+        status: order.status,
+        items: order.items || [],
+        createdAt: order.createdAt
+      }));
+    } catch (error) {
+      console.error('Error fetching recent orders:', error);
+      return [];
+    }
   }
 };

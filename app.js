@@ -164,10 +164,21 @@ app.get('/admin/inventory-test', (req, res) => {
   res.send('Direct inventory route works!');
 });
 
+// Dashboard route - use existing comprehensive report
+app.get('/admin/dashboard', (req, res) => {
+  res.redirect('/admin/reports/comprehensive');
+});
+app.get('/dashboard', (req, res) => {
+  res.redirect('/admin/reports/comprehensive');
+});
+
+// Inventory routes - Remove these as they're handled by the inventory routes below
+
 // These generic /admin routes must come AFTER specific routes
 app.use('/admin/inventory', inventoryRoutes);
 app.use('/api/v1/inventory', inventoryApiRoutes);
 app.use('/admin/v1/order', orderManagementRoutes);
+// IMPORTANT: This catches all /admin/* routes, so it must be LAST
 app.use('/admin', salesReport);
 
 // Parameters redirect
@@ -177,11 +188,17 @@ app.get('/admin/v1/parameters', (req, res) => {
 
 // Root route
 app.get('/', (req, res) => {
-  res.redirect('/admin/v1/staff/dashboard');
+  res.redirect('/admin/reports/comprehensive');
 });
 
 // 404 handler
 app.use((req, res) => {
+  // Ensure cspNonce is available for 404 template
+  if (!res.locals.cspNonce) {
+    const crypto = require('crypto');
+    res.locals.cspNonce = crypto.randomBytes(16).toString('base64');
+  }
+  
   res.status(404).render('errors/404', {
     title: 'Page Not Found',
     message: 'The requested page could not be found'
@@ -193,6 +210,13 @@ app.use((err, req, res, next) => {
   console.error('[ERROR]', new Date().toISOString(), err);
   const statusCode = err.status || 500;
   const message = statusCode === 500 ? 'Something went wrong' : err.message;
+  
+  // Ensure cspNonce is available for error templates
+  if (!res.locals.cspNonce) {
+    const crypto = require('crypto');
+    res.locals.cspNonce = crypto.randomBytes(16).toString('base64');
+  }
+  
   res.status(statusCode).render('errors/generic', {
     title: `${statusCode} Error`,
     statusCode,

@@ -1,4 +1,8 @@
+const { StatusCodes } = require('http-status-codes');
+const { Order } = require('../models/orderModel');
+const { sendOrderStatusUpdate } = require('../utils/orderNotification');
 const InventoryService = require('../services/inventoryService');
+
 // Cancel order (Customer)
 exports.cancelOrder = async (req, res) => {
   try {
@@ -26,19 +30,22 @@ exports.cancelOrder = async (req, res) => {
       updatedAt: new Date()
     });
     await order.save();
-    // Restock each item
+    // Restore stock for cancelled items
+    const StockManager = require('../utils/stockManager');
     try {
-      for (const item of order.items) {
-        await InventoryService.restock(
-          item.productId,
-          item.variantSku || '',
-          item.qty,
-          userId,
-          `Restocked due to order cancellation (${orderId})`
-        );
+      const restoreResult = await StockManager.restoreStock(
+        order.items,
+        orderId,
+        userId
+      );
+      
+      if (!restoreResult.success) {
+        console.error('Stock restoration errors:', restoreResult.errors);
+        // Continue with cancellation even if some stock restoration fails
       }
     } catch (restockError) {
-      console.error('Restock error:', restockError);
+      console.error('Stock restoration failed:', restockError);
+      // Continue with cancellation even if stock restoration fails
     }
     return res.status(StatusCodes.OK).json({
       success: true,
@@ -53,9 +60,6 @@ exports.cancelOrder = async (req, res) => {
     });
   }
 };
-const { StatusCodes } = require('http-status-codes');
-const { Order } = require('../models/orderModel');
-const { sendOrderStatusUpdate } = require('../utils/orderNotification');
 
 // Update order status (Admin only)
 exports.updateOrderStatus = async (req, res) => {
@@ -81,6 +85,35 @@ exports.updateOrderStatus = async (req, res) => {
       });
     }
 
+    const oldStatus = order.status;
+
+    // Handle stock restoration for cancellation
+    if (status === 'cancelled' && oldStatus !== 'cancelled') {
+      const StockManager = require('../utils/stockManager');
+      try {
+        const restoreResult = await StockManager.restoreStock(
+          order.items,
+          orderId,
+          adminId
+        );
+        
+        if (!restoreResult.success) {
+          console.error('Stock restoration errors:', restoreResult.errors);
+          return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+            success: false,
+            message: 'Failed to restore stock during cancellation',
+            errors: restoreResult.errors
+          });
+        }
+      } catch (restockError) {
+        console.error('Stock restoration failed:', restockError);
+        return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+          success: false,
+          message: 'Failed to restore stock during cancellation'
+        });
+      }
+    }
+
     // Update order
     const updateData = { status };
     if (trackingNumber) updateData.trackingNumber = trackingNumber;
@@ -89,7 +122,7 @@ exports.updateOrderStatus = async (req, res) => {
     // Add to status history
     order.statusHistory.push({
       status,
-      message: message || `Order status updated to ${status}`,
+      message: message || `Order status updated from ${oldStatus} to ${status}`,
       updatedBy: adminId,
       updatedAt: new Date()
     });

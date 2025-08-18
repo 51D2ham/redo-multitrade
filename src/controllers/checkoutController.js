@@ -11,8 +11,7 @@ const { Order, CartOrder } = require('../models/orderModel');
 const ShippingAddress = require('../models/shippingAddressSchema');
 
 exports.checkout = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
+  // Transaction/session removed for COD-only flow
 
   try {
     const userId = req.userInfo.userId;
@@ -40,8 +39,7 @@ exports.checkout = async (req, res) => {
           path: 'category',
           select: 'name'
         }
-      })
-      .session(session);
+      });
 
     if (!cartItems || cartItems.length === 0) {
       return res.status(StatusCodes.BAD_REQUEST).json({
@@ -124,7 +122,7 @@ exports.checkout = async (req, res) => {
         ...shippingAddress,
         user: userId
       });
-      await newAddress.save({ session });
+  await newAddress.save();
       finalShippingAddress = newAddress._id;
     } else {
       if (!addressId) {
@@ -137,7 +135,7 @@ exports.checkout = async (req, res) => {
       const existingAddress = await ShippingAddress.findOne({
         _id: addressId,
         user: userId
-      }).session(session);
+  });
 
       if (!existingAddress) {
         return res.status(StatusCodes.NOT_FOUND).json({
@@ -176,7 +174,7 @@ exports.checkout = async (req, res) => {
       user: userId
     });
 
-    await order.save({ session });
+  await order.save();
 
     // Create cart-order relationships for available items
     const cartOrderDocs = availableItems.map(item => ({
@@ -184,7 +182,7 @@ exports.checkout = async (req, res) => {
       cart: item._id
     }));
 
-    await CartOrder.insertMany(cartOrderDocs, { session });
+  await CartOrder.insertMany(cartOrderDocs);
 
     // Atomic stock deduction with race condition protection
     for (const item of availableItems) {
@@ -197,8 +195,7 @@ exports.checkout = async (req, res) => {
               'variants._id': variant._id,
               'variants.qty': { $gte: item.qty } // Ensure stock still available
             },
-            { $inc: { 'variants.$.qty': -item.qty } },
-            { session }
+            { $inc: { 'variants.$.qty': -item.qty } }
           );
           
           if (result.modifiedCount === 0) {
@@ -213,17 +210,17 @@ exports.checkout = async (req, res) => {
     if (cartItemIds && cartItemIds.length > 0) {
       itemsToRemove._id = { $in: cartItemIds };
     }
-    await Cart.deleteMany(itemsToRemove, { session });
+  await Cart.deleteMany(itemsToRemove);
 
     // Log inventory movements (after successful transaction)
     try {
-      await InventoryService.logSale(orderItems, order._id, 'system');
+      // Use a valid admin ObjectId for system actions, or fallback to null
+      const systemAdminId = process.env.SYSTEM_ADMIN_ID || null;
+      await InventoryService.logSale(orderItems, order._id, systemAdminId);
     } catch (logError) {
       console.error('Inventory logging failed:', logError);
       // Don't fail the order for logging errors
     }
-
-    await session.commitTransaction();
 
     // Keep user logged in by refreshing token (no logout after checkout)
     const jwt = require('jsonwebtoken');
@@ -262,14 +259,11 @@ exports.checkout = async (req, res) => {
     });
 
   } catch (error) {
-    await session.abortTransaction();
     console.error('Checkout error:', error);
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       success: false,
       message: 'Checkout failed. Please try again.'
     });
-  } finally {
-    session.endSession();
   }
 };
 

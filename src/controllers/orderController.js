@@ -382,39 +382,97 @@ exports.renderEditOrder = async (req, res) => {
 exports.updateOrder = async (req, res) => {
   try {
     const { id } = req.params;
-    const { trackingNumber, estimatedDelivery, notes } = req.body;
+    const { status, paid, trackingNumber, estimatedDelivery, statusMessage } = req.body;
 
-    const order = await Order.findById(id);
+    const order = await Order.findById(id).populate('user', 'email fullname');
     if (!order) {
       req.flash('error', 'Order not found');
       return res.redirect('/admin/v1/order');
     }
 
-    // Prevent updates to final states
-    if (['delivered', 'cancelled'].includes(order.status)) {
-      req.flash('error', `Cannot update ${order.status} orders`);
+    // Prevent updates to final states (unless it's the same status)
+    if (['delivered', 'cancelled'].includes(order.status) && order.status !== status) {
+      req.flash('error', `Cannot modify ${order.status} orders`);
       return res.redirect(`/admin/v1/order/${id}`);
     }
 
-    // Update allowed fields
-    if (trackingNumber !== undefined) order.trackingNumber = trackingNumber;
-    if (estimatedDelivery) order.estimatedDelivery = new Date(estimatedDelivery);
-    if (notes) {
+    let statusChanged = false;
+    
+    // Handle status change
+    if (status && status !== order.status) {
+      // Validate status transition
+      if (!validateStatusTransition(order.status, status)) {
+        req.flash('error', `Cannot change status from ${order.status} to ${status}`);
+        return res.redirect(`/admin/v1/order/${id}/edit`);
+      }
+      
+      const oldStatus = order.status;
+      
+      // Handle stock restoration for cancellation
+      if (status === 'cancelled' && oldStatus !== 'cancelled') {
+        const StockManager = require('../utils/stockManager');
+        try {
+          const restoreResult = await StockManager.restoreStock(
+            order.items,
+            id,
+            req.session?.admin?.id
+          );
+          
+          if (!restoreResult.success) {
+            console.error('Stock restoration errors:', restoreResult.errors);
+            req.flash('error', 'Failed to restore stock during cancellation: ' + restoreResult.errors.join(', '));
+            return res.redirect(`/admin/v1/order/${id}/edit`);
+          }
+        } catch (restockError) {
+          console.error('Stock restoration failed:', restockError);
+          req.flash('error', 'Failed to restore stock during cancellation');
+          return res.redirect(`/admin/v1/order/${id}/edit`);
+        }
+      }
+      
+      order.status = status;
+      statusChanged = true;
+      
+      // Add to status history
       if (!order.statusHistory) order.statusHistory = [];
       order.statusHistory.push({
-        status: order.status,
-        message: notes,
+        status: status,
+        message: statusMessage || `Order status updated from ${oldStatus} to ${status}`,
         updatedBy: req.session?.admin?.id,
         updatedAt: new Date()
       });
     }
 
+    // Handle payment status
+    if (paid !== undefined) {
+      order.paid = paid === 'true' || paid === true;
+    }
+
+    // Auto-update payment for delivered COD orders
+    if (status === 'delivered' && order.paymentMethod === 'cod') {
+      order.paid = true;
+    }
+
+    // Update other fields
+    if (trackingNumber !== undefined) order.trackingNumber = trackingNumber;
+    if (estimatedDelivery) order.estimatedDelivery = new Date(estimatedDelivery);
+
     await order.save();
+
+    // Send email notification if status changed
+    if (statusChanged && order.user?.email) {
+      try {
+        await sendOrderStatusUpdate(order.user.email, order, status, statusMessage);
+      } catch (emailError) {
+        console.error('Status update email failed:', emailError);
+      }
+    }
+
     req.flash('success', 'Order updated successfully');
     res.redirect(`/admin/v1/order/${id}`);
   } catch (err) {
     console.error('Update order error:', err);
-    req.flash('error', 'Failed to update order');
+    req.flash('error', 'Failed to update order: ' + err.message);
     res.redirect(`/admin/v1/order/${req.params.id}/edit`);
   }
 };
@@ -454,19 +512,55 @@ exports.updateOrderStatus = async (req, res) => {
 
     // Validate status transition
     if (!validateStatusTransition(order.status, status)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: `Cannot change status from ${order.status} to ${status}` 
-      });
+      const errorMsg = `Cannot change status from ${order.status} to ${status}`;
+      if (req.xhr || req.headers.accept?.indexOf('json') > -1) {
+        return res.status(400).json({ success: false, message: errorMsg });
+      }
+      req.flash('error', errorMsg);
+      return res.redirect(`/admin/v1/order/${id}`);
     }
 
+    const oldStatus = order.status;
+    
+    // Handle stock restoration for cancellation
+    if (status === 'cancelled' && oldStatus !== 'cancelled') {
+      const StockManager = require('../utils/stockManager');
+      try {
+        const restoreResult = await StockManager.restoreStock(
+          order.items,
+          id,
+          req.session?.admin?.id
+        );
+        
+        if (!restoreResult.success) {
+          console.error('Stock restoration errors:', restoreResult.errors);
+          if (req.xhr || req.headers.accept?.indexOf('json') > -1) {
+            return res.status(400).json({ 
+              success: false, 
+              message: 'Failed to restore stock during cancellation',
+              errors: restoreResult.errors
+            });
+          }
+          req.flash('error', 'Failed to restore stock during cancellation');
+          return res.redirect(`/admin/v1/order/${id}`);
+        }
+      } catch (restockError) {
+        console.error('Stock restoration failed:', restockError);
+        if (req.xhr || req.headers.accept?.indexOf('json') > -1) {
+          return res.status(500).json({ success: false, message: 'Failed to restore stock during cancellation' });
+        }
+        req.flash('error', 'Failed to restore stock during cancellation');
+        return res.redirect(`/admin/v1/order/${id}`);
+      }
+    }
+    
     order.status = status;
 
     // Add to status history
     if (!order.statusHistory) order.statusHistory = [];
     order.statusHistory.push({
       status: status,
-      message: statusMessage || `Order status updated to ${status}`,
+      message: statusMessage || `Order status updated from ${oldStatus} to ${status}`,
       updatedBy: req.session?.admin?.id,
       updatedAt: new Date()
     });
@@ -488,7 +582,12 @@ exports.updateOrderStatus = async (req, res) => {
     }
 
     if (req.xhr || req.headers.accept?.indexOf('json') > -1) {
-      return res.json({ success: true, message: 'Status updated successfully', status });
+      return res.json({ 
+        success: true, 
+        message: 'Status updated successfully', 
+        status,
+        paid: order.paid
+      });
     }
 
     req.flash('success', 'Order status updated successfully');
