@@ -1,0 +1,273 @@
+// controllers/categoryController.js
+const { Category, SubCategory, Type, Brand } = require('../models/parametersModel');
+const mongoose = require('mongoose');
+
+module.exports = {
+  // ======================
+  // PUBLIC API CONTROLLERS
+  // ======================
+  
+  /**
+   * @desc    Get all categories (public)
+   * @route   GET /api/v1/categories
+   * @access  Public
+   */
+  getAllPublicCategories: async (req, res) => {
+    try {
+      const categories = await Category.find()
+        .select('name slug createdAt')
+        .sort({ name: 1 });
+
+      res.status(200).json({
+        success: true,
+        count: categories.length,
+        data: categories
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: 'Server error',
+        error: error.message
+      });
+    }
+  },
+
+  /**
+   * @desc    Get full category hierarchy (public)
+   * @route   GET /api/v1/categories/hierarchy
+   * @access  Public
+   */
+  getCategoriesWithSubcategories: async (req, res) => {
+    try {
+      const categories = await Category.aggregate([
+        {
+          $lookup: {
+            from: 'subcategories',
+            localField: '_id',
+            foreignField: 'category',
+            as: 'subCategories'
+          }
+        },
+        {
+          $project: {
+            name: 1,
+            slug: 1,
+            subCategories: {
+              $map: {
+                input: '$subCategories',
+                as: 'sub',
+                in: {
+                  _id: '$$sub._id',
+                  name: '$$sub.name',
+                  slug: '$$sub.slug'
+                }
+              }
+            }
+          }
+        }
+      ]);
+
+      res.status(200).json({
+        success: true,
+        data: categories
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: 'Server error',
+        error: error.message
+      });
+    }
+  },
+
+  // ========================
+  // ADMIN DASHBOARD CONTROLLERS
+  // ========================
+  
+  /**
+   * @desc    Render category list (admin)
+   * @route   GET /admin/categories
+   * @access  Private/Admin
+   */
+  listCategories: async (req, res) => {
+    try {
+      const categories = await Category.find({ admin: req.user._id })
+        .populate('admin', 'username email fullname')
+        .sort({ createdAt: -1 });
+
+      res.render('categories/list', {
+        title: 'Manage Categories',
+        categories,
+        success: req.flash('success'),
+        error: req.flash('error')
+      });
+    } catch (error) {
+      console.error('Category list error:', error);
+      req.flash('error', 'Error loading categories');
+      res.redirect('/admin/v1/staff/dashboard');
+    }
+  },
+
+  /**
+   * @desc    Render new category form (admin)
+   * @route   GET /admin/categories/new
+   * @access  Private/Admin
+   */
+  newCategory: (req, res) => {
+    res.render('categories/new', {
+      title: 'Create New Category',
+      success: req.flash('success'),
+      error: req.flash('error')
+    });
+  },
+
+  /**
+   * @desc    Create new category (admin)
+   * @route   POST /admin/categories
+   * @access  Private/Admin
+   */
+  createCategory: async (req, res) => {
+    try {
+      const { name } = req.body;
+      
+      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      
+      const newCategory = await Category.create({
+        name: name,
+        slug: slug,
+        admin: req.user._id
+      });
+      
+      req.flash('success', 'Category created successfully');
+      res.redirect('/admin/v1/parameters/categories');
+    } catch (error) {
+      console.error('Create category error:', error);
+      req.flash('error', 'Error: ' + error.message);
+      res.redirect('/admin/v1/parameters/categories/new');
+    }
+  },
+
+  /**
+   * @desc    Show category details (admin)
+   * @route   GET /admin/categories/:id
+   * @access  Private/Admin
+   */
+  showCategory: async (req, res) => {
+    try {
+      const category = await Category.findOne({
+        _id: req.params.id,
+        admin: req.user._id
+      }).populate('admin', 'username email fullname');
+
+      if (!category) {
+        req.flash('error', 'Category not found');
+        return res.redirect('/admin/v1/parameters/categories');
+      }
+
+      // Get related subcategories
+      const subCategories = await SubCategory.find({
+        category: category._id,
+        admin: req.user._id
+      });
+
+      res.render('categories/show', {
+        title: 'Category Details',
+        category,
+        subcategories: subCategories,
+        success: req.flash('success'),
+        error: req.flash('error')
+      });
+    } catch (error) {
+      req.flash('error', 'Error loading category');
+      res.redirect('/admin/v1/parameters/categories');
+    }
+  },
+
+  /**
+   * @desc    Render edit category form (admin)
+   * @route   GET /admin/categories/:id/edit
+   * @access  Private/Admin
+   */
+  editCategory: async (req, res) => {
+    try {
+      const category = await Category.findOne({
+        _id: req.params.id,
+        admin: req.user._id
+      });
+
+      if (!category) {
+        req.flash('error', 'Category not found');
+        return res.redirect('/admin/v1/parameters/categories');
+      }
+
+      res.render('categories/edit', {
+        title: 'Edit Category',
+        category,
+        success: req.flash('success'),
+        error: req.flash('error')
+      });
+    } catch (error) {
+      req.flash('error', 'Error loading category');
+      res.redirect('/admin/v1/parameters/categories');
+    }
+  },
+
+  /**
+   * @desc    Update category (admin)
+   * @route   PUT /admin/categories/:id
+   * @access  Private/Admin
+   */
+  updateCategory: async (req, res) => {
+    try {
+      const { name } = req.body;
+      
+      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+      await Category.findByIdAndUpdate(req.params.id, {
+        name,
+        slug,
+        admin: req.user._id
+      });
+
+      req.flash('success', 'Category updated successfully');
+      res.redirect('/admin/v1/parameters/categories');
+    } catch (error) {
+      req.flash('error', 'Error: ' + error.message);
+      res.redirect(`/admin/v1/parameters/categories/${req.params.id}/edit`);
+    }
+  },
+
+  /**
+   * @desc    Delete category (admin)
+   * @route   DELETE /admin/categories/:id
+   * @access  Private/Admin
+   */
+  deleteCategory: async (req, res) => {
+    try {
+      const session = await mongoose.startSession();
+      session.startTransaction();
+
+      try {
+        const categoryId = req.params.id;
+        const adminId = req.user._id;
+
+        // Delete category and its dependencies
+        await Category.deleteOne({ _id: categoryId, admin: adminId }).session(session);
+        await SubCategory.deleteMany({ category: categoryId, admin: adminId }).session(session);
+        await Type.deleteMany({ category: categoryId, admin: adminId }).session(session);
+
+        await session.commitTransaction();
+        req.flash('success', 'Category and all related data deleted');
+        res.redirect('/admin/v1/parameters/categories');
+      } catch (error) {
+        await session.abortTransaction();
+        throw error;
+      } finally {
+        session.endSession();
+      }
+    } catch (error) {
+      req.flash('error', 'Error deleting category: ' + error.message);
+      res.redirect(`/admin/v1/parameters/categories/${req.params.id}`);
+    }
+  }
+};

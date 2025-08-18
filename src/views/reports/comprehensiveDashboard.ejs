@@ -1,0 +1,763 @@
+<%- include('../partials/header.ejs') %>
+
+<% /*
+  Ensure chartLabels and chartData are always defined before any HTML uses them.
+  Place this at the very top of the file.
+*/
+var chartLabels = [];
+var chartData = [];
+if (typeof report !== 'undefined' && report && report.monthlyTrend && report.monthlyTrend.length) {
+  chartLabels = report.monthlyTrend.map(row => ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][row.month-1]);
+  chartData = report.monthlyTrend.map(row => row.totalRevenue);
+} else {
+  chartLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
+  chartData = [0,0,0,0,0,0];
+}
+%>
+
+<div class="dashboard-container bg-gradient-to-br from-blue-50 via-indigo-100 to-purple-50 min-h-screen py-8 px-2 sm:px-6 lg:px-12">
+  <!-- Header -->
+  <div class="dashboard-header animate-fade-in shadow-xl bg-white/80 backdrop-blur-lg border border-indigo-100 rounded-2xl mb-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 p-6">
+    <div class="header-title flex items-center gap-4">
+      <span class="inline-flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-tr from-indigo-400 to-purple-400 text-white text-3xl shadow-lg">
+        <i class="fas fa-chart-network"></i>
+      </span>
+      <div>
+        <h1 class="text-3xl font-extrabold bg-gradient-to-r from-indigo-600 to-purple-500 bg-clip-text text-transparent">Comprehensive Analytics Dashboard</h1>
+        <div class="header-meta flex gap-4 text-gray-500 mt-2 text-sm">
+          <div class="header-meta-item flex items-center gap-2">
+            <i class="far fa-calendar-alt"></i>
+            <span><%= new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' }) %></span>
+          </div>
+          <div class="header-meta-item flex items-center gap-2">
+            <i class="fas fa-user-shield"></i>
+            <span>Admin Panel</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <%- include('./partials/exportExcelButton') %>
+  </div>
+  <!-- Filters -->
+  <form id="filtersForm" action="/admin/reports/comprehensive" method="GET" class="filters-section animate-fade-in delay-100 bg-white/80 backdrop-blur-lg border border-indigo-100 rounded-2xl shadow-lg p-6 mb-8">
+    <div class="filters-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div>
+        <label class="filter-group block font-semibold text-indigo-700 mb-2">Date Range</label>
+        <input id="dateRange" name="dateRange" type="text" class="filter-control w-full px-4 py-3 rounded-lg border border-indigo-200 focus:ring-2 focus:ring-indigo-400" placeholder="YYYY-MM-DD to YYYY-MM-DD" value="<%= startDate && endDate ? `${startDate} to ${endDate}` : '' %>" />
+      </div>
+      <div>
+        <label class="filter-group block font-semibold text-indigo-700 mb-2">Year</label>
+        <select id="yearSelect" name="year" class="filter-control w-full px-4 py-3 rounded-lg border border-indigo-200 focus:ring-2 focus:ring-indigo-400">
+          <% for (let y = 2020; y <= new Date().getFullYear(); y++) { %>
+            <option value="<%= y %>" <%= y === year ? 'selected' : '' %>><%= y %></option>
+          <% } %>
+        </select>
+      </div>
+      <div>
+        <label class="filter-group block font-semibold text-indigo-700 mb-2">Low-Stock Threshold</label>
+        <input id="lowStockThreshold" name="lowStockThreshold" type="number" min="0" class="filter-control w-full px-4 py-3 rounded-lg border border-indigo-200 focus:ring-2 focus:ring-indigo-400" value="<%= lowStockThreshold || 5 %>" />
+      </div>
+      <div class="flex items-end">
+        <button type="submit" class="refresh-btn w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold bg-gradient-to-tr from-blue-500 to-indigo-500 text-white shadow-md hover:scale-105 transition-transform">
+          <i class="fas fa-sync-alt"></i> Refresh Data
+        </button>
+      </div>
+    </div>
+  </form>
+  <!-- Metrics Cards -->
+  <div class="metrics-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-8 mb-12 place-items-stretch">
+    <div class="metric-card animate-fade-in delay-200 bg-gradient-to-br from-indigo-50 to-purple-100 rounded-3xl p-8 shadow-xl border-4 border-transparent relative overflow-hidden hover:scale-[1.06] transition-transform metric-card-animated">
+    <div class="metric-title flex items-center gap-3 text-indigo-700 font-bold text-lg">
+        <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-400 to-purple-400 text-white text-xl shadow-lg"><i class="fas fa-rupee-sign"></i></span>
+        <span>Total Revenue</span>
+      </div>
+      <div class="metric-value text-4xl font-extrabold text-indigo-600 mt-4 tracking-tight">₹<%= (report?.revenueSummary?.totalRevenue||0).toLocaleString('en-IN', {minimumFractionDigits:2}) %></div>
+      <i class="fas fa-wallet metric-icon absolute bottom-4 right-6 text-6xl text-indigo-300 opacity-10"></i>
+    </div>
+    <div class="metric-card animate-fade-in delay-250 bg-gradient-to-br from-green-50 to-teal-100 rounded-3xl p-8 shadow-xl border border-green-100 relative overflow-hidden hover:scale-[1.03] transition-transform">
+    <div class="metric-card animate-fade-in delay-250 bg-gradient-to-br from-green-50 to-teal-100 rounded-3xl p-8 shadow-xl border-4 border-transparent relative overflow-hidden hover:scale-[1.06] transition-transform metric-card-animated">
+        <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-tr from-green-400 to-teal-400 text-white text-xl shadow-lg"><i class="fas fa-shopping-cart"></i></span>
+        <span>Total Orders</span>
+      </div>
+      <div class="metric-value text-4xl font-extrabold text-green-600 mt-4 tracking-tight"><%= report?.revenueSummary?.totalOrders||0 %></div>
+      <i class="fas fa-cart-shopping metric-icon absolute bottom-4 right-6 text-6xl text-green-300 opacity-10"></i>
+    </div>
+    <div class="metric-card animate-fade-in delay-300 bg-gradient-to-br from-blue-50 to-cyan-100 rounded-3xl p-8 shadow-xl border border-blue-100 relative overflow-hidden hover:scale-[1.03] transition-transform">
+    <div class="metric-card animate-fade-in delay-300 bg-gradient-to-br from-blue-50 to-cyan-100 rounded-3xl p-8 shadow-xl border-4 border-transparent relative overflow-hidden hover:scale-[1.06] transition-transform metric-card-animated">
+        <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-tr from-blue-400 to-cyan-400 text-white text-xl shadow-lg"><i class="fas fa-chart-pie"></i></span>
+        <span>Avg. Order Value</span>
+      </div>
+      <div class="metric-value text-4xl font-extrabold text-blue-600 mt-4 tracking-tight">₹<%= (report?.aov?.averageOrderValue||0).toLocaleString('en-IN', {minimumFractionDigits:2}) %></div>
+      <i class="fas fa-chart-line metric-icon absolute bottom-4 right-6 text-6xl text-blue-300 opacity-10"></i>
+    </div>
+    <div class="metric-card animate-fade-in delay-350 bg-gradient-to-br from-red-50 to-pink-100 rounded-3xl p-8 shadow-xl border border-red-100 relative overflow-hidden hover:scale-[1.03] transition-transform">
+    <div class="metric-card animate-fade-in delay-350 bg-gradient-to-br from-red-50 to-pink-100 rounded-3xl p-8 shadow-xl border-4 border-transparent relative overflow-hidden hover:scale-[1.06] transition-transform metric-card-animated">
+        <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-tr from-red-400 to-pink-400 text-white text-xl shadow-lg"><i class="fas fa-exclamation-triangle"></i></span>
+        <span>Low Stock Alerts</span>
+      </div>
+      <div class="metric-value text-4xl font-extrabold text-red-600 mt-4 tracking-tight"><%= report?.lowStockAlerts?.length||0 %></div>
+      <i class="fas fa-boxes-stacked metric-icon absolute bottom-4 right-6 text-6xl text-red-300 opacity-10"></i>
+    </div>
+  </div>
+  <!-- Low-Stock Alerts Table with Pagination -->
+  <div class="data-section animate-fade-in delay-400 mb-10">
+    <div class="section-header flex items-center gap-3 mb-4">
+      <i class="fas fa-exclamation-circle text-2xl text-red-500"></i>
+      <h2 class="text-xl font-bold text-red-700">Low-Stock Alerts (≤ <%= lowStockThreshold %> units)</h2>
+    </div>
+    <div class="data-table-container bg-white/90 rounded-xl shadow overflow-x-auto">
+      <table class="data-table w-full min-w-[400px]">
+        <thead class="bg-gradient-to-r from-red-400 to-pink-400 text-white">
+          <tr>
+            <th class="py-3 px-4 text-left font-semibold">Product Name</th>
+            <th class="py-3 px-4 text-left font-semibold">Variant SKU</th>
+            <th class="py-3 px-4 text-left font-semibold">Remaining Stock</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% const lowStockPageSize = 10;
+             const lowStockStart = (lowStockPage-1)*lowStockPageSize;
+             const lowStockEnd = lowStockStart+lowStockPageSize;
+             const lowStockData = (report.lowStockAlerts||[]).slice(lowStockStart,lowStockEnd);
+          %>
+          <% if (!lowStockData.length) { %>
+            <tr class="no-data-row">
+              <td colspan="3" class="text-center py-6 text-gray-400 italic">No low-stock products found</td>
+            </tr>
+          <% } else { %>
+            <% lowStockData.forEach((item)=>{ %>
+              <tr class="hover:bg-red-50 transition">
+                <td class="py-2 px-4 font-medium"><%= item.title %></td>
+                <td class="py-2 px-4"><%= item.sku %></td>
+                <td class="py-2 px-4">
+                  <span class="<%= item.stock <= 2 ? 'bg-red-500 text-white px-3 py-1 rounded-full text-sm' : 'bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm' %>">
+                    <%= item.stock %>
+                  </span>
+                </td>
+              </tr>
+            <% }) %>
+          <% } %>
+        </tbody>
+      </table>
+      <% const lowStockTotalPages = Math.ceil((report.lowStockAlerts||[]).length/lowStockPageSize); %>
+      <% if (lowStockTotalPages > 1) { %>
+      <div class="flex justify-center gap-2 mt-4">
+        <% for(let p=1;p<=lowStockTotalPages;p++){ %>
+          <a href="?lowStockPage=<%= p %>" class="px-3 py-1 rounded-lg <%= p===lowStockPage ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-700' %> font-semibold hover:bg-red-400 hover:text-white transition"><%= p %></a>
+        <% } %>
+      </div>
+      <% } %>
+    </div>
+  </div>
+  <!-- Inventory Log Table with Pagination -->
+  <div class="data-section animate-fade-in delay-400 mb-10">
+    <div class="section-header flex items-center gap-3 mb-4">
+      <i class="fas fa-warehouse text-2xl text-gray-700"></i>
+      <h2 class="text-xl font-bold text-gray-800">Inventory Log Summary</h2>
+    </div>
+    <div class="data-table-container bg-white/95 rounded-2xl shadow-xl overflow-x-auto p-4">
+      <% const invPageSize = 10;
+         let invRows = [];
+         if (report.inventoryLogSummary) {
+           Object.entries(report.inventoryLogSummary).forEach(([reason, monthsObj]) => {
+             Object.entries(monthsObj).forEach(([month, arr]) => {
+               arr.forEach(row => {
+                 invRows.push({reason, month, ...row});
+               });
+             });
+           });
+         }
+         const invTotalPages = Math.ceil(invRows.length/invPageSize);
+         const invPageRows = invRows.slice((invPage-1)*invPageSize, invPage*invPageSize);
+      %>
+      <% if (!invPageRows.length) { %>
+        <div class="text-center py-6 text-gray-400 italic">No inventory log data found</div>
+      <% } else { %>
+        <table class="data-table w-full min-w-[400px] mb-2">
+          <thead class="bg-gradient-to-r from-gray-400 to-gray-200 text-white">
+            <tr>
+              <th class="py-3 px-4 text-left font-semibold">Reason</th>
+              <th class="py-3 px-4 text-left font-semibold">Month</th>
+              <th class="py-3 px-4 text-left font-semibold">Product Name</th>
+              <th class="py-3 px-4 text-left font-semibold">SKU</th>
+              <th class="py-3 px-4 text-left font-semibold">Total Change</th>
+              <th class="py-3 px-4 text-left font-semibold">Count of Events</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% invPageRows.forEach(row => { %>
+              <tr class="hover:bg-gray-100 transition">
+                <td class="py-2 px-4 font-medium text-gray-800"><%= row.reason.charAt(0).toUpperCase() + row.reason.slice(1) %></td>
+                <td class="py-2 px-4 text-gray-700"><%= ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][row.month-1] %></td>
+                <td class="py-2 px-4 font-medium text-gray-800"><%= row.productName || '-' %></td>
+                <td class="py-2 px-4 text-gray-600"><%= row.variantSku || '-' %></td>
+                <td class="py-2 px-4"><%= row.totalChange %></td>
+                <td class="py-2 px-4"><%= row.count %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+        <% if (invTotalPages > 1) { %>
+        <div class="flex justify-center gap-2 mt-4">
+          <% for(let p=1;p<=invTotalPages;p++){ %>
+            <a href="?invPage=<%= p %>" class="px-3 py-1 rounded-lg <%= p===invPage ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700' %> font-semibold hover:bg-blue-400 hover:text-white transition"><%= p %></a>
+          <% } %>
+        </div>
+        <% } %>
+      <% } %>
+    </div>
+  </div>
+  <!-- Sales Overview Table (Monthly Trend) -->
+  <div class="data-section animate-fade-in delay-400 mb-10">
+    <div class="section-header flex items-center gap-3 mb-4">
+      <i class="fas fa-chart-line text-2xl text-blue-500"></i>
+      <h2 class="text-xl font-bold text-blue-700">Sales Overview (Monthly Trend)</h2>
+    </div>
+    <div class="data-table-container bg-gradient-to-br from-blue-50 via-cyan-50 to-white rounded-2xl shadow-xl overflow-x-auto p-6 border border-blue-100">
+      <table class="data-table w-full min-w-[400px]">
+        <thead class="bg-gradient-to-r from-blue-400 to-cyan-400 text-white">
+          <tr>
+            <th class="py-4 px-6 text-left font-bold text-lg tracking-wide">Month</th>
+            <th class="py-4 px-6 text-left font-bold text-lg tracking-wide">Revenue (₹)</th>
+            <th class="py-4 px-6 text-left font-bold text-lg tracking-wide">Orders</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (!report.monthlyTrend?.length) { %>
+            <tr class="no-data-row">
+              <td colspan="3" class="text-center py-8 text-gray-400 italic text-lg">No monthly sales data found</td>
+            </tr>
+          <% } else { %>
+            <% report.monthlyTrend.forEach(row => { %>
+              <tr class="hover:bg-blue-100/60 transition rounded-xl">
+                <td class="py-3 px-6 font-semibold text-blue-700 bg-blue-50 rounded-l-xl"><span class="inline-block px-3 py-1 rounded-full bg-blue-200/60 text-blue-800"><%= ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][row.month-1] %></span></td>
+                <td class="py-3 px-6 text-lg font-bold text-indigo-700">₹<%= row.totalRevenue.toLocaleString('en-IN', {minimumFractionDigits:2}) %></td>
+                <td class="py-3 px-6 text-lg font-bold text-cyan-700"><%= row.totalOrders %></td>
+              </tr>
+            <% }) %>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <!-- Chart Section -->
+  <!-- <div class="data-section animate-fade-in delay-400 mb-10">
+    <div class="section-header flex items-center gap-3 mb-4">
+      <i class="fas fa-chart-bar text-2xl text-blue-500"></i>
+      <h2 class="text-xl font-bold text-blue-700">Sales Overview (Chart)</h2>
+    </div>
+    <div class="bg-white/90 rounded-xl shadow p-6">
+      <canvas id="salesChart" height="120"></canvas>
+    </div>
+  </div>
+</div> -->
+<%- include('../partials/footer.ejs') %>
+<!-- Chart Data Preparation for Sales Overview (Chart)
+   // Use monthlyTrend for chart labels and data if available
+   var chartLabels = [];
+   var chartData = [];
+   if (report && report.monthlyTrend && report.monthlyTrend.length) {
+     chartLabels = report.monthlyTrend.map(row => ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][row.month-1]);
+     chartData = report.monthlyTrend.map(row => row.totalRevenue);
+   } else {
+     chartLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
+     chartData = [0,0,0,0,0,0];
+   }
+%>
+<div id="chart-data-holder" data-labels='<%= JSON.stringify(chartLabels) %>' data-data='<%= JSON.stringify(chartData) %>' style="display:none;"></div>
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script nonce="<%= (typeof cspNonce !== 'undefined' ? cspNonce : '') %>">
+  // Initialize date range picker
+  flatpickr('#dateRange', {
+    mode: 'range',
+    dateFormat: 'Y-m-d',
+    allowInput: true,
+    placeholder: 'Select date range'
+  });
+  // Add smooth animations on scroll
+  document.addEventListener('DOMContentLoaded', function() {
+    const observerOptions = {
+      root: null,
+      rootMargin: '0px',
+      threshold: 0.1
+    };
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('animate-fade-in');
+        }
+      });
+    }, observerOptions);
+    // Observe all sections
+    document.querySelectorAll('.data-section').forEach(section => {
+      observer.observe(section);
+    });
+    // Chart.js Sales Overview (Chart)
+    const chartHolder = document.getElementById('chart-data-holder');
+    const labels = JSON.parse(chartHolder.getAttribute('data-labels'));
+    const data = JSON.parse(chartHolder.getAttribute('data-data'));
+    const ctx = document.getElementById('salesChart').getContext('2d');
+    // Always show the chart, even if all values are zero
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Sales Revenue',
+          data: data,
+          fill: true,
+          backgroundColor: 'rgba(99,102,241,0.1)',
+          borderColor: 'rgba(99,102,241,1)',
+          tension: 0.4,
+          pointBackgroundColor: 'rgba(139,92,246,1)',
+          pointBorderColor: '#fff',
+          pointRadius: 5
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: true }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            min: 0,
+            suggestedMax: Math.max(...data, 1000), // always show y-axis
+            ticks: { color: '#6366f1', font: { weight: 'bold' } },
+            grid: { color: '#e0e7ff' }
+          },
+          x: {
+            ticks: { color: '#6366f1', font: { weight: 'bold' } },
+            grid: { display: false }
+          }
+        }
+      }
+    });
+  });
+</script>
+<style nonce="<%= (typeof cspNonce !== 'undefined' ? cspNonce : '') %>">
+  :root {
+    --primary: #6366f1;
+    --primary-dark: #4f46e5;
+    --secondary: #10b981;
+    --accent: #8b5cf6;
+    --light: #f8fafc;
+    --dark: #0f172a;
+    --success: #22c55e;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --info: #3b82f6;
+    --card-bg: rgba(255, 255, 255, 0.7);
+    --card-border: rgba(99, 102, 241, 0.15);
+  }
+  
+  * {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  
+  body {
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0e7ff 100%);
+    min-height: 100vh;
+    margin: 0;
+    color: var(--dark);
+    overflow-x: hidden;
+  }
+  
+  .dashboard-container {
+    max-width: 1800px;
+    margin: 0 auto;
+    padding: 1.5rem;
+  }
+  
+  /* Header Styles */
+  .dashboard-header {
+    background: var(--card-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-radius: 1.5rem;
+    padding: 1.5rem 2rem;
+    box-shadow: 0 10px 25px -10px rgba(99, 102, 241, 0.1);
+    border: 1px solid var(--card-border);
+    margin-bottom: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  @media (min-width: 1024px) {
+    .dashboard-header {
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+    }
+  }
+  
+  .header-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  
+  .header-title h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--primary-dark);
+    margin: 0;
+    background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  
+  .header-meta {
+    display: flex;
+    gap: 1.5rem;
+    color: #64748b;
+    font-size: 0.9rem;
+  }
+  
+  .header-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .export-btn {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+    color: white;
+    padding: 0.8rem 1.5rem;
+    border-radius: 0.75rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(99, 102, 241, 0.2);
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+  }
+  
+  .export-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(99, 102, 241, 0.3);
+  }
+  
+  /* Filters Section */
+  .filters-section {
+    background: var(--card-bg);
+    backdrop-filter: blur(16px);
+    border-radius: 1.5rem;
+    padding: 1.5rem;
+    box-shadow: 0 10px 25px -10px rgba(99, 102, 241, 0.1);
+    border: 1px solid var(--card-border);
+    margin-bottom: 2rem;
+  }
+  
+  .filters-grid {
+    display: grid;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    gap: 1.25rem;
+  }
+  
+  @media (min-width: 768px) {
+    .filters-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+  
+  .filter-group label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    color: var(--primary-dark);
+  }
+  
+  .filter-control {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    border-radius: 0.75rem;
+    border: 1px solid #e2e8f0;
+    background: white;
+    transition: all 0.3s ease;
+    font-size: 0.95rem;
+  }
+  
+  .filter-control:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+  }
+  
+  .refresh-btn {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--info) 100%);
+    color: white;
+    padding: 0.8rem;
+    border-radius: 0.75rem;
+    font-weight: 600;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(99, 102, 241, 0.2);
+    width: 100%;
+    height: 100%;
+  }
+  
+  .refresh-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(99, 102, 241, 0.3);
+  }
+  
+  /* Metrics Section */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  
+  @media (min-width: 640px) {
+    .metrics-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .metrics-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+  
+  .metric-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(16px);
+    border-radius: 1.25rem;
+    padding: 1.5rem;
+    box-shadow: 0 10px 25px -10px rgba(99, 102, 241, 0.1);
+    border: 1px solid var(--card-border);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .metric-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 25px -10px rgba(99, 102, 241, 0.25);
+  }
+  
+  .metric-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+  }
+  
+  .metric-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #64748b;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .metric-value {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0.5rem 0;
+  }
+  
+  .metric-icon {
+    position: absolute;
+    bottom: 1rem;
+    right: 1.5rem;
+    font-size: 2.5rem;
+    opacity: 0.15;
+    z-index: 0;
+  }
+  
+  .metric-card:nth-child(1) .metric-value { color: var(--primary); }
+  .metric-card:nth-child(2) .metric-value { color: var(--success); }
+  .metric-card:nth-child(3) .metric-value { color: var(--info); }
+  .metric-card:nth-child(4) .metric-value { color: var(--danger); }
+  
+  /* Data Tables Section */
+  .data-section {
+    margin-bottom: 2.5rem;
+  }
+  
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .section-header h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-dark);
+    margin: 0;
+  }
+  
+  .section-header i {
+    color: var(--primary);
+    font-size: 1.5rem;
+  }
+  
+  .data-table-container {
+    background: var(--card-bg);
+    backdrop-filter: blur(16px);
+    border-radius: 1.25rem;
+    overflow-x: auto;
+    box-shadow: 0 10px 25px -10px rgba(99, 102, 241, 0.1);
+    border: 1px solid var(--card-border);
+  }
+  
+  .data-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+  
+  .data-table thead {
+    background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+    color: white;
+  }
+  
+  .data-table thead th {
+    padding: 1rem 1.5rem;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+  
+  .data-table tbody tr {
+    transition: background-color 0.2s ease;
+  }
+  
+  .data-table tbody tr:nth-child(even) {
+    background-color: rgba(241, 245, 249, 0.5);
+  }
+  
+  .data-table tbody tr:hover {
+    background-color: rgba(224, 231, 255, 0.5);
+  }
+  
+  .data-table tbody td {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 0.95rem;
+  }
+  
+  .no-data-row td {
+    text-align: center;
+    padding: 2rem;
+    color: #64748b;
+    font-style: italic;
+  }
+  
+  /* Footer */
+  .dashboard-footer {
+    text-align: center;
+    padding: 1.5rem;
+    color: #64748b;
+    font-size: 0.9rem;
+    margin-top: auto;
+    border-top: 1px solid #e2e8f0;
+  }
+
+  /* Surprise: Animated gradient border and floating effect for metrics cards */
+  .metric-card-animated {
+    box-shadow: 0 8px 32px 0 rgba(99,102,241,0.18), 0 1.5px 8px 0 rgba(139,92,246,0.10);
+    border-radius: 1.5rem;
+    position: relative;
+    z-index: 1;
+    background-clip: padding-box;
+  }
+  .metric-card-animated::before {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    z-index: -1;
+    border-radius: 1.7rem;
+    background: linear-gradient(270deg, #6366f1, #10b981, #8b5cf6, #ef4444, #3b82f6, #6366f1);
+    background-size: 1200% 1200%;
+    animation: borderGradientMove 6s ease infinite;
+    filter: blur(2px);
+    opacity: 0.7;
+  }
+  @keyframes borderGradientMove {
+    0% {background-position:0% 50%}
+    50% {background-position:100% 50%}
+    100% {background-position:0% 50%}
+  }
+  .metric-card-animated:hover {
+    box-shadow: 0 16px 48px 0 rgba(99,102,241,0.22), 0 3px 16px 0 rgba(139,92,246,0.16);
+    transform: translateY(-8px) scale(1.07);
+    transition: box-shadow 0.3s, transform 0.3s;
+  }
+  
+  /* Animations */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .animate-fade-in {
+    animation: fadeIn 0.6s ease forwards;
+  }
+  
+  .delay-100 { animation-delay: 0.1s; }
+  .delay-200 { animation-delay: 0.2s; }
+  .delay-300 { animation-delay: 0.3s; }
+  .delay-400 { animation-delay: 0.4s; }
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .dashboard-container {
+      padding: 1rem;
+    }
+    
+    .dashboard-header {
+      padding: 1rem;
+    }
+    
+    .header-title h1 {
+      font-size: 1.5rem;
+    }
+    
+    .header-meta {
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+    
+    .filters-section {
+      padding: 1rem;
+    }
+    
+    .metric-card {
+      padding: 1.25rem;
+    }
+    
+    .metric-value {
+      font-size: 1.75rem;
+    }
+  }
+</style>
+
+<% // Fix ReferenceError: declare lowStockPage and invPage as var at the very top
+if (typeof lowStockPage === 'undefined') { var lowStockPage = 1; }
+if (typeof invPage === 'undefined') { var invPage = 1; }
+%>

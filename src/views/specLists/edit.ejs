@@ -1,0 +1,276 @@
+<%- include('../partials/header.ejs', { title: 'Edit Spec List' }) %>
+
+<!-- Modern Navigation Bar -->
+<nav class="flex flex-wrap gap-3 mb-8 p-4 bg-white rounded-xl shadow-sm border border-gray-100 items-center">
+  <a href="/admin/v1/staff/dashboard" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition">
+    <i class="fa fa-home"></i> Dashboard
+  </a>
+  <a href="/admin/v1/parameters" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-50 text-gray-700 hover:bg-gray-100 transition">
+    <i class="fa fa-cog"></i> System Parameters
+  </a>
+  <a href="/admin/v1/parameters/spec-lists" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-50 text-gray-700 hover:bg-gray-100 transition">
+    <i class="fa fa-list"></i> Spec List
+  </a>
+</nav>
+
+<main class="container mx-auto max-w-2xl px-4 mt-8">
+  <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-8 gap-4">
+    <h1 class="text-3xl font-bold text-gray-800">Edit Spec List</h1>
+  </div>
+  
+  <!-- Flash Messages -->
+  <% if (success && success.length) { %>
+    <div class="mb-6 p-4 rounded-lg border-l-4 border-green-400 bg-green-50 text-green-800 shadow-sm">
+      <% success.forEach(msg => { %>
+        <div class="flex items-center gap-2">
+          <i class="fa fa-check-circle"></i>
+          <%= msg %>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+  <% if (error && error.length) { %>
+    <div class="mb-6 p-4 rounded-lg border-l-4 border-red-400 bg-red-50 text-red-800 shadow-sm">
+      <% error.forEach(msg => { %>
+        <div class="flex items-center gap-2">
+          <i class="fa fa-exclamation-circle"></i>
+          <%= msg %>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+
+  <div class="bg-white rounded-xl shadow-md p-8 mb-10 border border-gray-100">
+    <form action="/admin/v1/parameters/spec-lists/<%= specList._id %>" method="POST" class="space-y-6">
+      <input type="hidden" name="_method" value="PUT">
+      
+      <div>
+        <label for="title" class="block font-semibold mb-1 text-gray-700">Spec Title *</label>
+        <input
+          id="title"
+          name="title"
+          type="text"
+          value="<%= specList.title %>"
+          class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+          required
+          placeholder="Enter spec title"
+        >
+        <p class="text-sm text-gray-500 mt-1">Enter the specification title (e.g., Screen Size, RAM)</p>
+      </div>
+
+      <div>
+        <label for="value" class="block font-semibold mb-1 text-gray-700">Default Value</label>
+        <input
+          id="value"
+          name="value"
+          type="text"
+          value="<%= specList.value || '' %>"
+          class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+          placeholder="Enter default value (optional)"
+        >
+        <p class="text-sm text-gray-500 mt-1">Optional default value for this specification</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div>
+        <label for="displayInFilter" class="block font-semibold mb-1 text-gray-700">Display in Filter</label>
+        <input
+          id="displayInFilter"
+          name="displayInFilter"
+          type="checkbox"
+          class="mr-2 align-middle"
+          <%= specList.displayInFilter ? 'checked' : '' %>
+        >
+        <span class="text-sm text-gray-500">Show this specification in product filters</span>
+        <% if (typeof specList.displayInFilter === 'undefined') { %>
+          <div class="text-xs text-red-500 mt-1">Warning: This spec list does not have displayInFilter set.</div>
+        <% } %>
+      </div>
+        <div>
+          <label for="category" class="block font-semibold mb-1 text-gray-700">Category</label>
+          <select
+            id="category"
+            name="category"
+            class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+          >
+            <option value="">Select Category (Optional)</option>
+            <% if (categories && categories.length > 0) { %>
+              <% categories.forEach(cat => { %>
+                <option value="<%= cat._id %>" <%= specList.category && specList.category.toString() === cat._id.toString() ? 'selected' : '' %>>
+                  <%= cat.name %>
+                </option>
+              <% }); %>
+            <% } %>
+          </select>
+        </div>
+
+        <div>
+          <label for="subCategory" class="block font-semibold mb-1 text-gray-700">Sub Category</label>
+          <select
+            id="subCategory"
+            name="subCategory"
+            class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+          >
+            <option value="">Select Sub Category (Optional)</option>
+            <% if (subCategories && subCategories.length > 0) { %>
+              <% subCategories.forEach(subCat => { %>
+                <option value="<%= subCat._id %>" <%= specList.subCategory && specList.subCategory.toString() === subCat._id.toString() ? 'selected' : '' %>>
+                  <%= subCat.name %>
+                </option>
+              <% }); %>
+            <% } %>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label for="type" class="block font-semibold mb-1 text-gray-700">Type</label>
+          <select
+            id="type"
+            name="type"
+            class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+          >
+            <option value="">Select Type (Optional)</option>
+            <% if (types && types.length > 0) { %>
+              <% types.forEach(type => { %>
+                <option value="<%= type._id %>" <%= specList.type && specList.type.toString() === type._id.toString() ? 'selected' : '' %>>
+                  <%= type.name %>
+                </option>
+              <% }); %>
+            <% } %>
+          </select>
+        </div>
+
+        <div>
+          <label for="brand" class="block font-semibold mb-1 text-gray-700">Brand</label>
+          <select
+            id="brand"
+            name="brand"
+            class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+          >
+            <option value="">Select Brand (Optional)</option>
+            <% if (brands && brands.length > 0) { %>
+              <% brands.forEach(brand => { %>
+                <option value="<%= brand._id %>" <%= specList.brand && specList.brand.toString() === brand._id.toString() ? 'selected' : '' %>>
+                  <%= brand.name %>
+                </option>
+              <% }); %>
+            <% } %>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label for="status" class="block font-semibold mb-1 text-gray-700">Status</label>
+        <select
+          id="status"
+          name="status"
+          class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+        >
+          <option value="active" <%= specList.status === 'active' ? 'selected' : '' %>>Active</option>
+          <option value="inactive" <%= specList.status === 'inactive' ? 'selected' : '' %>>Inactive</option>
+        </select>
+      </div>
+      
+      <div class="flex justify-end gap-3">
+        <a href="/admin/v1/parameters/spec-lists" class="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition">Cancel</a>
+        <button type="submit" class="px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition flex items-center gap-2">
+          <i class="fa fa-save"></i> Update Spec List
+        </button>
+      </div>
+    </form>
+  </div>
+</main>
+
+<script>
+// Store all data for filtering
+const allSubCategories = JSON.parse('<%- JSON.stringify(subCategories || []) %>');
+const allTypes = JSON.parse('<%- JSON.stringify(types || []) %>');
+const allBrands = JSON.parse('<%- JSON.stringify(brands || []) %>');
+
+// Get dropdown elements
+const categorySelect = document.getElementById('category');
+const subCategorySelect = document.getElementById('subCategory');
+const typeSelect = document.getElementById('type');
+const brandSelect = document.getElementById('brand');
+
+// Store current selections for edit mode
+const currentSelections = {
+  category: '<%= specList.category ? specList.category.toString() : "" %>',
+  subCategory: '<%= specList.subCategory ? specList.subCategory.toString() : "" %>',
+  type: '<%= specList.type ? specList.type.toString() : "" %>',
+  brand: '<%= specList.brand ? specList.brand.toString() : "" %>'
+};
+
+// Initialize dropdowns on page load
+document.addEventListener('DOMContentLoaded', function() {
+  if (currentSelections.category) {
+    filterSubCategories(currentSelections.category, currentSelections.subCategory);
+  }
+  if (currentSelections.subCategory) {
+    filterTypes(currentSelections.subCategory, currentSelections.type);
+  }
+
+});
+
+// Filter subcategories based on selected category
+categorySelect.addEventListener('change', function() {
+  const selectedCategoryId = this.value;
+  filterSubCategories(selectedCategoryId);
+  resetTypeDropdown();
+});
+
+// Filter types based on selected subcategory
+subCategorySelect.addEventListener('change', function() {
+  const selectedSubCategoryId = this.value;
+  filterTypes(selectedSubCategoryId);
+});
+
+// Helper functions
+function filterSubCategories(categoryId, selectedSubCategoryId = '') {
+  subCategorySelect.innerHTML = '<option value="">Select Sub Category (Optional)</option>';
+  
+  if (categoryId) {
+    const filteredSubCategories = allSubCategories.filter(sub => 
+      sub.category && sub.category.toString() === categoryId
+    );
+    
+    filteredSubCategories.forEach(sub => {
+      const option = document.createElement('option');
+      option.value = sub._id;
+      option.textContent = sub.name;
+      if (sub._id.toString() === selectedSubCategoryId) {
+        option.selected = true;
+      }
+      subCategorySelect.appendChild(option);
+    });
+  }
+}
+
+function filterTypes(subCategoryId, selectedTypeId = '') {
+  typeSelect.innerHTML = '<option value="">Select Type (Optional)</option>';
+  
+  if (subCategoryId) {
+    const filteredTypes = allTypes.filter(type => 
+      type.subCategory && type.subCategory.toString() === subCategoryId
+    );
+    
+    filteredTypes.forEach(type => {
+      const option = document.createElement('option');
+      option.value = type._id;
+      option.textContent = type.name;
+      if (type._id.toString() === selectedTypeId) {
+        option.selected = true;
+      }
+      typeSelect.appendChild(option);
+    });
+  }
+}
+
+function resetTypeDropdown() {
+  typeSelect.innerHTML = '<option value="">Select Type (Optional)</option>';
+}
+</script>
+
+<%- include('../partials/footer.ejs') %>

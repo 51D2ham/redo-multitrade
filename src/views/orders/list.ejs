@@ -1,0 +1,274 @@
+<%- include('../partials/header.ejs', { title: 'Order Management' }) %>
+
+<div class="min-h-screen bg-gray-50 py-6">
+  <div class="max-w-7xl mx-auto px-4">
+    
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">Order Management</h1>
+        <p class="text-gray-600 mt-1">Manage and track all customer orders</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <a href="/admin/v1/staff/dashboard" class="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+          <i class="fas fa-home mr-2"></i>Dashboard
+        </a>
+        <a href="/admin/v1/order/export" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+          <i class="fas fa-download mr-2"></i>Export
+        </a>
+      </div>
+    </div>
+
+    <!-- Flash Messages -->
+    <% if (success && success.length) { %>
+      <div class="mb-6 p-4 rounded-lg bg-green-50 border border-green-200 text-green-800">
+        <% success.forEach(msg => { %>
+          <div class="flex items-center gap-2">
+            <i class="fas fa-check-circle"></i>
+            <%= msg %>
+          </div>
+        <% }) %>
+      </div>
+    <% } %>
+
+    <% if (error && error.length) { %>
+      <div class="mb-6 p-4 rounded-lg bg-red-50 border border-red-200 text-red-800">
+        <% error.forEach(msg => { %>
+          <div class="flex items-center gap-2">
+            <i class="fas fa-exclamation-circle"></i>
+            <%= msg %>
+          </div>
+        <% }) %>
+      </div>
+    <% } %>
+
+    <!-- Filters -->
+    <div class="bg-white rounded-xl shadow-sm border mb-6">
+      <div class="p-6">
+        <form method="GET" action="/admin/v1/order" class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+              <select name="status" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <option value="">All Statuses</option>
+                <option value="pending" <%= filters.status === "pending" ? "selected" : "" %>>Pending</option>
+                <option value="processing" <%= filters.status === "processing" ? "selected" : "" %>>Processing</option>
+                <option value="shipped" <%= filters.status === "shipped" ? "selected" : "" %>>Shipped</option>
+                <option value="delivered" <%= filters.status === "delivered" ? "selected" : "" %>>Delivered</option>
+                <option value="cancelled" <%= filters.status === "cancelled" ? "selected" : "" %>>Cancelled</option>
+              </select>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Payment</label>
+              <select name="paymentMethod" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <option value="">All Methods</option>
+                <option value="cod" <%= filters.paymentMethod === "cod" ? "selected" : "" %>>Cash on Delivery</option>
+                <option value="card" <%= filters.paymentMethod === "card" ? "selected" : "" %>>Card</option>
+                <option value="online" <%= filters.paymentMethod === "online" ? "selected" : "" %>>Online</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
+              <select name="sortBy" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <option value="priority" <%= (filters.sortBy || 'priority') === "priority" ? "selected" : "" %>>Priority (Active First)</option>
+                <option value="date_desc" <%= filters.sortBy === "date_desc" ? "selected" : "" %>>Newest First</option>
+                <option value="date_asc" <%= filters.sortBy === "date_asc" ? "selected" : "" %>>Oldest First</option>
+                <option value="amount_desc" <%= filters.sortBy === "amount_desc" ? "selected" : "" %>>Highest Amount</option>
+                <option value="amount_asc" <%= filters.sortBy === "amount_asc" ? "selected" : "" %>>Lowest Amount</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">From Date</label>
+              <input type="date" name="dateFrom" value="<%= filters.dateFrom || '' %>" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">To Date</label>
+              <input type="date" name="dateTo" value="<%= filters.dateTo || '' %>" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            </div>
+
+            <div class="flex items-end">
+              <button type="submit" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                <i class="fas fa-search mr-1"></i>Apply
+              </button>
+            </div>
+          </div>
+          
+          <div class="flex gap-4">
+            <div class="flex-1">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Search</label>
+              <input type="text" name="search" placeholder="Order ID, Customer name/email, Tracking number..." value="<%= filters.search || '' %>" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div class="flex items-end gap-2">
+              <a href="/admin/v1/order" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors" title="Clear Filters">
+                <i class="fas fa-times"></i>
+              </a>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Orders Table -->
+    <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead class="bg-gray-50 border-b">
+            <tr>
+              <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Order</th>
+              <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Customer</th>
+              <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Shipping Address</th>
+              <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Items & Total</th>
+              <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Status</th>
+              <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Date</th>
+              <th class="px-6 py-4 text-center text-sm font-semibold text-gray-900">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200">
+            <% if (!orders || !orders.length) { %>
+              <tr>
+                <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                  <div class="flex flex-col items-center gap-3">
+                    <i class="fas fa-shopping-cart text-4xl text-gray-300"></i>
+                    <p class="text-lg font-medium">No orders found</p>
+                    <p class="text-sm">Try adjusting your filters or check back later</p>
+                  </div>
+                </td>
+              </tr>
+            <% } else { %>
+              <% orders.forEach((order) => { %>
+                <tr class="hover:bg-gray-50 transition-colors <%= order.status === 'cancelled' ? 'bg-red-50 text-gray-400' : '' %>">
+                  <!-- Order Info -->
+                  <td class="px-6 py-4">
+                    <div class="flex flex-col gap-1">
+                      <span class="font-mono text-sm font-semibold text-blue-600">#<%= order._id.toString().slice(-8).toUpperCase() %></span>
+                      <% if (order.trackingNumber) { %>
+                        <span class="text-xs text-gray-500">Track: <%= order.trackingNumber %></span>
+                      <% } %>
+                    </div>
+                  </td>
+
+                  <!-- Customer -->
+                  <td class="px-6 py-4">
+                    <div class="flex flex-col gap-1">
+                      <span class="font-medium text-gray-900"><%= order.user?.fullname || order.user?.username || 'Guest' %></span>
+                      <span class="text-sm text-gray-500"><%= order.user?.email || 'N/A' %></span>
+                      <span class="text-xs text-gray-400"><%= order.user?.phone || 'No phone' %></span>
+                    </div>
+                  </td>
+
+                  <!-- Shipping Address -->
+                  <td class="px-6 py-4">
+                    <% if (order.shippingAddress) { %>
+                      <div class="text-sm text-gray-900 max-w-xs">
+                        <div class="text-gray-600 text-xs leading-relaxed">
+                          <strong><%= order.shippingAddress.fullname %></strong><br>
+                          <%= order.shippingAddress.street %><br>
+                          <%= order.shippingAddress.city %>, <%= order.shippingAddress.state %><br>
+                          <%= order.shippingAddress.postalCode %>
+                        </div>
+                        <div class="text-xs text-gray-500 mt-1">
+                          <i class="fas fa-phone"></i> <%= order.shippingAddress.phone %>
+                        </div>
+                      </div>
+                    <% } else { %>
+                      <span class="text-gray-400 text-sm">No address</span>
+                    <% } %>
+                  </td>
+
+                  <!-- Items & Total -->
+                  <td class="px-6 py-4">
+                    <div class="flex flex-col gap-1">
+                      <span class="font-semibold text-lg text-gray-900">₹<%= order.totalPrice.toLocaleString() %></span>
+                      <span class="text-sm text-gray-500"><%= order.totalItem %> items (<%= order.totalQty %> qty)</span>
+                      <span class="text-xs text-gray-400 capitalize"><%= order.paymentMethod %></span>
+                    </div>
+                  </td>
+
+                  <!-- Status -->
+                  <td class="px-6 py-4">
+                    <div class="flex flex-col gap-2">
+                      <span class="inline-flex px-3 py-1 rounded-full text-xs font-medium <%= 
+                        order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                        order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
+                        order.status === 'shipped' ? 'bg-purple-100 text-purple-800' :
+                        order.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                        'bg-red-100 text-red-800'
+                      %>">
+                        <%= order.status.charAt(0).toUpperCase() + order.status.slice(1) %>
+                      </span>
+                      <% if(order.status === 'cancelled') { %>
+                        <span class="inline-flex px-2 py-1 rounded text-xs font-medium bg-red-200 text-red-900">Order Cancelled</span>
+                      <% } %>
+                      <span class="inline-flex px-2 py-1 rounded text-xs font-medium <%= order.paid ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' %>">
+                        <%= order.paid ? 'Paid' : 'Unpaid' %>
+                      </span>
+                    </div>
+                  </td>
+
+                  <!-- Date -->
+                  <td class="px-6 py-4">
+                    <div class="flex flex-col gap-1">
+                      <span class="text-sm font-medium text-gray-900"><%= new Date(order.createdAt).toLocaleDateString() %></span>
+                      <span class="text-xs text-gray-500"><%= new Date(order.createdAt).toLocaleTimeString() %></span>
+                    </div>
+                  </td>
+
+                  <!-- Actions -->
+                  <td class="px-6 py-4">
+                    <div class="flex items-center justify-center gap-2">
+                      <a href="/admin/v1/order/<%= order._id %>" class="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors text-sm font-medium" title="View Details">
+                        <i class="fas fa-eye"></i>
+                        <span class="hidden sm:inline">View</span>
+                      </a>
+                      <a href="/admin/v1/order/<%= order._id %>/edit" class="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-yellow-100 text-yellow-700 hover:bg-yellow-200 transition-colors text-sm font-medium" title="Edit Order">
+                        <i class="fas fa-edit"></i>
+                        <span class="hidden sm:inline">Edit</span>
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+              <% }) %>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Pagination -->
+    <% if (totalPages > 1) { %>
+      <div class="flex justify-between items-center mt-6">
+        <div class="text-sm text-gray-600">
+          Showing <%= (currentPage - 1) * limit + 1 %> - <%= Math.min(currentPage * limit, totalOrders) %> of <%= totalOrders %> orders
+        </div>
+        <div class="flex gap-2">
+          <% if (currentPage > 1) { %>
+            <a href="?page=<%= currentPage - 1 %>&<%= Object.entries(filters).filter(([k,v]) => v).map(([k,v]) => `${k}=${encodeURIComponent(v)}`).join('&') %>" 
+               class="px-4 py-2 rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">
+              <i class="fas fa-chevron-left mr-1"></i>Previous
+            </a>
+          <% } %>
+          
+          <% for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) { %>
+            <a href="?page=<%= i %>&<%= Object.entries(filters).filter(([k,v]) => v).map(([k,v]) => `${k}=${encodeURIComponent(v)}`).join('&') %>" 
+               class="px-4 py-2 rounded-lg <%= i === currentPage ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50' %> transition-colors">
+              <%= i %>
+            </a>
+          <% } %>
+          
+          <% if (currentPage < totalPages) { %>
+            <a href="?page=<%= currentPage + 1 %>&<%= Object.entries(filters).filter(([k,v]) => v).map(([k,v]) => `${k}=${encodeURIComponent(v)}`).join('&') %>" 
+               class="px-4 py-2 rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">
+              Next<i class="fas fa-chevron-right ml-1"></i>
+            </a>
+          <% } %>
+        </div>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<%- include('../partials/footer.ejs') %>

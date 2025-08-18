@@ -1,0 +1,75 @@
+<%- include('../partials/header.ejs', { title: 'Low Stock Alerts' }) %>
+
+<div class="min-h-screen bg-gray-50 py-6">
+  <div class="max-w-7xl mx-auto px-4">
+    
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">Low Stock Alerts</h1>
+        <p class="text-gray-600 mt-1">Products requiring immediate attention</p>
+      </div>
+      <div class="flex items-center gap-3">
+  <a href="/admin/v1/inventory" class="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+          <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+        </a>
+  <a href="/admin/inventory/movements" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+          <i class="fas fa-history mr-2"></i>View Movements
+        </a>
+      </div>
+    </div>
+
+    <!-- Alerts List -->
+    <div class="bg-white rounded-xl shadow-sm border">
+      <div class="px-6 py-4 border-b flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <h2 class="text-lg font-semibold text-gray-900">Stock Alerts</h2>
+        <form method="get" action="" class="flex flex-wrap gap-3 items-center">
+          <input type="text" name="search" value="<%= filters?.search || '' %>" placeholder="Search by name or SKU" class="px-3 py-2 border rounded-lg text-sm" />
+          <label class="text-sm">From: <input type="date" name="from" value="<%= filters?.from || '' %>" class="px-2 py-1 border rounded" /></label>
+          <label class="text-sm">To: <input type="date" name="to" value="<%= filters?.to || '' %>" class="px-2 py-1 border rounded" /></label>
+          <select name="sort" class="px-2 py-1 border rounded text-sm">
+            <option value="desc" <%= filters?.sort === 'desc' ? 'selected' : '' %>>Newest First</option>
+            <option value="asc" <%= filters?.sort === 'asc' ? 'selected' : '' %>>Oldest First</option>
+          </select>
+          <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">Filter</button>
+        </form>
+      </div>
+      <div class="p-6">
+        <% if (alerts.length > 0) { %>
+          <div class="space-y-4">
+            <% alerts.forEach(alert => { %>
+              <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg border-l-4 <%= alert.status === 'out_of_stock' ? 'border-red-500' : 'border-yellow-500' %>">
+                <div class="flex items-center gap-4">
+                  <div class="p-3 rounded-lg <%= alert.status === 'out_of_stock' ? 'bg-red-100' : 'bg-yellow-100' %>">
+                    <i class="fas fa-exclamation-triangle <%= alert.status === 'out_of_stock' ? 'text-red-600' : 'text-yellow-600' %> text-xl"></i>
+                  </div>
+                  <div>
+                    <h3 class="font-semibold text-gray-900"><%= alert.title %></h3>
+                    <p class="text-sm text-gray-600">SKU: <%= alert.sku %></p>
+                    <p class="text-sm text-gray-600"><%= alert.brand %> • <%= alert.category %></p>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <p class="text-lg font-bold <%= alert.status === 'out_of_stock' ? 'text-red-600' : 'text-yellow-600' %>">
+                    <%= alert.currentStock %> / <%= alert.threshold %>
+                  </p>
+                  <span class="inline-flex px-3 py-1 text-sm font-medium rounded-full <%= alert.status === 'out_of_stock' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800' %>">
+                    <%= alert.status.replace('_', ' ') %>
+                  </span>
+                </div>
+              </div>
+            <% }) %>
+          </div>
+        <% } else { %>
+          <div class="text-center py-12">
+            <i class="fas fa-check-circle text-4xl text-green-400 mb-4"></i>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">All Good!</h3>
+            <p class="text-gray-600">No low stock alerts at the moment.</p>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer.ejs') %>

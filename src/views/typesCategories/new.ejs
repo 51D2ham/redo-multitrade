@@ -1,0 +1,153 @@
+<%- include('../partials/header.ejs', { title: 'New Type' }) %>
+<!-- Modern Navigation Bar -->
+<nav class="flex flex-wrap gap-3 mb-8 p-4 bg-white rounded-xl shadow-sm border border-gray-100 items-center">
+  <a href="/admin/v1/staff/dashboard" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition">
+    <i class="fa fa-home"></i> Dashboard
+  </a>
+  <a href="/admin/v1/parameters" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-50 text-gray-700 hover:bg-gray-100 transition">
+    <i class="fa fa-cog"></i> System Parameters
+  </a>
+  <a href="/admin/v1/parameters/types" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-50 text-gray-700 hover:bg-gray-100 transition">
+    <i class="fa fa-list"></i> Type List
+  </a>
+</nav>
+<main class="container mx-auto max-w-2xl px-4 mt-8">
+  <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-8 gap-4">
+    <h1 class="text-3xl font-bold text-gray-800">Create New Type</h1>
+  </div>
+  <% 
+    const successMsgs = Array.isArray(success) ? success : (success ? [success] : []);
+    const errorMsgs = Array.isArray(error) ? error : (error ? [error] : []);
+  %>
+
+  <!-- Flash Messages -->
+  <% if (successMsgs.length) { %>
+    <div class="mb-6 p-4 rounded-lg border-l-4 border-green-400 bg-green-50 text-green-800 shadow-sm">
+      <% successMsgs.forEach(function(msg){ %>
+        <div class="flex items-center gap-2">
+          <i class="fa fa-check-circle"></i>
+          <span><%= msg %></span>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+
+  <% if (errorMsgs.length) { %>
+    <div class="mb-6 p-4 rounded-lg border-l-4 border-red-400 bg-red-50 text-red-800 shadow-sm">
+      <% errorMsgs.forEach(function(msg){ %>
+        <div class="flex items-center gap-2">
+          <i class="fa fa-exclamation-circle"></i>
+          <span><%= msg %></span>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+
+  <div class="bg-white rounded-xl shadow-md p-8 mb-10 border border-gray-100">
+    <form action="/admin/v1/parameters/types" method="POST" class="space-y-6">
+      <div>
+        <label for="name" class="block font-semibold mb-1 text-gray-700">Name *</label>
+        <input
+          id="name"
+          name="name"
+          type="text"
+          class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+          required
+        >
+      </div>
+      <div>
+        <label for="category" class="block font-semibold mb-1 text-gray-700">Category *</label>
+        <select
+          id="category"
+          name="category"
+          class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+          required
+        >
+          <option value="">Select Category...</option>
+          <% if (typeof categories !== 'undefined' && categories) { %>
+            <% categories.forEach(category => { %>
+              <option value="<%= category._id %>"><%= category.name %></option>
+            <% }) %>
+          <% } %>
+        </select>
+      </div>
+      <div>
+        <label for="subCategory" class="block font-semibold mb-1 text-gray-700">SubCategory *</label>
+        <select
+          id="subCategory"
+          name="subCategory"
+          class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+          required
+          disabled
+        >
+          <option value="">Select SubCategory...</option>
+        </select>
+      </div>
+      <div class="flex justify-end gap-3">
+        <a href="/admin/v1/parameters/types" class="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-blue-100 transition">Cancel</a>
+        <button type="submit" class="px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition">
+          <i class="fa fa-save mr-2"></i>Create Type
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <script nonce="<%= cspNonce %>">
+    document.addEventListener('DOMContentLoaded', function() {
+      const categorySelect = document.getElementById('category');
+      const subCategorySelect = document.getElementById('subCategory');
+      
+      if (categorySelect) {
+        categorySelect.addEventListener('change', function() {
+          const categoryId = this.value;
+          console.log('Category changed:', categoryId);
+          
+          subCategorySelect.innerHTML = '<option value="">Loading...</option>';
+          subCategorySelect.disabled = true;
+          
+          if (!categoryId) {
+            subCategorySelect.innerHTML = '<option value="">Select SubCategory...</option>';
+            subCategorySelect.disabled = false;
+            return;
+          }
+          
+          const url = `/admin/v1/parameters/types/subcategories/${categoryId}`;
+          console.log('Fetching from URL:', url);
+          
+          fetch(url)
+            .then(response => {
+              console.log('Response status:', response.status);
+              if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+              }
+              return response.json();
+            })
+            .then(subcategories => {
+              console.log('Loaded subcategories:', subcategories);
+              
+              subCategorySelect.innerHTML = '<option value="">Select SubCategory...</option>';
+              
+              if (subcategories && subcategories.length > 0) {
+                subcategories.forEach(sub => {
+                  const option = document.createElement('option');
+                  option.value = sub._id;
+                  option.textContent = sub.name;
+                  subCategorySelect.appendChild(option);
+                });
+              } else {
+                subCategorySelect.innerHTML = '<option value="">No subcategories found</option>';
+              }
+              
+              subCategorySelect.disabled = false;
+            })
+            .catch(error => {
+              console.error('Error loading subcategories:', error);
+              subCategorySelect.innerHTML = '<option value="">Error loading subcategories</option>';
+              subCategorySelect.disabled = false;
+            });
+        });
+      }
+    });
+  </script>
+</main>
+<%- include('../partials/footer.ejs') %>

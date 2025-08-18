@@ -1,0 +1,79 @@
+const mongoose = require('mongoose');
+const { Schema } = mongoose;
+
+// Order Item Schema
+const orderItemSchema = new Schema({
+  productId: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
+  productTitle: { type: String, required: true },
+  productPrice: { type: Number, required: true },
+  qty: { type: Number, required: true },
+  totalPrice: { type: Number, required: true }
+});
+
+// Status History Schema
+const statusHistorySchema = new Schema({
+  status: { type: String, required: true },
+  message: { type: String, trim: true },
+  updatedBy: { type: Schema.Types.ObjectId, ref: 'Admin' },
+  updatedAt: { type: Date, default: Date.now }
+});
+
+// Order Schema
+const orderSchema = new Schema({
+  items: [orderItemSchema],
+  totalPrice: { type: Number, required: true, min: 0 },
+  totalItem: { type: Number, required: true, min: 0 },
+  totalQty: { type: Number, required: true, min: 0 },
+  discountAmt: { type: Number, default: 0, min: 0 },
+  couponApplied: { type: String, trim: true },
+  paymentMethod: { type: String, enum: ['card', 'online', 'cod', 'other'], required: true },
+  paid: { type: Boolean, default: false },
+  status: { type: String, enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'], default: 'pending' },
+  statusHistory: [statusHistorySchema],
+  trackingNumber: { type: String, trim: true },
+  estimatedDelivery: { type: Date },
+  shippingAddress: { type: Schema.Types.ObjectId, ref: 'ShippingAddress', required: true },
+  user: { type: Schema.Types.ObjectId, ref: 'User', required: true }
+}, { timestamps: true });
+
+// Pre-save middleware to track status changes
+orderSchema.pre('save', function(next) {
+  if (this.isModified('status') && !this.isNew) {
+    this.statusHistory.push({
+      status: this.status,
+      message: `Order status changed to ${this.status}`,
+      updatedAt: new Date()
+    });
+  } else if (this.isNew) {
+    this.statusHistory.push({
+      status: 'pending',
+      message: 'Order placed successfully',
+      updatedAt: new Date()
+    });
+  }
+  next();
+});
+
+//cartOrderSchema
+const cartOrderSchema = new Schema({
+  order: { type: Schema.Types.ObjectId, ref: 'Order', required: true },
+  cart: { type: Schema.Types.ObjectId, ref: 'Cart', required: true }
+}, { timestamps: true });
+
+// OrderStatus Schema
+const orderStatusSchema = new Schema({
+  statusTitle: { type: String, required: true, trim: true },
+  status: { type: String, required: true, enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'] },
+  message: { type: String, trim: true },
+  dateTime: { type: Date, default: Date.now },
+  admin: { type: Schema.Types.ObjectId, ref: 'Admin', required: true },
+  order: { type: Schema.Types.ObjectId, ref: 'Order', required: true }
+}, { timestamps: true });
+
+// Create models
+const Order = mongoose.model('Order', orderSchema);
+const CartOrder = mongoose.model('CartOrder', cartOrderSchema);
+const OrderStatus = mongoose.model('OrderStatus', orderStatusSchema);
+
+// Export models
+module.exports = { Order, CartOrder, OrderStatus };

@@ -1,0 +1,222 @@
+<%- include('../partials/header.ejs', { title: 'Content Dashboard' }) %>
+
+<!-- Navigation Bar -->
+<nav class="flex flex-wrap gap-3 mb-8 p-4 bg-white rounded-xl shadow-sm border border-gray-100 items-center">
+  <a href="/admin/v1/staff/dashboard" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition">
+    <i class="fa fa-home"></i> Dashboard
+  </a>
+</nav>
+
+<main class="container mx-auto max-w-7xl px-4 mt-8">
+  <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-8 gap-4">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-800">Content Management</h1>
+      <p class="text-gray-600 mt-2">Manage your website content, banners, and promotional materials</p>
+    </div>
+  </div>
+
+  <!-- Flash Messages -->
+  <% if (success && success.length) { %>
+    <div class="mb-6 p-4 rounded-lg border-l-4 border-green-400 bg-green-50 text-green-800 shadow-sm">
+      <% success.forEach(msg => { %>
+        <div class="flex items-center gap-2">
+          <i class="fa fa-check-circle"></i>
+          <%= msg %>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+  <% if (error && error.length) { %>
+    <div class="mb-6 p-4 rounded-lg border-l-4 border-red-400 bg-red-50 text-red-800 shadow-sm">
+      <% error.forEach(msg => { %>
+        <div class="flex items-center gap-2">
+          <i class="fa fa-exclamation-circle"></i>
+          <%= msg %>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+
+  <!-- Content Statistics -->
+  <section class="mb-10">
+    <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+      <i class="fa fa-chart-bar"></i> Content Overview
+    </h2>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-100 hover:shadow-lg transition-shadow">
+        <div class="flex justify-between items-start">
+          <div>
+            <p class="text-gray-500 font-medium">Hero Content</p>
+            <h3 class="text-3xl font-bold text-gray-800 mt-2"><%= counts.heroContent %></h3>
+            <p class="text-sm text-blue-600 mt-1">Active banners</p>
+          </div>
+          <div class="w-12 h-12 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center">
+            <i class="fa fa-images text-xl"></i>
+          </div>
+        </div>
+        <div class="mt-4 h-2 bg-gray-100 rounded-full overflow-hidden">
+          <div class="h-full bg-blue-500 rounded-full" style="width: <%= Math.min(100, (counts.heroContent / 10) * 100) %>%"></div>
+        </div>
+      </div>
+      
+      <!-- Placeholder for future content types -->
+      <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-100 hover:shadow-lg transition-shadow opacity-50">
+        <div class="flex justify-between items-start">
+          <div>
+            <p class="text-gray-500 font-medium">Banners</p>
+            <h3 class="text-3xl font-bold text-gray-800 mt-2">0</h3>
+            <p class="text-sm text-green-600 mt-1">Coming soon</p>
+          </div>
+          <div class="w-12 h-12 rounded-xl bg-green-100 text-green-700 flex items-center justify-center">
+            <i class="fa fa-flag text-xl"></i>
+          </div>
+        </div>
+        <div class="mt-4 h-2 bg-gray-100 rounded-full overflow-hidden">
+          <div class="h-full bg-green-500 rounded-full" style="width: 0%"></div>
+        </div>
+      </div>
+      
+      <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-100 hover:shadow-lg transition-shadow opacity-50">
+        <div class="flex justify-between items-start">
+          <div>
+            <p class="text-gray-500 font-medium">Promotions</p>
+            <h3 class="text-3xl font-bold text-gray-800 mt-2">0</h3>
+            <p class="text-sm text-purple-600 mt-1">Coming soon</p>
+          </div>
+          <div class="w-12 h-12 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center">
+            <i class="fa fa-percent text-xl"></i>
+          </div>
+        </div>
+        <div class="mt-4 h-2 bg-gray-100 rounded-full overflow-hidden">
+          <div class="h-full bg-purple-500 rounded-full" style="width: 0%"></div>
+        </div>
+      </div>
+      ``
+      <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-100 hover:shadow-lg transition-shadow opacity-50">
+        <div class="flex justify-between items-start">
+          <div>
+            <p class="text-gray-500 font-medium">Announcements</p>
+            <h3 class="text-3xl font-bold text-gray-800 mt-2">0</h3>
+            <p class="text-sm text-orange-600 mt-1">Coming soon</p>
+          </div>
+          <div class="w-12 h-12 rounded-xl bg-orange-100 text-orange-700 flex items-center justify-center">
+            <i class="fa fa-bullhorn text-xl"></i>
+          </div>
+        </div>
+        <div class="mt-4 h-2 bg-gray-100 rounded-full overflow-hidden">
+          <div class="h-full bg-orange-500 rounded-full" style="width: 0%"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Content Management Menu -->
+  <section>
+    <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+      <i class="fa fa-palette"></i> Content Management
+    </h2>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <!-- Hero Carousel -->
+      <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden hover:shadow-lg transition-shadow">
+        <div class="p-6">
+          <div class="w-14 h-14 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center mb-4">
+            <i class="fa fa-images text-2xl"></i>
+          </div>
+          <h3 class="text-lg font-bold text-gray-800 mb-2">Hero Carousel</h3>
+          <p class="text-gray-500 text-sm mb-4">Manage homepage hero banners and promotional slides</p>
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-gray-600"><%= counts.heroContent %> items</span>
+            <a href="/admin/v1/parameters/hero-carousel" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium">
+              Manage
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Future Content Types -->
+      <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden opacity-50">
+        <div class="p-6">
+          <div class="w-14 h-14 rounded-xl bg-green-100 text-green-700 flex items-center justify-center mb-4">
+            <i class="fa fa-flag text-2xl"></i>
+          </div>
+          <h3 class="text-lg font-bold text-gray-800 mb-2">Promotional Banners</h3>
+          <p class="text-gray-500 text-sm mb-4">Create and manage promotional banners for special offers</p>
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-gray-600">Coming soon</span>
+            <button disabled class="px-4 py-2 bg-gray-300 text-gray-500 rounded-lg text-sm font-medium cursor-not-allowed">
+              Coming Soon
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden opacity-50">
+        <div class="p-6">
+          <div class="w-14 h-14 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center mb-4">
+            <i class="fa fa-percent text-2xl"></i>
+          </div>
+          <h3 class="text-lg font-bold text-gray-800 mb-2">Discount Campaigns</h3>
+          <p class="text-gray-500 text-sm mb-4">Set up discount codes and promotional campaigns</p>
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-gray-600">Coming soon</span>
+            <button disabled class="px-4 py-2 bg-gray-300 text-gray-500 rounded-lg text-sm font-medium cursor-not-allowed">
+              Coming Soon
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden opacity-50">
+        <div class="p-6">
+          <div class="w-14 h-14 rounded-xl bg-orange-100 text-orange-700 flex items-center justify-center mb-4">
+            <i class="fa fa-bullhorn text-2xl"></i>
+          </div>
+          <h3 class="text-lg font-bold text-gray-800 mb-2">Announcements</h3>
+          <p class="text-gray-500 text-sm mb-4">Create site-wide announcements and notifications</p>
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-gray-600">Coming soon</span>
+            <button disabled class="px-4 py-2 bg-gray-300 text-gray-500 rounded-lg text-sm font-medium cursor-not-allowed">
+              Coming Soon
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden opacity-50">
+        <div class="p-6">
+          <div class="w-14 h-14 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center mb-4">
+            <i class="fa fa-newspaper text-2xl"></i>
+          </div>
+          <h3 class="text-lg font-bold text-gray-800 mb-2">Blog Posts</h3>
+          <p class="text-gray-500 text-sm mb-4">Write and publish blog articles and news updates</p>
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-gray-600">Coming soon</span>
+            <button disabled class="px-4 py-2 bg-gray-300 text-gray-500 rounded-lg text-sm font-medium cursor-not-allowed">
+              Coming Soon
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden opacity-50">
+        <div class="p-6">
+          <div class="w-14 h-14 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center mb-4">
+            <i class="fa fa-envelope text-2xl"></i>
+          </div>
+          <h3 class="text-lg font-bold text-gray-800 mb-2">Email Templates</h3>
+          <p class="text-gray-500 text-sm mb-4">Design email templates for marketing campaigns</p>
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-gray-600">Coming soon</span>
+            <button disabled class="px-4 py-2 bg-gray-300 text-gray-500 rounded-lg text-sm font-medium cursor-not-allowed">
+              Coming Soon
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<%- include('../partials/footer.ejs') %>

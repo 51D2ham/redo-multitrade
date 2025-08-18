@@ -1,0 +1,843 @@
+<%- include('../partials/header.ejs', { title: 'New Product' }) %>
+
+<!-- Navigation -->
+<nav class="flex flex-wrap gap-3 mb-8 p-4 bg-white rounded-xl shadow-sm border border-gray-100 items-center">
+  <a href="/admin/v1/staff/dashboard" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition">
+    <i class="fa fa-home"></i> Dashboard
+  </a>
+  <a href="/admin/v1/products" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-50 text-gray-700 hover:bg-gray-100 transition">
+    <i class="fa fa-box"></i> Products
+  </a>
+</nav>
+
+<main class="container mx-auto max-w-4xl px-4 mt-8">
+  <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-8 gap-4">
+    <h1 class="text-3xl font-bold text-gray-800">Create New Product</h1>
+  </div>
+
+  <!-- Flash Messages -->
+  <% if (success && success.length) { %>
+    <div class="mb-6 p-4 rounded-lg border-l-4 border-green-400 bg-green-50 text-green-800 shadow-sm">
+      <% success.forEach(msg => { %>
+        <div class="flex items-center gap-2">
+          <i class="fa fa-check-circle"></i> <%= msg %>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+  <% if (error && error.length) { %>
+    <div class="mb-6 p-4 rounded-lg border-l-4 border-red-400 bg-red-50 text-red-800 shadow-sm">
+      <% error.forEach(msg => { %>
+        <div class="flex items-center gap-2">
+          <i class="fa fa-exclamation-circle"></i> <%= msg %>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+
+  <form action="/admin/v1/products" method="POST" enctype="multipart/form-data" class="space-y-8">
+    <!-- Basic Information -->
+    <div class="bg-white rounded-xl shadow-md p-6 border border-gray-100">
+      <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+        <i class="fa fa-info-circle text-blue-600"></i> Basic Information
+      </h3>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label class="block font-semibold mb-2 text-gray-700">Product Title *</label>
+          <input name="title" value="<%= formData.title || '' %>" 
+                 class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                 placeholder="Premium Wireless Headphones" required />
+        </div>
+        
+        <div>
+          <label class="block font-semibold mb-2 text-gray-700">Base Price *</label>
+          <input name="basePrice" type="number" step="0.01" min="0" value="<%= formData.basePrice || '' %>" 
+                 class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                 placeholder="99.99" required />
+        </div>
+      </div>
+
+      <div class="mt-6">
+        <label class="block font-semibold mb-2 text-gray-700">Short Description</label>
+        <textarea name="shortDescription" rows="2" 
+                  class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                  placeholder="Brief product description..."><%= formData.shortDescription || '' %></textarea>
+      </div>
+
+      <div class="mt-6">
+        <label class="block font-semibold mb-2 text-gray-700">Full Description *</label>
+        <textarea name="description" rows="4" 
+                  class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                  placeholder="Detailed product description..." required><%= formData.description || '' %></textarea>
+      </div>
+    </div>
+
+    <!-- Categories -->
+    <div class="bg-white rounded-xl shadow-md p-6 border border-gray-100">
+      <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+        <i class="fa fa-tags text-green-600"></i> Categories
+      </h3>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label class="block font-semibold mb-2 text-gray-700">Category *</label>
+          <select name="category" id="category" required
+                  class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            <option value="">Select Category</option>
+            <% categories.forEach(cat => { %>
+              <option value="<%= cat._id %>" <%= formData.category === cat._id.toString() ? 'selected' : '' %>>
+                <%= cat.name %>
+              </option>
+            <% }) %>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-semibold mb-2 text-gray-700">Sub Category *</label>
+          <select name="subCategory" id="subCategory" required
+                  class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            <option value="">Select Sub Category</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-semibold mb-2 text-gray-700">Type *</label>
+          <select name="type" id="type" required
+                  class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            <option value="">Select Type</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-semibold mb-2 text-gray-700">Brand *</label>
+          <select name="brand" required
+                  class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            <option value="">Select Brand</option>
+            <% brands.forEach(brand => { %>
+              <option value="<%= brand._id %>" <%= formData.brand === brand._id.toString() ? 'selected' : '' %>>
+                <%= brand.name %>
+              </option>
+            <% }) %>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Product Images -->
+    <div class="bg-white rounded-xl shadow-md p-6 border border-gray-100">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+          <i class="fa fa-images text-purple-600"></i> Product Images
+        </h3>
+        <div class="flex gap-2">
+          <button type="button" id="add-single-image" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2">
+            <i class="fa fa-plus"></i> Add Image
+          </button>
+          <button type="button" id="add-multiple-images" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2">
+            <i class="fa fa-images"></i> Add Multiple
+          </button>
+        </div>
+      </div>
+      
+      <!-- Hidden file inputs -->
+      <input type="file" id="single-image-input" accept="image/*" style="display: none;" />
+      <input type="file" id="multiple-images-input" multiple accept="image/*" style="display: none;" />
+      
+      <!-- Image preview container -->
+      <div id="image-preview-container" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-4">
+        <!-- Images will be added here dynamically -->
+      </div>
+      
+      <!-- Empty state -->
+      <div id="empty-images" class="text-center py-8 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
+        <i class="fa fa-images text-4xl mb-3 text-gray-300"></i>
+        <p class="text-lg mb-2">No images uploaded yet</p>
+        <p class="text-sm">Click "Add Image" or "Add Multiple" to start uploading product images</p>
+        <p class="text-xs text-gray-400 mt-2">Supported: JPEG, PNG, WebP • Max 5MB each</p>
+      </div>
+      
+      <!-- Simple file input for form submission -->
+      <input type="file" name="images" id="final-images-input" multiple accept="image/*" style="display: none;" />
+    </div>
+
+    <!-- Product Variants -->
+    <div class="bg-white rounded-xl shadow-md p-6 border border-gray-100">
+      <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+        <i class="fa fa-layer-group text-orange-600"></i> Product Variants
+      </h3>
+      
+      <div id="variants-container">
+        <div class="variant-item border border-gray-200 rounded-lg p-4 mb-4">
+          <div class="flex justify-between items-center mb-4">
+            <h4 class="font-semibold text-gray-700">Variant #1</h4>
+            <button type="button" class="delete-variant px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition text-sm" style="display: none;">
+              <i class="fa fa-trash"></i> Delete
+            </button>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label class="block font-semibold mb-1 text-gray-700">SKU *</label>
+              <input name="variants[0][sku]" type="text" required
+                     class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                     placeholder="PROD-001" />
+            </div>
+            <div>
+              <label class="block font-semibold mb-1 text-gray-700">Regular Price *</label>
+              <input name="variants[0][price]" type="number" step="0.01" min="0" required
+                     class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                     placeholder="99.99" />
+            </div>
+            <div>
+              <label class="block font-semibold mb-1 text-gray-700">Sale Price</label>
+              <input name="variants[0][discountPrice]" type="number" step="0.01" min="0"
+                     class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:border-green-500" 
+                     placeholder="79.99" />
+              <p class="text-xs text-gray-500 mt-1">Leave empty if no discount</p>
+            </div>
+            <div>
+              <label class="block font-semibold mb-1 text-gray-700">Old Price</label>
+              <input name="variants[0][oldPrice]" type="number" step="0.01" min="0"
+                     class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-gray-500 focus:border-gray-500" 
+                     placeholder="109.99" />
+              <p class="text-xs text-gray-500 mt-1">Previous price for comparison</p>
+            </div>
+            <div>
+              <label class="block font-semibold mb-1 text-gray-700">Quantity *</label>
+              <input name="variants[0][qty]" type="number" min="0" required
+                     class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                     placeholder="100" />
+            </div>
+            <div>
+              <label class="block font-semibold mb-1 text-gray-700">Color</label>
+              <input name="variants[0][color]" type="text"
+                     class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                     placeholder="Black" />
+            </div>
+            <div>
+              <label class="block font-semibold mb-1 text-gray-700">Size</label>
+              <input name="variants[0][size]" type="text"
+                     class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                     placeholder="Medium" />
+            </div>
+            <div>
+              <label class="block font-semibold mb-1 text-gray-700">Threshold Qty</label>
+              <input name="variants[0][thresholdQty]" type="number" min="0" value="5"
+                     class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+            </div>
+          </div>
+          <div class="mt-4 flex gap-6">
+            <label class="flex items-center">
+              <input name="variants[0][isDefault]" type="checkbox" value="true" checked
+                     class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+              <span class="ml-2 text-sm text-gray-700">Default variant</span>
+            </label>
+            <label class="flex items-center">
+              <input name="variants[0][shipping]" type="checkbox" value="true" checked
+                     class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+              <span class="ml-2 text-sm text-gray-700">Shippable</span>
+            </label>
+          </div>
+        </div>
+      </div>
+      
+      <button type="button" id="add-variant" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+        <i class="fa fa-plus mr-2"></i>Add Another Variant
+      </button>
+    </div>
+
+    <!-- Business Information -->
+    <div class="bg-white rounded-xl shadow-md p-6 border border-gray-100">
+      <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+        <i class="fa fa-briefcase text-green-600"></i> Business Information
+      </h3>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label class="block font-semibold mb-2 text-gray-700">Warranty</label>
+          <input name="warranty" value="<%= formData.warranty || '' %>" 
+                 class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                 placeholder="1 year manufacturer warranty" />
+        </div>
+        
+        <div>
+          <label class="block font-semibold mb-2 text-gray-700">Return Policy</label>
+          <input name="returnPolicy" value="<%= formData.returnPolicy || '' %>" 
+                 class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                 placeholder="30 days return policy" />
+        </div>
+        
+        <div>
+          <label class="block font-semibold mb-2 text-gray-700">Shipping Info</label>
+          <input name="shippingInfo" value="<%= formData.shippingInfo || '' %>" 
+                 class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                 placeholder="Free shipping on orders over $50" />
+        </div>
+        
+        <div>
+          <label class="block font-semibold mb-2 text-gray-700">Tags</label>
+          <input name="tags" value="<%= formData.tags || '' %>" 
+                 class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                 placeholder="smartphone, premium, 5G, wireless charging (comma separated)" />
+          <p class="text-sm text-gray-500 mt-1">Separate multiple tags with commas</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Product Specifications -->
+    <div class="bg-white rounded-xl shadow-md p-6 border border-gray-100">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+          <i class="fa fa-cogs text-purple-600"></i> Product Specifications
+        </h3>
+        <button type="button" id="add-specification" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center gap-2">
+          <i class="fa fa-plus"></i> Add Specification
+        </button>
+      </div>
+      
+      <div class="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+        <div class="flex items-start gap-3">
+          <i class="fa fa-info-circle text-blue-600 mt-1"></i>
+          <div>
+            <p class="text-blue-800 font-medium">How to add specifications:</p>
+            <ul class="text-blue-700 text-sm mt-1 space-y-1">
+              <li>• Select a specification type from your predefined spec lists</li>
+              <li>• Enter the specific value for this product</li>
+              <li>• Examples: Screen Size → "6.1 inch", RAM → "8GB", Processor → "A17 Pro"</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      <div id="specifications-container">
+        <!-- Empty state when no specifications -->
+        <div id="empty-specs" class="text-center py-8 text-gray-500">
+          <i class="fa fa-list-alt text-4xl mb-3 text-gray-300"></i>
+          <p class="text-lg mb-2">No specifications added yet</p>
+          <p class="text-sm">Click "Add Specification" to start adding product specifications</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Product Status -->
+    <div class="bg-white rounded-xl shadow-md p-6 border border-gray-100">
+      <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+        <i class="fa fa-cog text-gray-600"></i> Product Settings
+      </h3>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label class="block font-semibold mb-2 text-gray-700">Status</label>
+          <select name="status" 
+                  class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            <option value="draft" <%= formData.status === 'draft' ? 'selected' : '' %>>Draft</option>
+            <option value="active" <%= formData.status === 'active' ? 'selected' : '' %>>Active</option>
+            <option value="inactive" <%= formData.status === 'inactive' ? 'selected' : '' %>>Inactive</option>
+            <option value="discontinued" <%= formData.status === 'discontinued' ? 'selected' : '' %>>Discontinued</option>
+          </select>
+        </div>
+        
+        <div class="flex flex-col gap-4">
+          <label class="flex items-center">
+            <input name="featured" type="checkbox" value="true" <%= formData.featured ? 'checked' : '' %>
+                   class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+            <span class="ml-2 text-gray-700">Featured Product</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Submit Buttons -->
+    <div class="flex justify-end gap-3">
+      <a href="/admin/v1/products" class="px-6 py-3 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition font-medium">
+        Cancel
+      </a>
+      <button type="submit" class="px-6 py-3 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition flex items-center gap-2">
+        <i class="fa fa-save"></i> Create Product
+      </button>
+    </div>
+  </form>
+</main>
+
+<script>
+// Dynamic category filtering
+const categorySelect = document.getElementById('category');
+const subCategorySelect = document.getElementById('subCategory');
+const typeSelect = document.getElementById('type');
+
+// You'll need to pass subcategories and types data from controller
+// For now, this is a placeholder for the dynamic filtering logic
+
+// Add variant functionality
+let variantCount = 1;
+
+function updateVariantNumbers() {
+  const variants = document.querySelectorAll('.variant-item');
+  variants.forEach((variant, index) => {
+    const title = variant.querySelector('h4');
+    title.textContent = `Variant #${index + 1}`;
+    
+    const inputs = variant.querySelectorAll('input');
+    inputs.forEach(input => {
+      const name = input.getAttribute('name');
+      if (name) {
+        input.setAttribute('name', name.replace(/\[\d+\]/, `[${index}]`));
+      }
+    });
+  });
+}
+
+function updateDeleteButtons() {
+  const variants = document.querySelectorAll('.variant-item');
+  const deleteButtons = document.querySelectorAll('.delete-variant');
+  
+  deleteButtons.forEach((btn, index) => {
+    btn.style.display = variants.length > 1 ? 'block' : 'none';
+  });
+}
+
+document.getElementById('add-variant').addEventListener('click', function() {
+  const container = document.getElementById('variants-container');
+  
+  // Create new variant using template
+  const newVariantDiv = document.createElement('div');
+  newVariantDiv.innerHTML = createVariantItem(variantCount);
+  const newVariant = newVariantDiv.firstElementChild;
+  
+  container.appendChild(newVariant);
+  variantCount++;
+  updateDeleteButtons();
+});
+
+// Delete variant functionality
+document.addEventListener('click', function(e) {
+  if (e.target.closest('.delete-variant')) {
+    const variant = e.target.closest('.variant-item');
+    const variants = document.querySelectorAll('.variant-item');
+    
+    if (variants.length > 1) {
+      variant.remove();
+      updateVariantNumbers();
+      updateDeleteButtons();
+    }
+  }
+});
+
+// Initialize delete buttons
+updateDeleteButtons();
+
+// Specification management
+let specificationCount = 0;
+
+function toggleEmptyState() {
+  const container = document.getElementById('specifications-container');
+  const emptyState = document.getElementById('empty-specs');
+  const specifications = document.querySelectorAll('.specification-item');
+  
+  if (specifications.length === 0) {
+    emptyState.style.display = 'block';
+  } else {
+    emptyState.style.display = 'none';
+  }
+}
+
+function updateSpecificationNumbers() {
+  const specifications = document.querySelectorAll('.specification-item');
+  specifications.forEach((spec, index) => {
+    const inputs = spec.querySelectorAll('input, select');
+    inputs.forEach(input => {
+      const name = input.getAttribute('name');
+      if (name) {
+        input.setAttribute('name', name.replace(/\[\d+\]/, `[${index}]`));
+      }
+    });
+  });
+}
+
+function createVariantItem(index) {
+  return `
+    <div class="variant-item border border-gray-200 rounded-lg p-4 mb-4">
+      <div class="flex justify-between items-center mb-4">
+        <h4 class="font-semibold text-gray-700">Variant #${index + 1}</h4>
+        <button type="button" class="delete-variant px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition text-sm">
+          <i class="fa fa-trash"></i> Delete
+        </button>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label class="block font-semibold mb-1 text-gray-700">SKU *</label>
+          <input name="variants[${index}][sku]" type="text" required
+                 class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                 placeholder="PROD-00${index + 1}" />
+        </div>
+        <div>
+          <label class="block font-semibold mb-1 text-gray-700">Regular Price *</label>
+          <input name="variants[${index}][price]" type="number" step="0.01" min="0" required
+                 class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                 placeholder="99.99" />
+        </div>
+        <div>
+          <label class="block font-semibold mb-1 text-gray-700">Sale Price</label>
+          <input name="variants[${index}][discountPrice]" type="number" step="0.01" min="0"
+                 class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:border-green-500" 
+                 placeholder="79.99" />
+        </div>
+        <div>
+          <label class="block font-semibold mb-1 text-gray-700">Old Price</label>
+          <input name="variants[${index}][oldPrice]" type="number" step="0.01" min="0"
+                 class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-gray-500 focus:border-gray-500" 
+                 placeholder="109.99" />
+        </div>
+        <div>
+          <label class="block font-semibold mb-1 text-gray-700">Quantity *</label>
+          <input name="variants[${index}][qty]" type="number" min="0" required
+                 class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                 placeholder="100" />
+        </div>
+        <div>
+          <label class="block font-semibold mb-1 text-gray-700">Color</label>
+          <input name="variants[${index}][color]" type="text"
+                 class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                 placeholder="Black" />
+        </div>
+        <div>
+          <label class="block font-semibold mb-1 text-gray-700">Size</label>
+          <input name="variants[${index}][size]" type="text"
+                 class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                 placeholder="Medium" />
+        </div>
+        <div>
+          <label class="block font-semibold mb-1 text-gray-700">Threshold Qty</label>
+          <input name="variants[${index}][thresholdQty]" type="number" min="0" value="5"
+                 class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+        </div>
+      </div>
+      <div class="mt-4 flex gap-6">
+        <label class="flex items-center">
+          <input name="variants[${index}][isDefault]" type="checkbox" value="true" ${index === 0 ? 'checked' : ''}
+                 class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+          <span class="ml-2 text-sm text-gray-700">Default variant</span>
+        </label>
+        <label class="flex items-center">
+          <input name="variants[${index}][shipping]" type="checkbox" value="true" checked
+                 class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+          <span class="ml-2 text-sm text-gray-700">Shippable</span>
+        </label>
+      </div>
+    </div>
+  `;
+}
+
+function createSpecificationItem(index) {
+  return `
+    <div class="specification-item bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4 hover:shadow-sm transition">
+      <div class="flex justify-between items-center mb-4">
+        <div class="flex items-center gap-2">
+          <i class="fa fa-tag text-purple-600"></i>
+          <h4 class="font-semibold text-gray-700">Specification ${index + 1}</h4>
+        </div>
+        <button type="button" class="delete-specification px-3 py-1 bg-red-500 text-white rounded-lg hover:bg-red-600 transition text-sm flex items-center gap-1">
+          <i class="fa fa-trash"></i> Remove
+        </button>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block font-medium mb-2 text-gray-700">Specification Type *</label>
+          <select name="specifications[${index}][specList]" required
+                  class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+            <option value="">Choose specification type...</option>
+            <% specLists.forEach(spec => { %>
+              <option value="<%= spec._id %>"><%= spec.title %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div>
+          <label class="block font-medium mb-2 text-gray-700">Value *</label>
+          <input name="specifications[${index}][value]" type="text" required
+                 class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500" 
+                 placeholder="Enter the specification value" />
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+document.getElementById('add-specification').addEventListener('click', function() {
+  const container = document.getElementById('specifications-container');
+  const emptyState = document.getElementById('empty-specs');
+  
+  // Hide empty state
+  emptyState.style.display = 'none';
+  
+  // Create new specification
+  const newSpecDiv = document.createElement('div');
+  newSpecDiv.innerHTML = createSpecificationItem(specificationCount);
+  const newSpec = newSpecDiv.firstElementChild;
+  
+  container.appendChild(newSpec);
+  specificationCount++;
+  
+  // Focus on the first input
+  newSpec.querySelector('select').focus();
+});
+
+// Delete specification functionality
+document.addEventListener('click', function(e) {
+  if (e.target.closest('.delete-specification')) {
+    const specification = e.target.closest('.specification-item');
+    specification.remove();
+    specificationCount--;
+    updateSpecificationNumbers();
+    toggleEmptyState();
+  }
+});
+
+// Initialize
+toggleEmptyState();
+
+// Image Management System
+let imageCount = 0;
+let uploadedImages = [];
+
+function toggleEmptyImagesState() {
+  const container = document.getElementById('image-preview-container');
+  const emptyState = document.getElementById('empty-images');
+  
+  if (uploadedImages.length === 0) {
+    emptyState.style.display = 'block';
+    container.style.display = 'none';
+  } else {
+    emptyState.style.display = 'none';
+    container.style.display = 'grid';
+  }
+}
+
+function createImagePreview(file, index) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const imageHtml = `
+        <div class="image-item relative group border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition" data-index="${index}">
+          <div class="aspect-square">
+            <img src="${e.target.result}" alt="Product image ${index + 1}" class="w-full h-full object-cover" />
+          </div>
+          <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center">
+            <button type="button" class="delete-image opacity-0 group-hover:opacity-100 px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition flex items-center gap-1" data-index="${index}">
+              <i class="fa fa-trash text-sm"></i>
+              <span class="text-sm">Delete</span>
+            </button>
+          </div>
+          <div class="absolute top-2 left-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
+            ${index + 1}
+          </div>
+          ${index === 0 ? '<div class="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded">Main</div>' : ''}
+        </div>
+      `;
+      resolve(imageHtml);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function updateFinalInput() {
+  const finalInput = document.getElementById('final-images-input');
+  
+  if (uploadedImages.length > 0) {
+    const dt = new DataTransfer();
+    uploadedImages.forEach(file => {
+      dt.items.add(file);
+    });
+    finalInput.files = dt.files;
+  } else {
+    finalInput.value = '';
+  }
+}
+
+async function addImages(files) {
+  const container = document.getElementById('image-preview-container');
+  
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    
+    // Validate file
+    if (!file.type.startsWith('image/')) {
+      alert(`${file.name} is not an image file.`);
+      continue;
+    }
+    
+    if (file.size > 5 * 1024 * 1024) {
+      alert(`${file.name} is too large. Maximum size is 5MB.`);
+      continue;
+    }
+    
+    // Add to uploaded images array
+    uploadedImages.push(file);
+    const currentIndex = uploadedImages.length - 1;
+    
+    // Create preview
+    const imageHtml = await createImagePreview(file, currentIndex);
+    const imageDiv = document.createElement('div');
+    imageDiv.innerHTML = imageHtml;
+    container.appendChild(imageDiv.firstElementChild);
+  }
+  
+  updateFinalInput();
+  toggleEmptyImagesState();
+  updateImageNumbers();
+}
+
+function removeImage(index) {
+  // Remove from array
+  uploadedImages.splice(index, 1);
+  
+  // Remove from DOM
+  const imageItem = document.querySelector(`[data-index="${index}"]`);
+  if (imageItem) {
+    imageItem.remove();
+  }
+  
+  // Update everything
+  updateFinalInput();
+  toggleEmptyImagesState();
+  updateImageNumbers();
+  
+  // Re-render all images with correct indices
+  rerenderImages();
+}
+
+function updateImageNumbers() {
+  const imageItems = document.querySelectorAll('.image-item');
+  imageItems.forEach((item, index) => {
+    const numberBadge = item.querySelector('.absolute.top-2.left-2');
+    const mainBadge = item.querySelector('.absolute.top-2.right-2');
+    
+    if (numberBadge) {
+      numberBadge.textContent = index + 1;
+    }
+    
+    // Update main badge
+    if (mainBadge) {
+      mainBadge.remove();
+    }
+    if (index === 0) {
+      const newMainBadge = document.createElement('div');
+      newMainBadge.className = 'absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded';
+      newMainBadge.textContent = 'Main';
+      item.appendChild(newMainBadge);
+    }
+    
+    // Update data-index and button data-index
+    item.setAttribute('data-index', index);
+    const deleteBtn = item.querySelector('.delete-image');
+    if (deleteBtn) {
+      deleteBtn.setAttribute('data-index', index);
+    }
+  });
+}
+
+async function rerenderImages() {
+  const container = document.getElementById('image-preview-container');
+  container.innerHTML = '';
+  
+  for (let i = 0; i < uploadedImages.length; i++) {
+    const imageHtml = await createImagePreview(uploadedImages[i], i);
+    const imageDiv = document.createElement('div');
+    imageDiv.innerHTML = imageHtml;
+    container.appendChild(imageDiv.firstElementChild);
+  }
+}
+
+// Event listeners for image management
+document.getElementById('add-single-image').addEventListener('click', function() {
+  document.getElementById('single-image-input').click();
+});
+
+document.getElementById('add-multiple-images').addEventListener('click', function() {
+  document.getElementById('multiple-images-input').click();
+});
+
+document.getElementById('single-image-input').addEventListener('change', function(e) {
+  if (e.target.files.length > 0) {
+    addImages(e.target.files);
+    e.target.value = ''; // Reset input
+  }
+});
+
+document.getElementById('multiple-images-input').addEventListener('change', function(e) {
+  if (e.target.files.length > 0) {
+    addImages(e.target.files);
+    e.target.value = ''; // Reset input
+  }
+});
+
+// Delete image event listener
+document.addEventListener('click', function(e) {
+  if (e.target.closest('.delete-image')) {
+    const index = parseInt(e.target.closest('.delete-image').getAttribute('data-index'));
+    if (confirm('Are you sure you want to delete this image?')) {
+      removeImage(index);
+    }
+  }
+});
+
+// Drag and drop functionality
+const emptyImagesDiv = document.getElementById('empty-images');
+const imageContainer = document.getElementById('image-preview-container');
+
+['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+  emptyImagesDiv.addEventListener(eventName, preventDefaults, false);
+  imageContainer.addEventListener(eventName, preventDefaults, false);
+});
+
+function preventDefaults(e) {
+  e.preventDefault();
+  e.stopPropagation();
+}
+
+['dragenter', 'dragover'].forEach(eventName => {
+  emptyImagesDiv.addEventListener(eventName, highlight, false);
+});
+
+['dragleave', 'drop'].forEach(eventName => {
+  emptyImagesDiv.addEventListener(eventName, unhighlight, false);
+});
+
+function highlight(e) {
+  emptyImagesDiv.classList.add('border-blue-500', 'bg-blue-50');
+}
+
+function unhighlight(e) {
+  emptyImagesDiv.classList.remove('border-blue-500', 'bg-blue-50');
+}
+
+emptyImagesDiv.addEventListener('drop', handleDrop, false);
+
+function handleDrop(e) {
+  const dt = e.dataTransfer;
+  const files = dt.files;
+  addImages(files);
+}
+
+// Initialize image state
+toggleEmptyImagesState();
+
+// Form submission handler
+document.querySelector('form').addEventListener('submit', function(e) {
+  // Ensure final input is up to date
+  updateFinalInput();
+  
+  // Show loading state
+  const submitBtn = document.querySelector('button[type="submit"]');
+  const originalText = submitBtn.innerHTML;
+  submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i>Creating Product...';
+  submitBtn.disabled = true;
+  
+  // Re-enable button after a delay in case of errors
+  setTimeout(() => {
+    submitBtn.innerHTML = originalText;
+    submitBtn.disabled = false;
+  }, 10000);
+});
+</script>
+
+<%- include('../partials/footer.ejs') %>

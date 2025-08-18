@@ -1,0 +1,407 @@
+<%- include('../partials/header.ejs', { title: 'Order Details' }) %>
+
+<div class="min-h-screen bg-gray-50 py-6">
+  <div class="max-w-6xl mx-auto px-4">
+    
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6">
+      <div class="flex items-center gap-4">
+        <a href="/admin/v1/order" class="flex items-center gap-2 px-3 py-2 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
+          <i class="fas fa-arrow-left text-gray-600"></i>
+          <span class="text-gray-700">Back to Orders</span>
+        </a>
+        <div>
+          <h1 class="text-2xl font-bold text-gray-900">Order #<%= order._id.toString().slice(-8).toUpperCase() %></h1>
+          <p class="text-gray-500 text-sm">Placed on <%= new Date(order.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) %></p>
+        </div>
+      </div>
+      
+      <div class="flex items-center gap-3">
+        <span class="px-4 py-2 rounded-full text-sm font-medium <%= 
+          order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+          order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
+          order.status === 'shipped' ? 'bg-purple-100 text-purple-800' :
+          order.status === 'delivered' ? 'bg-green-100 text-green-800' :
+          'bg-red-100 text-red-800'
+        %>">
+          <%= order.status.charAt(0).toUpperCase() + order.status.slice(1) %>
+        </span>
+        <% if(order.status === 'cancelled') { %>
+          <span class="ml-2 px-2 py-1 rounded bg-red-200 text-red-900 text-xs">Order Cancelled</span>
+        <% } %>
+      </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      
+      <!-- Left Column - Order Items -->
+      <div class="lg:col-span-2 space-y-6">
+        
+        <!-- Order Items Card -->
+        <div class="bg-white rounded-xl shadow-sm border">
+          <div class="px-6 py-4 border-b bg-gray-50 rounded-t-xl">
+            <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <i class="fas fa-shopping-bag text-blue-600"></i>
+              Ordered Products
+            </h2>
+          </div>
+          
+          <div class="p-6">
+            <% if (order.items && order.items.length > 0) { %>
+              <div class="space-y-6">
+                <% order.items.forEach((item, index) => { %>
+                  <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                    <div class="flex items-start gap-6">
+                      
+                      <!-- Product Image -->
+                      <div class="w-24 h-24 bg-white rounded-lg flex-shrink-0 overflow-hidden border">
+                        <% if (item.productImage) { %>
+                          <img src="<%= item.productImage %>" alt="<%= item.productTitle %>" class="w-full h-full object-cover">
+                        <% } else { %>
+                          <div class="w-full h-full flex items-center justify-center text-gray-400">
+                            <i class="fas fa-cube text-3xl"></i>
+                          </div>
+                        <% } %>
+                      </div>
+                      
+                      <!-- Product Details -->
+                      <div class="flex-1">
+                        <div class="flex justify-between items-start mb-4">
+                          <div>
+                            <h3 class="text-xl font-bold text-gray-900 mb-2"><%= item.productTitle || 'Product Name Not Available' %></h3>
+                            <div class="flex items-center gap-4 text-sm text-gray-600 mb-3">
+                              <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                                <i class="fas fa-tag mr-1"></i><%= item.brand || 'Unknown Brand' %>
+                              </span>
+                              <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                                <i class="fas fa-folder mr-1"></i><%= item.category || 'Electronics' %>
+                              </span>
+                            </div>
+                          </div>
+                          <div class="text-right">
+                            <div class="text-2xl font-bold text-gray-900">₹<%= (item.totalPrice || 0).toLocaleString() %></div>
+                            <div class="text-sm text-gray-500">Line Total</div>
+                          </div>
+                        </div>
+                        
+                        <!-- Product Info Grid -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                          <div class="bg-white p-3 rounded-lg border">
+                            <div class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Product ID</div>
+                            <div class="font-mono text-xs text-gray-900 break-all"><%= item.productId && item.productId._id ? item.productId._id : (typeof item.productId === 'object' ? item.productId.toString() : item.productId) %></div>
+                          </div>
+                          <div class="bg-white p-3 rounded-lg border">
+                            <div class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Unit Price</div>
+                            <div class="font-semibold text-green-600">₹<%= (item.productPrice || 0).toLocaleString() %></div>
+                          </div>
+                          <div class="bg-white p-3 rounded-lg border">
+                            <div class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Quantity</div>
+                            <div class="font-bold text-blue-600">×<%= item.qty || 0 %></div>
+                          </div>
+                          <div class="bg-white p-3 rounded-lg border">
+                            <div class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Warranty</div>
+                            <div class="text-blue-600 font-medium flex items-center gap-1">
+                              <i class="fas fa-shield-alt text-xs"></i>2 Years
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <!-- Product Specifications -->
+                        <% if (item.specifications && item.specifications.length > 0) { %>
+                          <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-4">
+                            <div class="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                              <i class="fas fa-microchip text-slate-600"></i>
+                              Product Specifications
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                              <% item.specifications.forEach((spec, index) => { %>
+                                <div class="flex justify-between items-center py-1 <%= index % 2 === 0 ? '' : 'md:ml-4' %>">
+                                  <span class="text-slate-600"><%= spec.specList?.title || 'Specification' %>:</span>
+                                  <span class="font-medium text-slate-900"><%= spec.value %></span>
+                                </div>
+                              <% }) %>
+                            </div>
+                          </div>
+                        <% } %>
+                        
+                        <!-- Product Description -->
+                        <% if (item.productId?.description) { %>
+                          <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                            <div class="text-sm font-semibold text-blue-800 mb-2 flex items-center gap-2">
+                              <i class="fas fa-info-circle text-blue-600"></i>
+                              Product Description
+                            </div>
+                            <div class="text-sm text-blue-800 leading-relaxed">
+                              <%= item.productId.description.substring(0, 300) %><% if (item.productId.description.length > 300) { %>...<% } %>
+                            </div>
+                          </div>
+                        <% } %>
+                        
+                        <!-- Product Tags -->
+                        <% if (item.productId?.tags && item.productId.tags.length > 0) { %>
+                          <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                            <div class="text-sm font-semibold text-green-800 mb-2 flex items-center gap-2">
+                              <i class="fas fa-tags text-green-600"></i>
+                              Product Tags
+                            </div>
+                            <div class="flex flex-wrap gap-2">
+                              <% item.productId.tags.forEach(tag => { %>
+                                <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
+                                  <%= tag %>
+                                </span>
+                              <% }) %>
+                            </div>
+                          </div>
+                        <% } %>
+                        
+                        <!-- Warranty Information -->
+                        <% if (item.productId?.warranty) { %>
+                          <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                            <div class="text-sm font-semibold text-yellow-800 mb-2 flex items-center gap-2">
+                              <i class="fas fa-shield-alt text-yellow-600"></i>
+                              Warranty Information
+                            </div>
+                            <div class="text-sm text-yellow-800">
+                              <%= item.productId.warranty %>
+                            </div>
+                          </div>
+                        <% } %>
+                        
+                        <!-- Available Variants -->
+                        <% if (item.productId?.variants && item.productId.variants.length > 0) { %>
+                          <div class="bg-white border border-gray-200 rounded-lg p-4 mb-4">
+                            <div class="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                              <i class="fas fa-layer-group text-gray-600"></i>
+                              Available Product Variants
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              <% item.productId.variants.forEach((variant, vIndex) => { %>
+                                <div class="p-3 bg-gray-50 rounded-lg border">
+                                  <div class="flex items-center justify-between mb-2">
+                                    <span class="font-medium text-gray-900">
+                                      <% if (variant.color) { %><%= variant.color %><% } %>
+                                      <% if (variant.size) { %> - <%= variant.size %><% } %>
+                                      <% if (!variant.color && !variant.size) { %>Variant <%= vIndex + 1 %><% } %>
+                                    </span>
+                                    <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium"><%= variant.sku %></span>
+                                  </div>
+                                  <div class="text-xs text-gray-600 space-y-1">
+                                    <% if (variant.color) { %>
+                                      <% 
+                                        const tailwindColorMap = {
+                                          red: 'bg-red-500',
+                                          blue: 'bg-blue-500',
+                                          green: 'bg-green-500',
+                                          yellow: 'bg-yellow-500',
+                                          orange: 'bg-orange-500',
+                                          purple: 'bg-purple-500',
+                                          pink: 'bg-pink-500',
+                                          gray: 'bg-gray-500',
+                                          black: 'bg-black',
+                                          white: 'bg-white',
+                                          teal: 'bg-teal-500',
+                                          indigo: 'bg-indigo-500',
+                                          lime: 'bg-lime-500',
+                                          cyan: 'bg-cyan-500',
+                                          amber: 'bg-amber-500',
+                                          emerald: 'bg-emerald-500',
+                                          fuchsia: 'bg-fuchsia-500',
+                                          rose: 'bg-rose-500',
+                                        };
+                                        let colorClass = tailwindColorMap[(variant.color || '').toLowerCase()] || 'bg-gray-300';
+                                      %>
+                                      <div class="flex items-center gap-2">
+                                        <div class="w-3 h-3 rounded-full border border-gray-300 <%= colorClass %>"></div>
+                                        <span>Color: <%= variant.color %></span>
+                                      </div>
+                                    <% } %>
+                                    <% if (variant.size) { %>
+                                      <div>• Size: <%= variant.size %></div>
+                                    <% } %>
+                                    <% if (variant.material) { %>
+                                      <div>• Material: <%= variant.material %></div>
+                                    <% } %>
+                                    <% if (variant.weight) { %>
+                                      <div>• Weight: <%= variant.weight %>g</div>
+                                    <% } %>
+                                    <% if (variant.dimensions && (variant.dimensions.length || variant.dimensions.width || variant.dimensions.height)) { %>
+                                      <div>• Dimensions: 
+                                        <% if (variant.dimensions.length) { %><%= variant.dimensions.length %><% } %>
+                                        <% if (variant.dimensions.width) { %>×<%= variant.dimensions.width %><% } %>
+                                        <% if (variant.dimensions.height) { %>×<%= variant.dimensions.height %>cm<% } %>
+                                      </div>
+                                    <% } %>
+                                    <div>• Price: ₹<%= (variant.discountPrice || variant.price).toLocaleString() %></div>
+                                    <div class="font-medium <%= variant.qty > 10 ? 'text-green-600' : variant.qty > 0 ? 'text-orange-600' : 'text-red-600' %>">
+                                      • Stock: <%= variant.qty %> units (<%= variant.status.replace('_', ' ') %>)
+                                    </div>
+                                  </div>
+                                </div>
+                              <% }) %>
+                            </div>
+                          </div>
+                        <% } %>
+                      </div>
+                    </div>
+                  </div>
+                <% }) %>
+              </div>
+            <% } else { %>
+              <div class="text-center py-12 text-gray-500">
+                <i class="fas fa-exclamation-triangle text-4xl mb-4 text-gray-300"></i>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">No Items Found</h3>
+                <p class="text-gray-600">This order appears to have no items.</p>
+              </div>
+            <% } %>
+          </div>
+          
+          <!-- Order Summary -->
+          <div class="px-6 py-4 bg-slate-50 border-t rounded-b-xl">
+            <div class="flex justify-between items-center">
+              <div class="text-sm text-gray-600">
+                <div>Subtotal: ₹<%= (order.totalPrice - (order.discountAmt || 0)).toLocaleString() %></div>
+                <% if (order.discountAmt && order.discountAmt > 0) { %>
+                  <div class="text-green-600">Discount: -₹<%= order.discountAmt.toLocaleString() %></div>
+                <% } %>
+              </div>
+              <div class="text-right">
+                <div class="text-3xl font-bold text-gray-900">₹<%= order.totalPrice.toLocaleString() %></div>
+                <div class="text-sm text-gray-500"><%= order.totalQty %> items total</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column - Order Information Table -->
+      <div class="space-y-6">
+        
+        <!-- Order Information Table -->
+        <div class="bg-white rounded-xl shadow-sm border">
+          <div class="px-6 py-4 border-b bg-slate-50 rounded-t-xl">
+            <h3 class="font-semibold text-gray-900 flex items-center gap-2">
+              <i class="fas fa-info-circle text-slate-600 text-lg"></i>
+              Order Information
+            </h3>
+          </div>
+          <div class="p-6">
+            <table class="w-full">
+              <tbody class="divide-y divide-gray-100">
+                <!-- Order Details -->
+                <tr>
+                  <td class="py-3 text-sm font-medium text-gray-500 w-1/3">Order ID</td>
+                  <td class="py-3 text-sm text-gray-900 font-mono">#<%= order._id.toString().slice(-8).toUpperCase() %></td>
+                </tr>
+                <tr>
+                  <td class="py-3 text-sm font-medium text-gray-500">Status</td>
+                  <td class="py-3">
+                    <span class="inline-flex px-3 py-1 rounded-full text-xs font-medium <%= 
+                      order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                      order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
+                      order.status === 'shipped' ? 'bg-purple-100 text-purple-800' :
+                      order.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                      'bg-red-100 text-red-800'
+                    %>">
+                      <%= order.status.charAt(0).toUpperCase() + order.status.slice(1) %>
+                    </span>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="py-3 text-sm font-medium text-gray-500">Order Date</td>
+                  <td class="py-3 text-sm text-gray-900"><%= new Date(order.createdAt).toLocaleDateString() %></td>
+                </tr>
+                
+                <!-- Customer Details -->
+                <tr class="bg-gray-50">
+                  <td colspan="2" class="py-2 text-xs font-semibold text-gray-600 uppercase tracking-wide">Customer Information</td>
+                </tr>
+                <tr>
+                  <td class="py-3 text-sm font-medium text-gray-500">Customer Name</td>
+                  <td class="py-3 text-sm text-gray-900 font-medium"><%= order.user?.fullname || order.user?.username || 'Guest User' %></td>
+                </tr>
+                <tr>
+            <td class="py-3 text-sm font-medium text-gray-500">Email</td>
+                  <td class="py-3 text-sm text-blue-600"><%= order.user?.email || 'Not provided' %></td>
+                </tr>
+                <tr>
+                  <td class="py-3 text-sm font-medium text-gray-500">Phone</td>
+                  <td class="py-3 text-sm text-gray-900"><%= order.user?.phone || 'Not provided' %></td>
+                </tr>
+                
+                <!-- Delivery Details -->
+                <tr class="bg-gray-50">
+                  <td colspan="2" class="py-2 text-xs font-semibold text-gray-600 uppercase tracking-wide">Delivery Information</td>
+                </tr>
+                <% if (order.shippingAddress) { %>
+                  <tr>
+                    <td class="py-3 text-sm font-medium text-gray-500">Recipient</td>
+                    <td class="py-3 text-sm text-gray-900 leading-relaxed">
+                      <strong><%= order.shippingAddress.fullname %></strong><br>
+                      <%= order.shippingAddress.street %><br>
+                      <%= order.shippingAddress.city %>, <%= order.shippingAddress.state %><br>
+                      <%= order.shippingAddress.postalCode %><% if (order.shippingAddress.country) { %>, <%= order.shippingAddress.country %><% } %>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="py-3 text-sm font-medium text-gray-500">Contact</td>
+                    <td class="py-3 text-sm text-gray-900 font-medium"><%= order.shippingAddress.phone %></td>
+                  </tr>
+                <% } else { %>
+                  <tr>
+                    <td class="py-3 text-sm font-medium text-gray-500">Address</td>
+                    <td class="py-3 text-sm text-gray-500">No delivery address available</td>
+                  </tr>
+                <% } %>
+                
+                <!-- Payment Details -->
+                <tr class="bg-gray-50">
+                  <td colspan="2" class="py-2 text-xs font-semibold text-gray-600 uppercase tracking-wide">Payment Information</td>
+                </tr>
+                <tr>
+                  <td class="py-3 text-sm font-medium text-gray-500">Payment Method</td>
+                  <td class="py-3 text-sm text-gray-900 capitalize font-medium">
+                    <%= order.paymentMethod %>
+                    <% if (order.paymentMethod === 'cod') { %>
+                      <span class="ml-2 bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium">Cash on Delivery</span>
+                    <% } %>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="py-3 text-sm font-medium text-gray-500">Payment Status</td>
+                  <td class="py-3">
+                    <span class="inline-flex px-3 py-1 rounded-full text-xs font-medium <%= order.paid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' %>">
+                      <%= order.paid ? 'Paid' : 'Pending' %>
+                    </span>
+                  </td>
+                </tr>
+                <% if (order.trackingNumber) { %>
+                  <tr>
+                    <td class="py-3 text-sm font-medium text-gray-500">Tracking Number</td>
+                    <td class="py-3 text-sm text-blue-700 font-mono font-medium"><%= order.trackingNumber %></td>
+                  </tr>
+                <% } %>
+                <% if (order.couponApplied) { %>
+                  <tr>
+                    <td class="py-3 text-sm font-medium text-gray-500">Coupon Applied</td>
+                    <td class="py-3 text-sm text-green-700 font-medium"><%= order.couponApplied %></td>
+                  </tr>
+                <% } %>
+                
+                <!-- Order Total -->
+                <tr class="bg-slate-50 border-t-2 border-slate-200">
+                  <td class="py-4 text-base font-semibold text-gray-900">Order Total</td>
+                  <td class="py-4 text-xl font-bold text-gray-900">₹<%= order.totalPrice.toLocaleString() %></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+<%- include('../partials/footer.ejs') %>

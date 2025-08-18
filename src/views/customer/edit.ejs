@@ -1,0 +1,362 @@
+<%- include('../partials/header.ejs', { title: 'Edit User' }) %>
+
+<!-- Modern Navigation Bar -->
+<nav class="flex flex-wrap gap-3 mb-8 p-4 bg-white rounded-xl shadow-sm border border-gray-100 items-center">
+  <a href="/admin/v1/staff/dashboard" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition">
+    <i class="fa fa-home"></i> Dashboard
+  </a>
+  <a href="/admin/v1/customers/users" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-50 text-gray-700 hover:bg-gray-100 transition">
+    <i class="fa fa-users"></i> Customer List
+  </a>
+  <a href="/admin/v1/customers/users/<%= user._id %>" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-50 text-gray-700 hover:bg-gray-100 transition">
+    <i class="fa fa-user"></i> Profile
+  </a>
+</nav>
+
+<main class="container mx-auto max-w-3xl px-4 mt-8">
+  <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-8 gap-4">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-800">Edit <%= user.username || 'Unnamed User' %></h1>
+      <p class="text-gray-500 mt-1">Update user details and preferences</p>
+    </div>
+    <div class="text-right">
+      <% 
+        // Safely handle undefined role
+        const userRole = user.role || 'customer';
+        const displayRole = userRole.charAt(0).toUpperCase() + userRole.slice(1);
+        const roleColor = userRole === 'admin' ? 'blue' : 'green';
+      %>
+      <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-<%= roleColor %>-100 text-<%= roleColor %>-800">
+        <i class="fa fa-id-badge mr-1.5"></i> <%= displayRole %>
+      </span>
+    </div>
+  </div>
+
+  <!-- Flash Messages -->
+  <% if (error && error.length) { %>
+    <div class="mb-6 p-4 rounded-lg border-l-4 border-red-400 bg-red-50 text-red-800 shadow-sm">
+      <% error.forEach(msg => { %>
+        <div class="flex items-center gap-2">
+          <i class="fa fa-exclamation-circle"></i>
+          <%= msg %>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+  <% if (success && success.length) { %>
+    <div class="mb-6 p-4 rounded-lg border-l-4 border-green-400 bg-green-50 text-green-800 shadow-sm">
+      <% success.forEach(msg => { %>
+        <div class="flex items-center gap-2">
+          <i class="fa fa-check-circle"></i>
+          <%= msg %>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+
+  <!-- Form Card -->
+  <div class="bg-white rounded-xl shadow-md p-8 mb-10 border border-gray-100">
+    <form action="/admin/v1/customers/users/<%= user._id %>/update" method="POST" enctype="multipart/form-data" class="space-y-8">
+      <!-- Profile Photo Section -->
+      <div class="border-b border-gray-100 pb-8">
+        <h3 class="font-semibold text-lg mb-5 text-blue-700 flex items-center gap-2">
+          <i class="fa fa-image"></i> Profile Photo
+        </h3>
+        <div class="flex flex-col md:flex-row md:items-start gap-8">
+          <div class="w-32 h-32 flex-shrink-0">
+            <div class="relative w-full h-full rounded-full overflow-hidden border-2 border-gray-200">
+              <% if (user.profileImage) { %>
+                <img 
+                  src="<%= user.profileImage %>" 
+                  alt="Current User Photo"
+                  class="w-full h-full object-cover"
+                  id="currentImage"
+                >
+              <% } else { %>
+                <div class="w-full h-full bg-gray-100 flex items-center justify-center text-gray-400">
+                  <i class="fa fa-user text-3xl"></i>
+                </div>
+              <% } %>
+            </div>
+          </div>
+          <div class="flex-1">
+            <label for="photo" class="block font-semibold mb-2 text-gray-700">Upload New Photo</label>
+            <input 
+              id="photo" 
+              name="photo" 
+              type="file" 
+              accept="image/*"
+              class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+              onchange="previewImage(event)"
+            >
+            <p class="mt-2 text-sm text-gray-500">JPEG or PNG, max 2MB. Recommended size: 400x400px</p>
+            
+            <div id="imagePreview" class="mt-4 hidden">
+              <p class="font-medium mb-2 text-gray-700">Preview:</p>
+              <div class="w-32 h-32 rounded-full overflow-hidden border-2 border-blue-200">
+                <img 
+                  id="preview"
+                  class="w-full h-full object-cover"
+                  alt="Selected image preview"
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Personal Information Section -->
+      <div class="border-b border-gray-100 pb-8">
+        <h3 class="font-semibold text-lg mb-5 text-blue-700 flex items-center gap-2">
+          <i class="fa fa-user"></i> Personal Information
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label for="fullname" class="block font-semibold mb-2 text-gray-700">Full Name</label>
+            <input
+              id="fullname"
+              name="fullname"
+              type="text"
+              value="<%= user.fullname || '' %>"
+              required
+              class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+            >
+          </div>
+          <div>
+            <label for="username" class="block font-semibold mb-2 text-gray-700">Username</label>
+            <input
+              id="username"
+              name="username"
+              type="text"
+              value="<%= user.username || '' %>"
+              required
+              class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+            >
+          </div>
+          <div>
+            <label for="email" class="block font-semibold mb-2 text-gray-700">Email Address</label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              value="<%= user.email || '' %>"
+              required
+              class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+            >
+          </div>
+          <div>
+            <label for="phone" class="block font-semibold mb-2 text-gray-700">Phone Number</label>
+            <input
+              id="phone"
+              name="phone"
+              type="tel"
+              value="<%= user.phone || '' %>"
+              class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+            >
+          </div>
+        </div>
+      </div>
+
+      <!-- Account Details Section -->
+      <div class="border-b border-gray-100 pb-8">
+        <h3 class="font-semibold text-lg mb-5 text-blue-700 flex items-center gap-2">
+          <i class="fa fa-lock"></i> Account Details
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label for="gender" class="block font-semibold mb-2 text-gray-700">Gender</label>
+            <select id="gender" name="gender" class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+              <% ['Male', 'Female', 'Others'].forEach(g => { %>
+                <option value="<%= g %>" <%= (user.gender || '') === g ? 'selected' : '' %>>
+                  <%= g %>
+                </option>
+              <% }) %>
+            </select>
+          </div>
+          <div>
+            <label for="dob" class="block font-semibold mb-2 text-gray-700">Date of Birth</label>
+            <input
+              id="dob"
+              name="dob"
+              type="date"
+              value="<%= user.dob ? (new Date(user.dob).toISOString().split('T')[0]) : '' %>"
+              class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+            >
+          </div>
+          <div>
+            <label for="role" class="block font-semibold mb-2 text-gray-700">Account Role</label>
+            <select id="role" name="role" class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+              <% ['admin', 'customer'].forEach(r => { %>
+                <option value="<%= r %>" <%= (user.role || 'customer') === r ? 'selected' : '' %>>
+                  <%= r.charAt(0).toUpperCase() + r.slice(1) %>
+                </option>
+              <% }) %>
+            </select>
+            <p class="mt-1 text-sm text-gray-500">Role determines user permissions</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Address Sections -->
+      <div class="border-b border-gray-100 pb-8">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <!-- Permanent Address -->
+          <div>
+            <h3 class="font-semibold text-lg mb-4 text-blue-700 flex items-center gap-2">
+              <i class="fa fa-map-marker-alt"></i> Permanent Address
+            </h3>
+            <div class="space-y-4">
+              <div>
+                <label for="permanentAddress[locality]" class="block font-semibold mb-1 text-gray-700">Locality</label>
+                <input
+                  id="permanentAddress[locality]"
+                  name="permanentAddress[locality]"
+                  type="text"
+                  value="<%= user.permanentAddress && user.permanentAddress.locality ? user.permanentAddress.locality : '' %>"
+                  class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+                >
+              </div>
+              <div>
+                <label for="permanentAddress[city]" class="block font-semibold mb-1 text-gray-700">City</label>
+                <input
+                  id="permanentAddress[city]"
+                  name="permanentAddress[city]"
+                  type="text"
+                  value="<%= user.permanentAddress && user.permanentAddress.city ? user.permanentAddress.city : '' %>"
+                  class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+                >
+              </div>
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label for="permanentAddress[postalCode]" class="block font-semibold mb-1 text-gray-700">Postal Code</label>
+                  <input
+                    id="permanentAddress[postalCode]"
+                    name="permanentAddress[postalCode]"
+                    type="text"
+                    value="<%= user.permanentAddress && user.permanentAddress.postalCode ? user.permanentAddress.postalCode : '' %>"
+                    class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+                  >
+                </div>
+                <div>
+                  <label for="permanentAddress[province]" class="block font-semibold mb-1 text-gray-700">Province</label>
+                  <input
+                    id="permanentAddress[province]"
+                    name="permanentAddress[province]"
+                    type="text"
+                    value="<%= user.permanentAddress && user.permanentAddress.province ? user.permanentAddress.province : '' %>"
+                    class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+                  >
+                </div>
+              </div>
+              <div>
+                <label for="permanentAddress[country]" class="block font-semibold mb-1 text-gray-700">Country</label>
+                <input
+                  id="permanentAddress[country]"
+                  name="permanentAddress[country]"
+                  type="text"
+                  value="<%= user.permanentAddress && user.permanentAddress.country ? user.permanentAddress.country : '' %>"
+                  class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+                >
+              </div>
+            </div>
+          </div>
+
+          <!-- Temporary Address -->
+          <div>
+            <h3 class="font-semibold text-lg mb-4 text-blue-700 flex items-center gap-2">
+              <i class="fa fa-map-marked-alt"></i> Temporary Address
+            </h3>
+            <div class="space-y-4">
+              <div>
+                <label for="tempAddress[locality]" class="block font-semibold mb-1 text-gray-700">Locality</label>
+                <input
+                  id="tempAddress[locality]"
+                  name="tempAddress[locality]"
+                  type="text"
+                  value="<%= user.tempAddress && user.tempAddress.locality ? user.tempAddress.locality : '' %>"
+                  class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+                >
+              </div>
+              <div>
+                <label for="tempAddress[city]" class="block font-semibold mb-1 text-gray-700">City</label>
+                <input
+                  id="tempAddress[city]"
+                  name="tempAddress[city]"
+                  type="text"
+                  value="<%= user.tempAddress && user.tempAddress.city ? user.tempAddress.city : '' %>"
+                  class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+                >
+              </div>
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label for="tempAddress[postalCode]" class="block font-semibold mb-1 text-gray-700">Postal Code</label>
+                  <input
+                    id="tempAddress[postalCode]"
+                    name="tempAddress[postalCode]"
+                    type="text"
+                    value="<%= user.tempAddress && user.tempAddress.postalCode ? user.tempAddress.postalCode : '' %>"
+                    class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+                  >
+                </div>
+                <div>
+                  <label for="tempAddress[province]" class="block font-semibold mb-1 text-gray-700">Province</label>
+                  <input
+                    id="tempAddress[province]"
+                    name="tempAddress[province]"
+                    type="text"
+                    value="<%= user.tempAddress && user.tempAddress.province ? user.tempAddress.province : '' %>"
+                    class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+                  >
+                </div>
+              </div>
+              <div>
+                <label for="tempAddress[country]" class="block font-semibold mb-1 text-gray-700">Country</label>
+                <input
+                  id="tempAddress[country]"
+                  name="tempAddress[country]"
+                  type="text"
+                  value="<%= user.tempAddress && user.tempAddress.country ? user.tempAddress.country : '' %>"
+                  class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form Actions -->
+      <div class="flex flex-col sm:flex-row sm:justify-end gap-3 pt-6">
+        <a href="/admin/v1/customers/users/<%= user._id %>" class="px-4 py-2.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition text-center">
+          <i class="fa fa-times mr-2"></i> Cancel
+        </a>
+        <button type="submit" class="px-4 py-2.5 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition flex items-center justify-center">
+          <i class="fa fa-save mr-2"></i> Save Changes
+        </button>
+      </div>
+    </form>
+  </div>
+</main>
+
+<script nonce="<%= (typeof cspNonce !== 'undefined' ? cspNonce : '') %>">
+function previewImage(event) {
+  const previewContainer = document.getElementById('imagePreview');
+  const preview = document.getElementById('preview');
+  const file = event.target.files[0];
+
+  if (file) {
+    const reader = new FileReader();
+    
+    reader.onload = function(e) {
+      preview.src = e.target.result;
+      previewContainer.classList.remove('hidden');
+    };
+
+    reader.readAsDataURL(file);
+  } else {
+    preview.src = '';
+    previewContainer.classList.add('hidden');
+  }
+}
+</script>
+
+<%- include('../partials/footer.ejs') %>

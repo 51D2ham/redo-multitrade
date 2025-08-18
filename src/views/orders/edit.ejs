@@ -1,0 +1,298 @@
+<%- include('../partials/header.ejs', { title: 'Edit Order' }) %>
+
+<div class="min-h-screen bg-gray-50 py-6">
+  <div class="max-w-5xl mx-auto px-4">
+    
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6">
+      <div class="flex items-center gap-4">
+        <a href="/admin/v1/order/<%= order._id %>" class="flex items-center gap-2 px-3 py-2 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
+          <i class="fas fa-arrow-left text-gray-600"></i>
+          <span class="text-gray-700">Back to Order</span>
+        </a>
+        <div>
+          <h1 class="text-2xl font-bold text-gray-900">Edit Order #<%= order._id.toString().slice(-8).toUpperCase() %></h1>
+          <p class="text-gray-500 text-sm">Update order status and tracking information</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Flash Messages -->
+    <% if (success && success.length) { %>
+      <div class="mb-6 p-4 rounded-lg bg-green-50 border border-green-200 text-green-800">
+        <% success.forEach(msg => { %>
+          <div class="flex items-center gap-2">
+            <i class="fas fa-check-circle"></i>
+            <%= msg %>
+          </div>
+        <% }) %>
+      </div>
+    <% } %>
+
+    <% if (error && error.length) { %>
+      <div class="mb-6 p-4 rounded-lg bg-red-50 border border-red-200 text-red-800">
+        <% error.forEach(msg => { %>
+          <div class="flex items-center gap-2">
+            <i class="fas fa-exclamation-circle"></i>
+            <%= msg %>
+          </div>
+        <% }) %>
+      </div>
+    <% } %>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      
+      <!-- Edit Form -->
+      <div class="bg-white rounded-xl shadow-sm border">
+        <div class="px-6 py-4 border-b bg-gray-50 rounded-t-xl">
+          <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <i class="fas fa-edit text-blue-600"></i>
+            Update Order Details
+          </h2>
+        </div>
+          
+          <form method="POST" action="/admin/v1/order/<%= order._id %>?_method=PUT" class="p-6 space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Order Status</label>
+                <select name="status" id="status" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                  <option value="pending" <%= order.status === 'pending' ? 'selected' : '' %>>Pending</option>
+                  <option value="processing" <%= order.status === 'processing' ? 'selected' : '' %>>Processing</option>
+                  <option value="shipped" <%= order.status === 'shipped' ? 'selected' : '' %>>Shipped</option>
+                  <option value="delivered" <%= order.status === 'delivered' ? 'selected' : '' %>>Delivered</option>
+                  <option value="cancelled" <%= order.status === 'cancelled' ? 'selected' : '' %>>Cancelled</option>
+                </select>
+              </div>
+              <div>
+                <label for="paid" class="block text-sm font-medium text-gray-700 mb-1">Payment Status</label>
+                <select name="paid" id="paid" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                  <option value="false" <%= !order.paid ? 'selected' : '' %>>Unpaid</option>
+                  <option value="true" <%= order.paid ? 'selected' : '' %>>Paid</option>
+                </select>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label for="trackingNumber" class="block text-sm font-medium text-gray-700 mb-1">Tracking Number</label>
+                <input type="text" name="trackingNumber" id="trackingNumber" value="<%= order.trackingNumber || '' %>" placeholder="Enter tracking number" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+              </div>
+              <div>
+                <label for="estimatedDelivery" class="block text-sm font-medium text-gray-700 mb-1">Estimated Delivery</label>
+                <input type="date" name="estimatedDelivery" id="estimatedDelivery" value="<%= order.estimatedDelivery ? new Date(order.estimatedDelivery).toISOString().split('T')[0] : '' %>" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+              </div>
+            </div>
+            <div>
+              <label for="statusMessage" class="block text-sm font-medium text-gray-700 mb-1">Customer Notification Message</label>
+              <textarea name="statusMessage" id="statusMessage" rows="3" placeholder="Enter a message for the customer about this status update..." class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
+              <p class="text-xs text-gray-500 mt-1">This message will be sent to the customer via email</p>
+            </div>
+            <div class="flex gap-3 pt-3 border-t border-gray-200">
+              <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                <i class="fas fa-save mr-1"></i>Update Order
+              </button>
+              <a href="/admin/v1/order/<%= order._id %>" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium">
+                <i class="fas fa-times mr-1"></i>Cancel
+              </a>
+            </div>
+          </form>
+        </div>
+
+      <!-- Order Information -->
+      <div class="space-y-6">
+        
+        <!-- Order Summary -->
+        <div class="bg-white rounded-xl shadow-sm border">
+          <div class="px-6 py-4 border-b bg-slate-50 rounded-t-xl">
+            <h3 class="font-semibold text-gray-900 flex items-center gap-2">
+              <i class="fas fa-info-circle text-slate-600 text-lg"></i>
+              Order Summary
+            </h3>
+          </div>
+          <div class="p-6">
+            <table class="w-full">
+              <tbody class="divide-y divide-gray-100">
+                <!-- Order Details -->
+                <tr>
+                  <td class="py-3 text-sm font-medium text-gray-500 w-1/3">Order ID</td>
+                  <td class="py-3 text-sm text-gray-900 font-mono">#<%= order._id.toString().slice(-8).toUpperCase() %></td>
+                </tr>
+                <tr>
+                  <td class="py-3 text-sm font-medium text-gray-500">Status</td>
+                  <td class="py-3">
+                    <span class="inline-flex px-3 py-1 rounded-full text-xs font-medium <%= 
+                      order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                      order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
+                      order.status === 'shipped' ? 'bg-purple-100 text-purple-800' :
+                      order.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                      'bg-red-100 text-red-800'
+                    %>">
+                      <%= order.status.charAt(0).toUpperCase() + order.status.slice(1) %>
+                    </span>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="py-3 text-sm font-medium text-gray-500">Order Date</td>
+                  <td class="py-3 text-sm text-gray-900"><%= new Date(order.createdAt).toLocaleDateString() %></td>
+                </tr>
+                
+                <!-- Customer Details -->
+                <tr class="bg-gray-50">
+                  <td colspan="2" class="py-2 text-xs font-semibold text-gray-600 uppercase tracking-wide">Customer Information</td>
+                </tr>
+                <tr>
+                  <td class="py-3 text-sm font-medium text-gray-500">Customer Name</td>
+                  <td class="py-3 text-sm text-gray-900 font-medium"><%= order.user?.fullname || order.user?.username || 'Guest User' %></td>
+                </tr>
+                <tr>
+                  <td class="py-3 text-sm font-medium text-gray-500">Email</td>
+                  <td class="py-3 text-sm text-blue-600"><%= order.user?.email || 'Not provided' %></td>
+                </tr>
+                <tr>
+                  <td class="py-3 text-sm font-medium text-gray-500">Phone</td>
+                  <td class="py-3 text-sm text-gray-900"><%= order.user?.phone || 'Not provided' %></td>
+                </tr>
+                
+                <!-- Delivery Details -->
+                <tr class="bg-gray-50">
+                  <td colspan="2" class="py-2 text-xs font-semibold text-gray-600 uppercase tracking-wide">Delivery Information</td>
+                </tr>
+                <% if (order.shippingAddress) { %>
+                  <tr>
+                    <td class="py-3 text-sm font-medium text-gray-500">Recipient</td>
+                    <td class="py-3 text-sm text-gray-900 leading-relaxed">
+                      <strong><%= order.shippingAddress.fullname %></strong><br>
+                      <%= order.shippingAddress.street %><br>
+                      <%= order.shippingAddress.city %>, <%= order.shippingAddress.state %><br>
+                      <%= order.shippingAddress.postalCode %><% if (order.shippingAddress.country) { %>, <%= order.shippingAddress.country %><% } %>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="py-3 text-sm font-medium text-gray-500">Contact</td>
+                    <td class="py-3 text-sm text-gray-900 font-medium"><%= order.shippingAddress.phone %></td>
+                  </tr>
+                <% } else { %>
+                  <tr>
+                    <td class="py-3 text-sm font-medium text-gray-500">Address</td>
+                    <td class="py-3 text-sm text-gray-500">No delivery address available</td>
+                  </tr>
+                <% } %>
+                
+                <!-- Payment Details -->
+                <tr class="bg-gray-50">
+                  <td colspan="2" class="py-2 text-xs font-semibold text-gray-600 uppercase tracking-wide">Payment Information</td>
+                </tr>
+                <tr>
+                  <td class="py-3 text-sm font-medium text-gray-500">Payment Method</td>
+                  <td class="py-3 text-sm text-gray-900 capitalize font-medium">
+                    <%= order.paymentMethod %>
+                    <% if (order.paymentMethod === 'cod') { %>
+                      <span class="ml-2 bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium">Cash on Delivery</span>
+                    <% } %>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="py-3 text-sm font-medium text-gray-500">Payment Status</td>
+                  <td class="py-3">
+                    <span class="inline-flex px-3 py-1 rounded-full text-xs font-medium <%= order.paid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' %>">
+                      <%= order.paid ? 'Paid' : 'Pending' %>
+                    </span>
+                  </td>
+                </tr>
+                <% if (order.trackingNumber) { %>
+                  <tr>
+                    <td class="py-3 text-sm font-medium text-gray-500">Tracking Number</td>
+                    <td class="py-3 text-sm text-blue-700 font-mono font-medium"><%= order.trackingNumber %></td>
+                  </tr>
+                <% } %>
+                <% if (order.couponApplied) { %>
+                  <tr>
+                    <td class="py-3 text-sm font-medium text-gray-500">Coupon Applied</td>
+                    <td class="py-3 text-sm text-green-700 font-medium"><%= order.couponApplied %></td>
+                  </tr>
+                <% } %>
+                
+                <!-- Order Total -->
+                <tr class="bg-slate-50 border-t-2 border-slate-200">
+                  <td class="py-4 text-base font-semibold text-gray-900">Order Total</td>
+                  <td class="py-4 text-xl font-bold text-gray-900">₹<%= order.totalPrice.toLocaleString() %></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Order Status Info -->
+        <div class="bg-white rounded-xl shadow-sm border">
+          <div class="px-6 py-4 border-b bg-blue-50 rounded-t-xl">
+            <h3 class="font-semibold text-gray-900 flex items-center gap-2">
+              <i class="fas fa-info-circle text-blue-600 text-lg"></i>
+              Status Information
+            </h3>
+          </div>
+          <div class="p-6">
+            <div class="text-center">
+              <div class="mb-4">
+                <span class="inline-flex px-4 py-2 rounded-full text-sm font-medium <%= 
+                  order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                  order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
+                  order.status === 'shipped' ? 'bg-purple-100 text-purple-800' :
+                  order.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                  'bg-red-100 text-red-800'
+                %>">
+                  <%= order.status.charAt(0).toUpperCase() + order.status.slice(1) %>
+                </span>
+              </div>
+              <p class="text-sm text-gray-600">
+                Use the form to update order status and details
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Auto-fill status message based on status selection
+document.getElementById('status').addEventListener('change', function() {
+  const status = this.value;
+  const messageField = document.getElementById('statusMessage');
+  const messages = {
+    'processing': 'Your order is now being processed and will be shipped soon.',
+    'shipped': 'Your order has been shipped and is on its way to you.',
+    'delivered': 'Your order has been successfully delivered. Thank you for your purchase!',
+    'cancelled': 'Your order has been cancelled. If you have any questions, please contact us.'
+  };
+  
+  if (messages[status]) {
+    messageField.value = messages[status];
+  }
+  
+  // Auto-mark as paid for COD delivered orders
+  if (status === 'delivered' && '<%= order.paymentMethod %>' === 'cod') {
+    document.getElementById('paid').value = 'true';
+  }
+});
+
+// Disable form if order is in final state
+document.addEventListener('DOMContentLoaded', function() {
+  const currentStatus = '<%= order.status %>';
+  
+  if (['delivered', 'cancelled'].includes(currentStatus)) {
+    const form = document.querySelector('form');
+    const inputs = form.querySelectorAll('input, select, textarea, button[type="submit"]');
+    inputs.forEach(input => {
+      input.disabled = true;
+    });
+    
+    // Show warning message
+    const warningDiv = document.createElement('div');
+    warningDiv.className = 'mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800 text-sm';
+    warningDiv.innerHTML = '<i class="fas fa-exclamation-triangle mr-2"></i>This order is in a final state and cannot be modified.';
+    form.insertBefore(warningDiv, form.firstChild);
+  }
+});
+</script>
+
+<%- include('../partials/footer.ejs') %>

@@ -1,0 +1,258 @@
+<%- include('../partials/header.ejs', { title: 'Bulk Product Upload' }) %>
+
+<div class="mb-8">
+  <div class="flex items-center gap-4 mb-4">
+    <div class="w-12 h-12 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
+      <i class="fas fa-upload text-white text-xl"></i>
+    </div>
+    <div>
+      <h1 class="text-3xl font-bold text-gray-800">Bulk Product Upload</h1>
+      <p class="text-gray-600">Import multiple products using CSV file</p>
+    </div>
+  </div>
+</div>
+
+<!-- Upload Form -->
+<div class="bg-white rounded-xl shadow-md border border-gray-100 p-6 mb-6">
+  <form id="bulkUploadForm" enctype="multipart/form-data">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Upload Mode</label>
+        <select name="uploadMode" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+          <option value="create">Create New Products</option>
+          <option value="update">Update Existing Products</option>
+        </select>
+      </div>
+      
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">CSV File</label>
+        <input type="file" name="csvFile" accept=".csv" required 
+               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+      </div>
+    </div>
+    
+    <div class="flex gap-4">
+      <button type="button" id="validateBtn" onclick="validateFile()" 
+              class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center">
+        <i class="fas fa-check mr-2"></i>
+        <span class="btn-text">Validate Only</span>
+      </button>
+      <button type="submit" id="uploadBtn"
+              class="px-6 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors flex items-center">
+        <i class="fas fa-upload mr-2"></i>
+        <span class="btn-text">Upload Products</span>
+      </button>
+    </div>
+  </form>
+</div>
+
+<!-- Loading Indicator -->
+<div id="loadingIndicator" class="hidden bg-white rounded-xl shadow-md border border-gray-100 p-6 mb-6">
+  <div class="flex items-center justify-center">
+    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mr-4"></div>
+    <div>
+      <div class="text-lg font-semibold text-gray-800" id="loadingText">Processing...</div>
+      <div class="text-sm text-gray-600" id="loadingSubtext">Please wait while we process your file</div>
+    </div>
+  </div>
+</div>
+
+<!-- Download Templates -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+  <div class="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+    <h3 class="text-lg font-semibold text-gray-800 mb-4">Download Template</h3>
+    <p class="text-gray-600 mb-4">Download the CSV template with required columns</p>
+    <a href="/admin/v1/products/bulk-upload/template" 
+       class="inline-flex items-center px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors">
+      <i class="fas fa-download mr-2"></i>Download Template
+    </a>
+  </div>
+  
+  <div class="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+    <h3 class="text-lg font-semibold text-gray-800 mb-4">Sample Data</h3>
+    <p class="text-gray-600 mb-4">Download sample data to understand the format</p>
+    <a href="/admin/v1/products/bulk-upload/sample" 
+       class="inline-flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+      <i class="fas fa-download mr-2"></i>Download Sample
+    </a>
+  </div>
+</div>
+
+<!-- Format Instructions -->
+<div class="bg-white rounded-xl shadow-md border border-gray-100 p-6 mb-6">
+  <h3 class="text-lg font-semibold text-gray-800 mb-4">CSV Format Instructions</h3>
+  <div class="space-y-4">
+    <div>
+      <h4 class="font-medium text-gray-700 mb-2">Required Fields:</h4>
+      <p class="text-sm text-gray-600">title, description, category, subCategory, type, brand, sku, price, qty</p>
+    </div>
+    <div>
+      <h4 class="font-medium text-gray-700 mb-2">Tags Format:</h4>
+      <p class="text-sm text-gray-600 mb-2">Use semicolon (;) to separate multiple tags:</p>
+      <code class="bg-gray-100 px-2 py-1 rounded text-sm">"wireless;bluetooth;noise-cancelling"</code>
+    </div>
+    <div>
+      <h4 class="font-medium text-gray-700 mb-2">Status Options:</h4>
+      <p class="text-sm text-gray-600">draft, active, inactive, discontinued</p>
+    </div>
+    <div>
+      <h4 class="font-medium text-gray-700 mb-2">Featured:</h4>
+      <p class="text-sm text-gray-600">true or false</p>
+    </div>
+  </div>
+</div>
+
+<!-- Results -->
+<div id="results" class="hidden bg-white rounded-xl shadow-md border border-gray-100 p-6">
+  <h3 class="text-lg font-semibold text-gray-800 mb-4">Upload Results</h3>
+  <div id="resultsContent"></div>
+</div>
+
+<script>
+const form = document.getElementById('bulkUploadForm');
+const resultsDiv = document.getElementById('results');
+const resultsContent = document.getElementById('resultsContent');
+const loadingIndicator = document.getElementById('loadingIndicator');
+const loadingText = document.getElementById('loadingText');
+const loadingSubtext = document.getElementById('loadingSubtext');
+const validateBtn = document.getElementById('validateBtn');
+const uploadBtn = document.getElementById('uploadBtn');
+
+function showLoading(isValidation = false) {
+  loadingIndicator.classList.remove('hidden');
+  resultsDiv.classList.add('hidden');
+  
+  if (isValidation) {
+    loadingText.textContent = 'Validating...';
+    loadingSubtext.textContent = 'Checking your CSV file for errors';
+  } else {
+    loadingText.textContent = 'Uploading...';
+    loadingSubtext.textContent = 'Creating products in database';
+  }
+  
+  validateBtn.disabled = true;
+  uploadBtn.disabled = true;
+  validateBtn.classList.add('opacity-50', 'cursor-not-allowed');
+  uploadBtn.classList.add('opacity-50', 'cursor-not-allowed');
+}
+
+function hideLoading() {
+  loadingIndicator.classList.add('hidden');
+  
+  validateBtn.disabled = false;
+  uploadBtn.disabled = false;
+  validateBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+  uploadBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+}
+
+function validateFile() {
+  const formData = new FormData(form);
+  formData.append('validateOnly', 'true');
+  
+  showLoading(true);
+  
+  fetch('/admin/v1/products/bulk-upload', {
+    method: 'POST',
+    body: formData
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+  })
+  .then(data => {
+    hideLoading();
+    showResults(data);
+  })
+  .catch(error => {
+    hideLoading();
+    console.error('Error:', error);
+    alert('Validation failed: ' + error.message);
+  });
+}
+
+form.addEventListener('submit', function(e) {
+  e.preventDefault();
+  
+  const formData = new FormData(form);
+  
+  showLoading(false);
+  
+  fetch('/admin/v1/products/bulk-upload', {
+    method: 'POST',
+    body: formData
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+  })
+  .then(data => {
+    hideLoading();
+    if (data.success && data.redirect) {
+      window.location.href = data.redirect;
+    } else {
+      showResults(data);
+    }
+  })
+  .catch(error => {
+    hideLoading();
+    console.error('Error:', error);
+    alert('Upload failed: ' + error.message);
+  });
+});
+
+function showResults(data) {
+  resultsDiv.classList.remove('hidden');
+  
+  let html = `
+    <div class="mb-4">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="px-3 py-1 rounded-full text-sm font-medium ${data.success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+          ${data.success ? 'Success' : 'Completed with Errors'}
+        </span>
+      </div>
+      <p class="text-gray-700">${data.message}</p>
+    </div>
+    
+    <div class="grid grid-cols-3 gap-4 mb-4">
+      <div class="text-center p-3 bg-blue-50 rounded-lg">
+        <div class="text-2xl font-bold text-blue-600">${data.stats.total}</div>
+        <div class="text-sm text-blue-600">Total Rows</div>
+      </div>
+      <div class="text-center p-3 bg-green-50 rounded-lg">
+        <div class="text-2xl font-bold text-green-600">${data.stats.success}</div>
+        <div class="text-sm text-green-600">Successful</div>
+      </div>
+      <div class="text-center p-3 bg-red-50 rounded-lg">
+        <div class="text-2xl font-bold text-red-600">${data.stats.errors}</div>
+        <div class="text-sm text-red-600">Errors</div>
+      </div>
+    </div>
+  `;
+  
+  if (data.errors && data.errors.length > 0) {
+    html += `
+      <div class="mt-4">
+        <h4 class="font-semibold text-gray-800 mb-2">Errors:</h4>
+        <div class="max-h-64 overflow-y-auto">
+          ${data.errors.map(error => `
+            <div class="mb-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div class="font-medium text-red-800">Row ${error.row}:</div>
+              <ul class="text-sm text-red-600 mt-1">
+                ${error.errors.map(err => `<li>• ${err}</li>`).join('')}
+              </ul>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+  
+  resultsContent.innerHTML = html;
+}
+</script>
+
+<%- include('../partials/footer.ejs') %>

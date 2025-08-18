@@ -1,0 +1,399 @@
+<%- include('../partials/header.ejs', { title: `Edit ${product.title}` }) %>
+
+<!-- Navigation -->
+<nav class="flex flex-wrap gap-3 mb-8 p-4 bg-white rounded-xl shadow-sm border border-gray-100 items-center">
+  <a href="/admin/v1/staff/dashboard" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition">
+    <i class="fa fa-home"></i> Dashboard
+  </a>
+  <a href="/admin/v1/products" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-50 text-gray-700 hover:bg-gray-100 transition">
+    <i class="fa fa-box"></i> Products
+  </a>
+  <a href="/admin/v1/products/<%= product._id %>" class="px-4 py-2 rounded-lg bg-yellow-100 text-yellow-700 hover:bg-yellow-200 transition flex items-center gap-2">
+    <i class="fa fa-eye"></i> View Product
+  </a>
+</nav>
+
+<main class="container mx-auto max-w-4xl px-4 mt-8">
+  <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-8 gap-4">
+    <h1 class="text-3xl font-bold text-gray-800">Edit Product</h1>
+  </div>
+
+  <!-- Flash Messages -->
+  <% if (success && success.length) { %>
+    <div class="mb-6 p-4 rounded-lg border-l-4 border-green-400 bg-green-50 text-green-800 shadow-sm">
+      <% success.forEach(msg => { %>
+        <div class="flex items-center gap-2">
+          <i class="fa fa-check-circle"></i> <%= msg %>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+  <% if (error && error.length) { %>
+    <div class="mb-6 p-4 rounded-lg border-l-4 border-red-400 bg-red-50 text-red-800 shadow-sm">
+      <% error.forEach(msg => { %>
+        <div class="flex items-center gap-2">
+          <i class="fa fa-exclamation-circle"></i> <%= msg %>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+
+  <form action="/admin/v1/products/<%= product._id %>?_method=PUT" method="POST" enctype="multipart/form-data" class="space-y-8">
+    <!-- Basic Information -->
+    <div class="bg-white rounded-xl shadow-md p-6 border border-gray-100">
+      <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+        <i class="fa fa-info-circle text-blue-600"></i> Basic Information
+      </h3>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label class="block font-semibold mb-2 text-gray-700">Product Title *</label>
+          <input name="title" value="<%= product.title %>" 
+                 class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                 placeholder="Premium Wireless Headphones" required />
+        </div>
+        
+        <div>
+          <label class="block font-semibold mb-2 text-gray-700">Base Price *</label>
+          <input name="basePrice" type="number" step="0.01" min="0" value="<%= product.price %>" 
+                 class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                 placeholder="99.99" required />
+        </div>
+      </div>
+
+      <div class="mt-6">
+        <label class="block font-semibold mb-2 text-gray-700">Short Description</label>
+        <textarea name="shortDescription" rows="2" 
+                  class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                  placeholder="Brief product description..."><%= product.shortDescription || '' %></textarea>
+      </div>
+
+      <div class="mt-6">
+        <label class="block font-semibold mb-2 text-gray-700">Full Description *</label>
+        <textarea name="description" rows="4" 
+                  class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                  placeholder="Detailed product description..." required><%= product.description %></textarea>
+      </div>
+    </div>
+
+    <!-- Categories -->
+    <div class="bg-white rounded-xl shadow-md p-6 border border-gray-100">
+      <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+        <i class="fa fa-tags text-green-600"></i> Categories
+      </h3>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label class="block font-semibold mb-2 text-gray-700">Category *</label>
+          <select name="category" id="category" required
+                  class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            <option value="">Select Category</option>
+            <% categories.forEach(cat => { %>
+              <option value="<%= cat._id %>" <%= cat._id.toString() === product.category.toString() ? 'selected' : '' %>>
+                <%= cat.name %>
+              </option>
+            <% }) %>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-semibold mb-2 text-gray-700">Sub Category *</label>
+          <select name="subCategory" id="subCategory" required
+                  class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            <option value="">Select Sub Category</option>
+            <% subCategories.forEach(sub => { %>
+              <option value="<%= sub._id %>" <%= sub._id.toString() === product.subCategory.toString() ? 'selected' : '' %>>
+                <%= sub.name %>
+              </option>
+            <% }) %>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-semibold mb-2 text-gray-700">Type *</label>
+          <select name="type" id="type" required
+                  class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            <option value="">Select Type</option>
+            <% types.forEach(type => { %>
+              <option value="<%= type._id %>" <%= type._id.toString() === product.type.toString() ? 'selected' : '' %>>
+                <%= type.name %>
+              </option>
+            <% }) %>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-semibold mb-2 text-gray-700">Brand *</label>
+          <select name="brand" required
+                  class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            <option value="">Select Brand</option>
+            <% brands.forEach(brand => { %>
+              <option value="<%= brand._id %>" <%= brand._id.toString() === product.brand.toString() ? 'selected' : '' %>>
+                <%= brand.name %>
+              </option>
+            <% }) %>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Product Images -->
+    <div class="bg-white rounded-xl shadow-md p-6 border border-gray-100">
+      <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+        <i class="fa fa-images text-purple-600"></i> Product Images
+      </h3>
+      
+      <!-- Existing Images -->
+      <% if (product.images && product.images.length > 0) { %>
+        <div class="mb-6">
+          <h4 class="font-semibold text-gray-700 mb-3">Current Images</h4>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <% product.images.forEach((img, index) => { %>
+              <div class="relative group">
+                <img src="<%= img %>" alt="Product image <%= index + 1 %>" class="w-full h-32 object-cover rounded-lg border" />
+                <button type="button" class="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition remove-image-btn" data-image-index="<%= index %>">
+                  <i class="fa fa-times text-xs"></i>
+                </button>
+              </div>
+            <% }) %>
+          </div>
+        </div>
+      <% } %>
+      
+      <!-- Add New Images -->
+      <div>
+        <label class="block font-semibold mb-2 text-gray-700">Add New Images</label>
+        <input type="file" name="images" multiple accept="image/*" 
+               class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+        <p class="text-sm text-gray-500 mt-1">Select multiple images (JPEG, PNG, WebP • Max 5MB each)</p>
+      </div>
+      
+      <input type="hidden" name="removeImages" id="removeImages" value="" />
+    </div>
+
+    <!-- Product Variants -->
+    <div class="bg-white rounded-xl shadow-md p-6 border border-gray-100">
+      <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+        <i class="fa fa-layer-group text-orange-600"></i> Product Variants
+      </h3>
+      
+      <div id="variants-container">
+        <% product.variants.forEach((variant, index) => { %>
+          <div class="variant-item border border-gray-200 rounded-lg p-4 mb-4">
+            <div class="flex justify-between items-center mb-4">
+              <h4 class="font-semibold text-gray-700">Variant #<%= index + 1 %></h4>
+              <% if (product.variants.length > 1) { %>
+                <button type="button" class="delete-variant px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition text-sm">
+                  <i class="fa fa-trash"></i> Delete
+                </button>
+              <% } %>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <input type="hidden" name="variants[<%= index %>][_id]" value="<%= variant._id %>" />
+              <div>
+                <label class="block font-semibold mb-1 text-gray-700">SKU *</label>
+                <input name="variants[<%= index %>][sku]" type="text" value="<%= variant.sku %>" required
+                       class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+              </div>
+              <div>
+                <label class="block font-semibold mb-1 text-gray-700">Regular Price *</label>
+                <input name="variants[<%= index %>][price]" type="number" step="0.01" min="0" value="<%= variant.price %>" required
+                       class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+              </div>
+              <div>
+                <label class="block font-semibold mb-1 text-gray-700">Sale Price</label>
+                <input name="variants[<%= index %>][discountPrice]" type="number" step="0.01" min="0" value="<%= variant.discountPrice || '' %>"
+                       class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:border-green-500" />
+              </div>
+              <div>
+                <label class="block font-semibold mb-1 text-gray-700">Old Price</label>
+                <input name="variants[<%= index %>][oldPrice]" type="number" step="0.01" min="0" value="<%= variant.oldPrice || '' %>"
+                       class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-gray-500 focus:border-gray-500" />
+              </div>
+              <div>
+                <label class="block font-semibold mb-1 text-gray-700">Quantity *</label>
+                <input name="variants[<%= index %>][qty]" type="number" min="0" value="<%= variant.qty %>" required
+                       class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+              </div>
+              <div>
+                <label class="block font-semibold mb-1 text-gray-700">Color</label>
+                <input name="variants[<%= index %>][color]" type="text" value="<%= variant.color || '' %>"
+                       class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+              </div>
+              <div>
+                <label class="block font-semibold mb-1 text-gray-700">Size</label>
+                <input name="variants[<%= index %>][size]" type="text" value="<%= variant.size || '' %>"
+                       class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+              </div>
+              <div>
+                <label class="block font-semibold mb-1 text-gray-700">Threshold Qty</label>
+                <input name="variants[<%= index %>][thresholdQty]" type="number" min="0" value="<%= variant.thresholdQty || 5 %>"
+                       class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+              </div>
+            </div>
+            <div class="mt-4 flex gap-6">
+              <label class="flex items-center">
+                <input name="variants[<%= index %>][isDefault]" type="checkbox" value="true" <%= variant.isDefault ? 'checked' : '' %>
+                       class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                <span class="ml-2 text-sm text-gray-700">Default variant</span>
+              </label>
+              <label class="flex items-center">
+                <input name="variants[<%= index %>][shipping]" type="checkbox" value="true" <%= variant.shipping !== false ? 'checked' : '' %>
+                       class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                <span class="ml-2 text-sm text-gray-700">Shippable</span>
+              </label>
+            </div>
+          </div>
+        <% }) %>
+      </div>
+      
+      <button type="button" id="add-variant" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+        <i class="fa fa-plus mr-2"></i>Add Another Variant
+      </button>
+    </div>
+
+    <!-- Business Information -->
+    <div class="bg-white rounded-xl shadow-md p-6 border border-gray-100">
+      <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+        <i class="fa fa-briefcase text-green-600"></i> Business Information
+      </h3>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label class="block font-semibold mb-2 text-gray-700">Warranty</label>
+          <input name="warranty" value="<%= product.warranty || '' %>" 
+                 class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                 placeholder="1 year manufacturer warranty" />
+        </div>
+        
+        <div>
+          <label class="block font-semibold mb-2 text-gray-700">Return Policy</label>
+          <input name="returnPolicy" value="<%= product.returnPolicy || '' %>" 
+                 class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                 placeholder="30 days return policy" />
+        </div>
+        
+        <div>
+          <label class="block font-semibold mb-2 text-gray-700">Shipping Info</label>
+          <input name="shippingInfo" value="<%= product.shippingInfo || '' %>" 
+                 class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                 placeholder="Free shipping on orders over $50" />
+        </div>
+        
+        <div>
+          <label class="block font-semibold mb-2 text-gray-700">Tags</label>
+          <input name="tags" value="<%= product.tags ? product.tags.join(', ') : '' %>" 
+                 class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                 placeholder="smartphone, premium, 5G, wireless charging (comma separated)" />
+          <p class="text-sm text-gray-500 mt-1">Separate multiple tags with commas</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Product Specifications -->
+    <div class="bg-white rounded-xl shadow-md p-6 border border-gray-100">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+          <i class="fa fa-cogs text-purple-600"></i> Product Specifications
+        </h3>
+        <button type="button" id="add-specification" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center gap-2">
+          <i class="fa fa-plus"></i> Add Specification
+        </button>
+      </div>
+      
+      <div id="specifications-container">
+        <% if (specifications && specifications.length > 0) { %>
+          <% specifications.forEach((spec, index) => { %>
+            <div class="specification-item bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
+              <div class="flex justify-between items-center mb-4">
+                <h4 class="font-semibold text-gray-700">Specification <%= index + 1 %></h4>
+                <button type="button" class="delete-specification px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition text-sm">
+                  <i class="fa fa-trash"></i> Remove
+                </button>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block font-medium mb-2 text-gray-700">Specification Type *</label>
+                  <select name="specifications[<%= index %>][specList]" required
+                          class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                    <option value="">Choose specification type...</option>
+                    <% specLists.forEach(specList => { %>
+                      <option value="<%= specList._id %>" <%= specList._id.toString() === spec.specList._id.toString() ? 'selected' : '' %>>
+                        <%= specList.title %>
+                      </option>
+                    <% }) %>
+                  </select>
+                </div>
+                <div>
+                  <label class="block font-medium mb-2 text-gray-700">Value *</label>
+                  <input name="specifications[<%= index %>][value]" type="text" value="<%= spec.value %>" required
+                         class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500" />
+                </div>
+              </div>
+            </div>
+          <% }) %>
+        <% } else { %>
+          <div id="empty-specs" class="text-center py-8 text-gray-500">
+            <i class="fa fa-list-alt text-4xl mb-3 text-gray-300"></i>
+            <p class="text-lg mb-2">No specifications added yet</p>
+            <p class="text-sm">Click "Add Specification" to start adding product specifications</p>
+          </div>
+        <% } %>
+      </div>
+    </div>
+
+    <!-- Product Settings -->
+    <div class="bg-white rounded-xl shadow-md p-6 border border-gray-100">
+      <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+        <i class="fa fa-cog text-gray-600"></i> Product Settings
+      </h3>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label class="block font-semibold mb-2 text-gray-700">Status</label>
+          <select name="status" 
+                  class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            <option value="draft" <%= product.status === 'draft' ? 'selected' : '' %>>Draft (Hidden from public)</option>
+            <option value="active" <%= product.status === 'active' ? 'selected' : '' %>>Active (Visible to customers)</option>
+            <option value="inactive" <%= product.status === 'inactive' ? 'selected' : '' %>>Inactive (Hidden from public)</option>
+            <option value="discontinued" <%= product.status === 'discontinued' ? 'selected' : '' %>>Discontinued (Hidden from public)</option>
+          </select>
+          <p class="text-sm text-gray-500 mt-1">Only "Active" products are visible in public APIs</p>
+        </div>
+        
+        <div class="flex flex-col gap-4">
+          <label class="flex items-center">
+            <input name="featured" type="checkbox" value="true" <%= product.featured ? 'checked' : '' %>
+                   class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+            <span class="ml-2 text-gray-700">Featured Product</span>
+          </label>
+          
+          <label class="flex items-center">
+            <input name="isDiscounted" type="checkbox" value="true" <%= product.isDiscounted ? 'checked' : '' %>
+                   class="rounded border-gray-300 text-green-600 focus:ring-green-500" />
+            <span class="ml-2 text-gray-700">Show as Discounted</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Submit Buttons -->
+    <div class="flex justify-end gap-3">
+      <a href="/admin/v1/products" class="px-6 py-3 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition font-medium">
+        Cancel
+      </a>
+      <button type="submit" class="px-6 py-3 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition flex items-center gap-2">
+        <i class="fa fa-save"></i> Update Product
+      </button>
+    </div>
+  </form>
+</main>
+
+<div id="product-data" 
+     data-variant-count="<%= product.variants.length %>" 
+     data-specification-count="<%= specifications ? specifications.length : 0 %>" 
+     data-spec-lists='<%= JSON.stringify(specLists.map(s => ({id: s._id, title: s.title}))) %>' 
+     style="display: none;"></div>
+<script src="/js/product-edit.js"></script>
+
+<%- include('../partials/footer.ejs') %>

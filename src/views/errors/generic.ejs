@@ -1,0 +1,20 @@
+<%- include('../partials/header', { title: 'Error' }) %>
+
+<div class="container mx-auto px-4 py-8 max-w-2xl">
+  <div class="bg-white shadow-lg rounded-lg p-6">
+    <h1 class="text-4xl font-bold text-red-600 mb-4"><%= statusCode %> Error</h1>
+    <p class="text-xl text-gray-600 mb-4"><%= message %></p>
+    
+    <% if (stack) { %>
+      <div class="bg-gray-100 p-4 rounded-lg">
+        <code class="text-sm text-gray-700"><%= stack %></code>
+      </div>
+    <% } %>
+    
+    <div class="mt-6">
+      <a href="/" class="btn btn-primary">Go Back Home</a>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer.ejs') %>
