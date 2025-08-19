@@ -1,0 +1,5 @@
+{
+  "exec": "node --no-deprecation --no-warnings app.js",
+  "watch": ["src", "app.js"],
+  "ext": "js,json,ejs"
+}

@@ -1,5 +1,6 @@
 const SpecList = require('../models/specListModel');
 const { Category, SubCategory, Type, Brand } = require('../models/parametersModel');
+const { Product, ProductSpecs } = require('../models/productModel');
 
 module.exports = {
   // PUBLIC API CONTROLLERS
@@ -17,6 +18,497 @@ module.exports = {
       });
     } catch (error) {
       console.error('Get public spec lists error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Server error',
+        error: error.message
+      });
+    }
+  },
+
+  // Get specifications that can be used for filtering
+  getFilterableSpecs: async (req, res) => {
+    try {
+      const { category, subCategory, type, brand } = req.query;
+      
+      let specQuery = { status: 'active', displayInFilter: true };
+      
+      if (category) specQuery.category = category;
+      if (subCategory) specQuery.subCategory = subCategory;
+      if (type) specQuery.type = type;
+      if (brand) specQuery.brand = brand;
+
+      const specLists = await SpecList.find(specQuery)
+        .populate('category', 'name')
+        .populate('subCategory', 'name')
+        .populate('type', 'name')
+        .populate('brand', 'name')
+        .select('-admin')
+        .sort({ title: 1 });
+
+      // Get values for each spec with product counts
+      const specsWithValues = await Promise.all(
+        specLists.map(async (spec) => {
+          const values = await ProductSpecs.aggregate([
+            { $match: { specList: spec._id } },
+            {
+              $lookup: {
+                from: 'products',
+                localField: 'product',
+                foreignField: '_id',
+                as: 'productInfo'
+              }
+            },
+            { $match: { 'productInfo.status': 'active' } },
+            {
+              $group: {
+                _id: '$value',
+                productCount: { $sum: 1 }
+              }
+            },
+            { $sort: { productCount: -1 } },
+            { $limit: 20 }
+          ]);
+
+          return {
+            ...spec.toObject(),
+            values: values.map(v => ({
+              value: v._id,
+              productCount: v.productCount
+            }))
+          };
+        })
+      );
+
+      res.status(200).json({
+        success: true,
+        count: specsWithValues.length,
+        data: specsWithValues.filter(spec => spec.values.length > 0)
+      });
+    } catch (error) {
+      console.error('Get filterable specs error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Server error',
+        error: error.message
+      });
+    }
+  },
+
+  // Get products by specification value
+  getProductsBySpec: async (req, res) => {
+    try {
+      const { spec, specId, value, page = 1, limit = 20 } = req.query;
+      
+      if (!value) {
+        return res.status(400).json({
+          success: false,
+          message: 'Specification value is required'
+        });
+      }
+
+      let specQuery = {};
+      
+      // Find spec by ID or title
+      if (specId) {
+        specQuery._id = specId;
+      } else if (spec) {
+        specQuery.title = { $regex: spec, $options: 'i' };
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: 'Either spec name or specId is required'
+        });
+      }
+
+      // Find the specification
+      const specList = await SpecList.findOne({ ...specQuery, status: 'active' });
+      if (!specList) {
+        return res.status(404).json({
+          success: false,
+          message: 'Specification not found'
+        });
+      }
+
+      // Find ProductSpecs matching the spec and value
+      const productSpecs = await ProductSpecs.find({
+        specList: specList._id,
+        value: { $regex: value, $options: 'i' }
+      }).populate({
+        path: 'product',
+        match: { status: 'active' },
+        populate: [
+          { path: 'category', select: 'name' },
+          { path: 'subCategory', select: 'name' },
+          { path: 'type', select: 'name' },
+          { path: 'brand', select: 'name' }
+        ]
+      });
+
+      // Filter out specs with null products (inactive products)
+      const validProductSpecs = productSpecs.filter(ps => ps.product);
+      const productIds = [...new Set(validProductSpecs.map(ps => ps.product._id.toString()))];
+      
+      // Get products with inventory and pagination
+      const skip = (parseInt(page) - 1) * parseInt(limit);
+      const products = await Product.find({ 
+        _id: { $in: productIds },
+        status: 'active'
+      })
+        .populate('category', 'name')
+        .populate('subCategory', 'name')
+        .populate('type', 'name')
+        .populate('brand', 'name')
+        .skip(skip)
+        .limit(parseInt(limit))
+        .sort({ createdAt: -1 });
+
+      // Get products with inventory from variants
+      const productsWithInventory = products.map(product => {
+        const specs = validProductSpecs.filter(ps => ps.product._id.toString() === product._id.toString());
+        const defaultVariant = product.defaultVariant;
+        
+        return {
+          ...product.toObject(),
+          inventory: defaultVariant ? {
+            price: defaultVariant.price,
+            oldPrice: defaultVariant.oldPrice,
+            discountPrice: defaultVariant.discountPrice,
+            qty: defaultVariant.qty,
+            status: defaultVariant.status
+          } : null,
+          matchingSpecs: specs.map(s => ({
+            title: specList.title,
+            value: s.value
+          }))
+        };
+      });
+
+      const totalProducts = productIds.length;
+      const totalPages = Math.ceil(totalProducts / parseInt(limit));
+
+      res.status(200).json({
+        success: true,
+        spec: {
+          _id: specList._id,
+          title: specList.title,
+          searchValue: value
+        },
+        products: productsWithInventory,
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages,
+          totalProducts,
+          hasNext: parseInt(page) < totalPages,
+          hasPrev: parseInt(page) > 1
+        }
+      });
+    } catch (error) {
+      console.error('Get products by spec error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Server error',
+        error: error.message
+      });
+    }
+  },
+
+  // Filter products by multiple specifications
+  filterProductsBySpecs: async (req, res) => {
+    try {
+      const { specs, page = 1, limit = 20, category, subCategory, type, brand, minPrice, maxPrice } = req.query;
+      
+      if (!specs) {
+        return res.status(400).json({
+          success: false,
+          message: 'Specifications filter is required. Format: specs[specId]=value1,value2'
+        });
+      }
+
+      let productQuery = { status: 'active' };
+      if (category) productQuery.category = category;
+      if (subCategory) productQuery.subCategory = subCategory;
+      if (type) productQuery.type = type;
+      if (brand) productQuery.brand = brand;
+      if (minPrice || maxPrice) {
+        productQuery.price = {};
+        if (minPrice) productQuery.price.$gte = parseFloat(minPrice);
+        if (maxPrice) productQuery.price.$lte = parseFloat(maxPrice);
+      }
+
+      // Parse specs filter: specs[specId1]=value1,value2&specs[specId2]=value3
+      const specFilters = [];
+      for (const [key, values] of Object.entries(specs)) {
+        const valueArray = Array.isArray(values) ? values : values.split(',');
+        specFilters.push({
+          specList: key,
+          value: { $in: valueArray }
+        });
+      }
+
+      // Find products that match ALL specification filters
+      const matchingProductIds = [];
+      for (const filter of specFilters) {
+        const productSpecs = await ProductSpecs.find(filter).distinct('product');
+        if (matchingProductIds.length === 0) {
+          matchingProductIds.push(...productSpecs);
+        } else {
+          // Intersection: keep only products that match this filter too
+          const intersection = matchingProductIds.filter(id => 
+            productSpecs.some(specId => specId.toString() === id.toString())
+          );
+          matchingProductIds.length = 0;
+          matchingProductIds.push(...intersection);
+        }
+      }
+
+      if (matchingProductIds.length > 0) {
+        productQuery._id = { $in: matchingProductIds };
+      } else {
+        // No products match all filters
+        return res.status(200).json({
+          success: true,
+          products: [],
+          pagination: {
+            currentPage: parseInt(page),
+            totalPages: 0,
+            totalProducts: 0,
+            hasNext: false,
+            hasPrev: false
+          }
+        });
+      }
+
+      const skip = (parseInt(page) - 1) * parseInt(limit);
+      const totalProducts = await Product.countDocuments(productQuery);
+      
+      const products = await Product.find(productQuery)
+        .populate('category', 'name')
+        .populate('subCategory', 'name')
+        .populate('type', 'name')
+        .populate('brand', 'name')
+        .skip(skip)
+        .limit(parseInt(limit))
+        .sort({ createdAt: -1 });
+
+      // Add inventory and matching specs to products
+      const productsWithDetails = await Promise.all(
+        products.map(async (product) => {
+          const matchingSpecs = await ProductSpecs.find({
+            product: product._id,
+            specList: { $in: Object.keys(specs) }
+          }).populate('specList', 'title');
+
+          const defaultVariant = product.defaultVariant;
+          
+          return {
+            ...product.toObject(),
+            inventory: defaultVariant ? {
+              price: defaultVariant.price,
+              oldPrice: defaultVariant.oldPrice,
+              discountPrice: defaultVariant.discountPrice,
+              qty: defaultVariant.qty,
+              status: defaultVariant.status
+            } : null,
+            matchingSpecs: matchingSpecs.map(ms => ({
+              title: ms.specList.title,
+              value: ms.value
+            }))
+          };
+        })
+      );
+
+      const totalPages = Math.ceil(totalProducts / parseInt(limit));
+
+      res.status(200).json({
+        success: true,
+        appliedFilters: specs,
+        products: productsWithDetails,
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages,
+          totalProducts,
+          hasNext: parseInt(page) < totalPages,
+          hasPrev: parseInt(page) > 1
+        }
+      });
+    } catch (error) {
+      console.error('Filter products by specs error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Server error',
+        error: error.message
+      });
+    }
+  },
+
+  // Search products by specification query
+  searchProductsBySpec: async (req, res) => {
+    try {
+      const { q, spec, page = 1, limit = 20 } = req.query;
+      
+      if (!q) {
+        return res.status(400).json({
+          success: false,
+          message: 'Search query is required'
+        });
+      }
+
+      let specQuery = { status: 'active' };
+      if (spec) {
+        specQuery.title = { $regex: spec, $options: 'i' };
+      }
+
+      // Find matching specifications
+      const specLists = await SpecList.find(specQuery);
+      const specIds = specLists.map(s => s._id);
+
+      // Find ProductSpecs with matching values
+      const productSpecs = await ProductSpecs.find({
+        specList: { $in: specIds },
+        value: { $regex: q, $options: 'i' }
+      }).populate({
+        path: 'product',
+        match: { status: 'active' },
+        populate: [
+          { path: 'category', select: 'name' },
+          { path: 'subCategory', select: 'name' },
+          { path: 'type', select: 'name' },
+          { path: 'brand', select: 'name' }
+        ]
+      }).populate('specList', 'title');
+
+      // Filter out specs with null products (inactive products)
+      const validProductSpecs = productSpecs.filter(ps => ps.product);
+      const productIds = [...new Set(validProductSpecs.map(ps => ps.product._id.toString()))];
+      
+      // Get products with pagination
+      const skip = (parseInt(page) - 1) * parseInt(limit);
+      const products = await Product.find({ 
+        _id: { $in: productIds },
+        status: 'active'
+      })
+        .populate('category', 'name')
+        .populate('subCategory', 'name')
+        .populate('type', 'name')
+        .populate('brand', 'name')
+        .skip(skip)
+        .limit(parseInt(limit))
+        .sort({ createdAt: -1 });
+
+      // Get products with inventory and matching specs
+      const productsWithDetails = products.map(product => {
+        const matchingSpecs = validProductSpecs
+          .filter(ps => ps.product._id.toString() === product._id.toString())
+          .map(ps => ({
+            title: ps.specList.title,
+            value: ps.value
+          }));
+        
+        const defaultVariant = product.defaultVariant;
+        
+        return {
+          ...product.toObject(),
+          inventory: defaultVariant ? {
+            price: defaultVariant.price,
+            oldPrice: defaultVariant.oldPrice,
+            discountPrice: defaultVariant.discountPrice,
+            qty: defaultVariant.qty,
+            status: defaultVariant.status
+          } : null,
+          matchingSpecs
+        };
+      });
+
+      const totalProducts = productIds.length;
+      const totalPages = Math.ceil(totalProducts / parseInt(limit));
+
+      res.status(200).json({
+        success: true,
+        searchQuery: q,
+        specFilter: spec || 'all',
+        products: productsWithDetails,
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages,
+          totalProducts,
+          hasNext: parseInt(page) < totalPages,
+          hasPrev: parseInt(page) > 1
+        }
+      });
+    } catch (error) {
+      console.error('Search products by spec error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Server error',
+        error: error.message
+      });
+    }
+  },
+
+  // Get available values for a specification
+  getSpecValues: async (req, res) => {
+    try {
+      const { spec, specId } = req.query;
+      
+      let specQuery = { status: 'active' };
+      
+      if (specId) {
+        specQuery._id = specId;
+      } else if (spec) {
+        specQuery.title = { $regex: spec, $options: 'i' };
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: 'Either spec name or specId is required'
+        });
+      }
+
+      // Find the specification
+      const specList = await SpecList.findOne(specQuery);
+      if (!specList) {
+        return res.status(404).json({
+          success: false,
+          message: 'Specification not found'
+        });
+      }
+
+      // Get all unique values for this specification with active products only
+      const productSpecs = await ProductSpecs.aggregate([
+        { $match: { specList: specList._id } },
+        {
+          $lookup: {
+            from: 'products',
+            localField: 'product',
+            foreignField: '_id',
+            as: 'productInfo'
+          }
+        },
+        { $match: { 'productInfo.status': 'active' } },
+        {
+          $group: {
+            _id: '$value',
+            productCount: { $sum: 1 }
+          }
+        },
+        { $sort: { productCount: -1 } }
+      ]);
+
+      const valuesWithCount = productSpecs.map(item => ({
+        value: item._id,
+        productCount: item.productCount
+      }));
+
+      res.status(200).json({
+        success: true,
+        spec: {
+          _id: specList._id,
+          title: specList.title
+        },
+        values: valuesWithCount.sort((a, b) => b.productCount - a.productCount)
+      });
+    } catch (error) {
+      console.error('Get spec values error:', error);
       res.status(500).json({
         success: false,
         message: 'Server error',

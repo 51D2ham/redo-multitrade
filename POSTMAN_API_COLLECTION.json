@@ -1,197 +1,243 @@
 {
   "info": {
-    "name": "Multitrade Backend APIs",
-    "description": "Complete API collection for testing categories, subcategories, types, brands, and products",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    "name": "Multitrade Backend - Complete API Collection",
+    "description": "Comprehensive API collection for Multitrade e-commerce platform including customer and admin endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
   },
   "variable": [
     {
       "key": "baseUrl",
       "value": "http://localhost:9001",
       "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "specId",
+      "value": "",
+      "type": "string",
+      "description": "Specification ID for testing"
     }
   ],
   "item": [
     {
-      "name": "Categories",
+      "name": "🔐 Customer Authentication",
       "item": [
         {
-          "name": "Get All Categories",
+          "name": "Register Customer",
           "request": {
-            "method": "GET",
-            "header": [],
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"john_doe\",\n  \"email\": \"john@example.com\",\n  \"fullname\": \"John Doe\",\n  \"phone\": \"+9779841234567\",\n  \"password\": \"SecurePass123\",\n  \"gender\": \"male\",\n  \"dob\": \"1990-01-15\",\n  \"permanentAddress\": \"Kathmandu, Nepal\",\n  \"tempAddress\": \"Lalitpur, Nepal\"\n}"
+            },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/categories",
+              "raw": "{{baseUrl}}/api/v1/customers/register",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "categories"]
+              "path": ["api", "v1", "customers", "register"]
             }
-          },
-          "response": []
+          }
         },
         {
-          "name": "Get Categories with Hierarchy",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/categories/hierarchy",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "categories", "hierarchy"]
+          "name": "Login Customer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.accessToken) {",
+                  "        pm.collectionVariables.set('accessToken', response.accessToken);",
+                  "    }",
+                  "}"
+                ]
+              }
             }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "SubCategories",
-      "item": [
-        {
-          "name": "Get All SubCategories",
+          ],
           "request": {
-            "method": "GET",
-            "header": [],
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"SecurePass123\"\n}"
+            },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/subcategories",
+              "raw": "{{baseUrl}}/api/v1/customers/login",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "subcategories"]
+              "path": ["api", "v1", "customers", "login"]
             }
-          },
-          "response": []
+          }
         },
         {
-          "name": "Get SubCategories by Category",
+          "name": "Forgot Password",
           "request": {
-            "method": "GET",
-            "header": [],
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\"\n}"
+            },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/subcategories/categories/{{categoryId}}",
+              "raw": "{{baseUrl}}/api/v1/customers/forgot-password",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "subcategories", "categories", "{{categoryId}}"]
+              "path": ["api", "v1", "customers", "forgot-password"]
             }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "Types",
-      "item": [
-        {
-          "name": "Get All Types",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/types",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "types"]
-            }
-          },
-          "response": []
+          }
         },
         {
-          "name": "Get Types by SubCategory",
+          "name": "Reset Password",
           "request": {
-            "method": "GET",
-            "header": [],
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\",\n  \"otpCode\": \"ABC123\",\n  \"newPassword\": \"NewSecurePass123\"\n}"
+            },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/types/subcategories/{{subCategoryId}}",
+              "raw": "{{baseUrl}}/api/v1/customers/reset-password",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "types", "subcategories", "{{subCategoryId}}"]
+              "path": ["api", "v1", "customers", "reset-password"]
             }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "Brands",
-      "item": [
+          }
+        },
         {
-          "name": "Get All Brands",
+          "name": "Change Password",
           "request": {
-            "method": "GET",
-            "header": [],
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"oldPassword\": \"OldSecurePass123\",\n  \"newPassword\": \"NewSecurePass123\"\n}"
+            },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/brands",
+              "raw": "{{baseUrl}}/api/v1/customers/change-password",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "brands"]
+              "path": ["api", "v1", "customers", "change-password"]
             }
-          },
-          "response": []
+          }
+        },
+        {
+          "name": "Logout Customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/customers/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "customers", "logout"]
+            }
+          }
         }
       ]
     },
     {
-      "name": "Products",
+      "name": "🛍️ Products",
       "item": [
         {
           "name": "Get All Products",
           "request": {
             "method": "GET",
-            "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/products",
+              "raw": "{{baseUrl}}/api/v1/products/",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "products"]
+              "path": ["api", "v1", "products", ""]
             }
-          },
-          "response": []
+          }
         },
         {
           "name": "Get Products with Filters",
           "request": {
             "method": "GET",
-            "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/products?page=1&limit=10&category={{categoryId}}&brand={{brandId}}&minPrice=100&maxPrice=1000&sort=price_asc&featured=true",
+              "raw": "{{baseUrl}}/api/v1/products/?page=1&limit=10&category=categoryId&brand=brandId&minPrice=100&maxPrice=5000&search=headphones&sortBy=price&sortOrder=asc",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "products"],
+              "path": ["api", "v1", "products", ""],
               "query": [
                 {"key": "page", "value": "1"},
                 {"key": "limit", "value": "10"},
-                {"key": "category", "value": "{{categoryId}}"},
-                {"key": "brand", "value": "{{brandId}}"},
+                {"key": "category", "value": "categoryId"},
+                {"key": "brand", "value": "brandId"},
                 {"key": "minPrice", "value": "100"},
-                {"key": "maxPrice", "value": "1000"},
-                {"key": "sort", "value": "price_asc"},
-                {"key": "featured", "value": "true"}
+                {"key": "maxPrice", "value": "5000"},
+                {"key": "search", "value": "headphones"},
+                {"key": "sortBy", "value": "price"},
+                {"key": "sortOrder", "value": "asc"}
               ]
             }
-          },
-          "response": []
+          }
         },
         {
           "name": "Get Product by ID",
           "request": {
             "method": "GET",
-            "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/products/{{productId}}",
+              "raw": "{{baseUrl}}/api/v1/products/:productId",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "products", "{{productId}}"]
+              "path": ["api", "v1", "products", ":productId"],
+              "variable": [
+                {
+                  "key": "productId",
+                  "value": "product_object_id"
+                }
+              ]
             }
-          },
-          "response": []
+          }
         },
         {
           "name": "Get Product Filters",
           "request": {
             "method": "GET",
-            "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/products/filters",
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "products", "filters"]
             }
-          },
-          "response": []
+          }
         }
       ]
     },
     {
-      "name": "Cart APIs",
+      "name": "🛒 Shopping Cart",
       "item": [
         {
           "name": "Get Cart",
@@ -200,50 +246,116 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
+                "value": "Bearer {{accessToken}}"
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/cart",
+              "raw": "{{baseUrl}}/api/v1/cart/",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "cart"]
+              "path": ["api", "v1", "cart", ""]
             }
-          },
-          "response": []
+          }
         },
         {
-          "name": "Add to Cart",
+          "name": "Add Item to Cart",
           "request": {
             "method": "POST",
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
+                "value": "Bearer {{accessToken}}"
               },
               {
                 "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
+                "value": "application/json"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"variantSku\": \"APPLE-IP15P-128-NT\",\n  \"quantity\": 2\n}"
+              "raw": "{\n  \"productId\": \"product_object_id\",\n  \"qty\": 2,\n  \"productType\": \"electronics\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/api/cart",
+              "raw": "{{baseUrl}}/api/v1/cart/",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "cart"]
+              "path": ["api", "v1", "cart", ""]
             }
-          },
-          "response": []
+          }
+        },
+        {
+          "name": "Update Cart Item",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"qty\": 3\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/cart/items/:itemId",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "cart", "items", ":itemId"],
+              "variable": [
+                {
+                  "key": "itemId",
+                  "value": "cart_item_id"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Remove Cart Item",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/cart/items/:itemId",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "cart", "items", ":itemId"],
+              "variable": [
+                {
+                  "key": "itemId",
+                  "value": "cart_item_id"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Clear Cart",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/cart/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "cart", ""]
+            }
+          }
         }
       ]
     },
     {
-      "name": "Wishlist APIs",
+      "name": "💝 Wishlist",
       "item": [
         {
           "name": "Get Wishlist",
@@ -252,96 +364,618 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
+                "value": "Bearer {{accessToken}}"
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/wishlist",
+              "raw": "{{baseUrl}}/api/v1/wishlist/",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "wishlist"]
+              "path": ["api", "v1", "wishlist", ""]
             }
-          },
-          "response": []
+          }
         },
         {
-          "name": "Add to Wishlist",
+          "name": "Add Item to Wishlist",
           "request": {
             "method": "POST",
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
+                "value": "Bearer {{accessToken}}"
               },
               {
                 "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
+                "value": "application/json"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"variantSku\": \"APPLE-IP15P-128-NT\"\n}"
+              "raw": "{\n  \"productId\": \"product_object_id\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/api/wishlist/items",
+              "raw": "{{baseUrl}}/api/v1/wishlist/items",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "wishlist", "items"]
+              "path": ["api", "v1", "wishlist", "items"]
             }
-          },
-          "response": []
+          }
+        },
+        {
+          "name": "Remove Wishlist Item",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/wishlist/items/:itemId",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "wishlist", "items", ":itemId"],
+              "variable": [
+                {
+                  "key": "itemId",
+                  "value": "wishlist_item_id"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Clear Wishlist",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/wishlist/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "wishlist", ""]
+            }
+          }
         }
       ]
     },
     {
-      "name": "Authentication",
+      "name": "📦 Orders",
       "item": [
         {
-          "name": "Customer Register",
+          "name": "Checkout (New Address)",
           "request": {
             "method": "POST",
             "header": [
               {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
                 "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
+                "value": "application/json"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"testuser\",\n  \"email\": \"test@example.com\",\n  \"fullname\": \"Test User\",\n  \"phone\": \"+1234567890\",\n  \"password\": \"password123\",\n  \"gender\": \"male\",\n  \"dob\": \"1990-01-01\"\n}"
+              "raw": "{\n  \"useNewAddress\": true,\n  \"shippingAddress\": {\n    \"fullname\": \"John Doe\",\n    \"street\": \"Thamel-15\",\n    \"city\": \"Kathmandu\",\n    \"state\": \"Bagmati\",\n    \"postalCode\": \"44600\",\n    \"country\": \"Nepal\",\n    \"phone\": \"+9779841234567\",\n    \"landmark\": \"Near Durbar Square\"\n  },\n  \"paymentMethod\": \"cod\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/customers/register",
+              "raw": "{{baseUrl}}/api/v1/orders/checkout",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "customers", "register"]
+              "path": ["api", "v1", "orders", "checkout"]
             }
-          },
-          "response": []
+          }
         },
         {
-          "name": "Customer Login",
+          "name": "Checkout (Saved Address)",
           "request": {
             "method": "POST",
             "header": [
               {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
                 "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
+                "value": "application/json"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\"\n}"
+              "raw": "{\n  \"useNewAddress\": false,\n  \"paymentMethod\": \"card\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/customers/login",
+              "raw": "{{baseUrl}}/api/v1/orders/checkout",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "customers", "login"]
+              "path": ["api", "v1", "orders", "checkout"]
             }
-          },
-          "response": []
+          }
+        },
+        {
+          "name": "Get Order History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/orders/order-history",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "orders", "order-history"]
+            }
+          }
+        },
+        {
+          "name": "Get Order Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/orders/:orderId",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "orders", ":orderId"],
+              "variable": [
+                {
+                  "key": "orderId",
+                  "value": "order_object_id"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Cancel Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/orders/:orderId/cancel",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "orders", ":orderId", "cancel"],
+              "variable": [
+                {
+                  "key": "orderId",
+                  "value": "order_object_id"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Track Order (Public)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/orders/track/:trackingNumber",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "orders", "track", ":trackingNumber"],
+              "variable": [
+                {
+                  "key": "trackingNumber",
+                  "value": "TRK123456789"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "⭐ Reviews",
+      "item": [
+        {
+          "name": "Submit Review",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"product_object_id\",\n  \"rating\": 5,\n  \"review\": \"Excellent product! Highly recommended.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reviews/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "reviews", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📂 Categories (Public)",
+      "item": [
+        {
+          "name": "Get All Categories",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/categories/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "categories", ""]
+            }
+          }
+        },
+        {
+          "name": "Get Categories with Hierarchy",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/categories/hierarchy",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "categories", "hierarchy"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🏢 Company Info (Public)",
+      "item": [
+        {
+          "name": "Get Company Info",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/company-info/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "company-info", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🎠 Hero Carousel (Public)",
+      "item": [
+        {
+          "name": "Get Active Carousel Items",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/hero-carousel/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "hero-carousel", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📢 Ads Panel (Public)",
+      "item": [
+        {
+          "name": "Get Ads by Location",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/ads-panel/?locationId=homepage",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "ads-panel", ""],
+              "query": [
+                {
+                  "key": "locationId",
+                  "value": "homepage"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔍 Specification Search",
+      "item": [
+        {
+          "name": "Get All Specifications",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/spec-lists/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "spec-lists", ""]
+            }
+          }
+        },
+        {
+          "name": "Get Products by Spec Value",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/spec-lists/products?spec=RAM&value=8GB&page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "spec-lists", "products"],
+              "query": [
+                {
+                  "key": "spec",
+                  "value": "RAM",
+                  "description": "Specification name"
+                },
+                {
+                  "key": "value",
+                  "value": "8GB",
+                  "description": "Specification value to search"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Products by Spec ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/spec-lists/products?specId=spec_object_id&value=16GB&page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "spec-lists", "products"],
+              "query": [
+                {
+                  "key": "specId",
+                  "value": "spec_object_id",
+                  "description": "Specification ID"
+                },
+                {
+                  "key": "value",
+                  "value": "16GB",
+                  "description": "Specification value to search"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search Products by Spec Query",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/spec-lists/search?q=8GB&spec=RAM&page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "spec-lists", "search"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "8GB",
+                  "description": "Search query"
+                },
+                {
+                  "key": "spec",
+                  "value": "RAM",
+                  "description": "Filter by specification type (optional)"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search All Specs (No Filter)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/spec-lists/search?q=Black&page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "spec-lists", "search"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "Black",
+                  "description": "Search across all specifications"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Spec Values by Name",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/spec-lists/values?spec=RAM",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "spec-lists", "values"],
+              "query": [
+                {
+                  "key": "spec",
+                  "value": "RAM",
+                  "description": "Specification name"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Spec Values by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/spec-lists/values?specId=spec_object_id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "spec-lists", "values"],
+              "query": [
+                {
+                  "key": "specId",
+                  "value": "spec_object_id",
+                  "description": "Specification ID"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Filterable Specifications",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/spec-lists/filters?category=category_id&subCategory=subcategory_id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "spec-lists", "filters"],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "category_id",
+                  "description": "Filter by category ID (optional)"
+                },
+                {
+                  "key": "subCategory",
+                  "value": "subcategory_id",
+                  "description": "Filter by subcategory ID (optional)"
+                },
+                {
+                  "key": "type",
+                  "value": "type_id",
+                  "description": "Filter by type ID (optional)",
+                  "disabled": true
+                },
+                {
+                  "key": "brand",
+                  "value": "brand_id",
+                  "description": "Filter by brand ID (optional)",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Advanced Multi-Spec Filter",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/spec-lists/filter?specs[ram_spec_id]=8GB,16GB&specs[storage_spec_id]=512GB SSD,1TB SSD&minPrice=1000&maxPrice=2000&page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "spec-lists", "filter"],
+              "query": [
+                {
+                  "key": "specs[ram_spec_id]",
+                  "value": "8GB,16GB",
+                  "description": "RAM specification values (comma-separated)"
+                },
+                {
+                  "key": "specs[storage_spec_id]",
+                  "value": "512GB SSD,1TB SSD",
+                  "description": "Storage specification values (comma-separated)"
+                },
+                {
+                  "key": "minPrice",
+                  "value": "1000",
+                  "description": "Minimum price filter (optional)"
+                },
+                {
+                  "key": "maxPrice",
+                  "value": "2000",
+                  "description": "Maximum price filter (optional)"
+                },
+                {
+                  "key": "category",
+                  "value": "category_id",
+                  "description": "Category filter (optional)",
+                  "disabled": true
+                },
+                {
+                  "key": "brand",
+                  "value": "brand_id",
+                  "description": "Brand filter (optional)",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Fashion Multi-Filter Example",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/spec-lists/filter?specs[size_spec_id]=Medium,Large&specs[color_spec_id]=Black,Blue&specs[material_spec_id]=Cotton&category=clothing_id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "spec-lists", "filter"],
+              "query": [
+                {
+                  "key": "specs[size_spec_id]",
+                  "value": "Medium,Large",
+                  "description": "Size specification values"
+                },
+                {
+                  "key": "specs[color_spec_id]",
+                  "value": "Black,Blue",
+                  "description": "Color specification values"
+                },
+                {
+                  "key": "specs[material_spec_id]",
+                  "value": "Cotton",
+                  "description": "Material specification value"
+                },
+                {
+                  "key": "category",
+                  "value": "clothing_id",
+                  "description": "Clothing category filter"
+                }
+              ]
+            }
+          }
         }
       ]
     }

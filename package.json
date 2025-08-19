@@ -4,8 +4,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node --no-deprecation app.js",
-    "dev": "nodemon app.js",
+    "start": "node --no-deprecation --trace-warnings app.js",
+    "dev": "nodemon --exec \"node --no-deprecation --no-warnings\" app.js",
     "seed:dev": "node src/seed/devSeed.js",
     "seed:cleanDb": "node src/seed/cleanDatabase.js",
     "seed:products": "node src/seed/productSeed.js",

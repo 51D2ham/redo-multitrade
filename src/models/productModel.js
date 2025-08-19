@@ -186,6 +186,8 @@ const productSpecsSchema = new Schema({
 
 productSpecsSchema.index({ product: 1 });
 productSpecsSchema.index({ specList: 1 });
+productSpecsSchema.index({ specList: 1, value: 1 });
+productSpecsSchema.index({ value: 'text' });
 
 // Review Schema
 const reviewSchema = new Schema({

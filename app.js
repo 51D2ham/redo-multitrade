@@ -89,6 +89,7 @@ const customerApiRouter = require('./src/routes/v1/customer/api');
 const customerRenderRouter = require('./src/routes/v1/customer/render');
 const adminRenderRouter = require('./src/routes/v1/admin/render');
 const orderManagementRoutes = require('./src/routes/v1/order');
+const orderManagementApiRoutes = require('./src/routes/v1/order/api');
 const cartApiRoutes = require('./src/routes/v1/cart');
 const wishlistApiRoutes = require('./src/routes/v1/wishlist');
 const productRoutes = require('./src/routes/v1/products/render');
@@ -96,9 +97,13 @@ const productApiRoutes = require('./src/routes/v1/products/api');
 const bulkUploadRoutes = require('./src/routes/bulkUploadRoutes');
 const adminReviewRoutes = require('./src/routes/v1/reviews/render');
 const categoryRoutes = require('./src/routes/v1/categories/render');
+const categoryRoutesApi = require('./src/routes/v1/categories/api');
 const subCategoryRoutes = require('./src/routes/v1/subCategories/render');
+const subCategoryRoutesApi = require('./src/routes/v1/subCategories/api');
 const typeRoutes = require('./src/routes/v1/types/render');
+const typeRoutesApi = require('./src/routes/v1/types/api');
 const brandRoutes = require('./src/routes/v1/brands/render');
+const brandRoutesApi = require('./src/routes/v1/brands/api');
 const specListRoutes = require('./src/routes/v1/specList/render');
 const specListApiRoutes = require('./src/routes/v1/specList/api');
 const heroCarouselRoutes = require('./src/routes/v1/heroCarousel/render');
@@ -110,18 +115,19 @@ const companyInfoApiRoutes = require('./src/routes/v1/companyInfo/api');
 const inventoryRoutes = require('./src/routes/v1/inventory/render');
 const inventoryApiRoutes = require('./src/routes/v1/inventory/api');
 const salesReport = require('./src/routes/salesRoutes');
+const reviewsApi = require('./src/routes/v1/reviews/api');
 
 // API Routes
 app.use('/api/v1/customers', customerApiRouter);
 app.use('/api/v1/cart', cartApiRoutes);
 app.use('/api/v1/wishlist', wishlistApiRoutes);
-app.use('/api/v1/orders', require('./src/routes/v1/order/api'));
+app.use('/api/v1/orders',orderManagementApiRoutes);
 app.use('/api/v1/products', productApiRoutes);
-app.use('/api/v1/reviews', require('./src/routes/v1/reviews/api'));
-app.use('/api/v1/categories', require('./src/routes/v1/categories/api'));
-app.use('/api/v1/subcategories', require('./src/routes/v1/subCategories/api'));
-app.use('/api/v1/types', require('./src/routes/v1/types/api'));
-app.use('/api/v1/brands', require('./src/routes/v1/brands/api'));
+app.use('/api/v1/reviews', reviewsApi);
+app.use('/api/v1/categories', categoryRoutesApi);
+app.use('/api/v1/subcategories', subCategoryRoutesApi);
+app.use('/api/v1/types',typeRoutesApi);
+app.use('/api/v1/brands', brandRoutesApi);
 app.use('/api/v1/spec-lists', specListApiRoutes);
 app.use('/api/v1/hero-carousel', heroCarouselApiRoutes);
 app.use('/api/v1/ads-panel', adsPanelApiRoutes);
@@ -151,7 +157,7 @@ app.get('/dashboard', (req, res) => res.redirect('/admin/reports/comprehensive')
 app.get('/admin/v1/parameters', (req, res) => res.redirect('/admin/v1/staff/parameter-dashboard'));
 app.get('/', (req, res) => res.redirect('/admin/reports/comprehensive'));
 
-// Reports (must be last)
+// Reports 
 app.use('/admin', salesReport);
 
 // Error handlers

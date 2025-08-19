@@ -1,6 +1,10 @@
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
+// ================================
+// ADMIN & USER SCHEMAS
+// ================================
+
 // Admin Schema
 const adminSchema = new Schema({
   username: { type: String, required: true, unique: true, trim: true },
@@ -38,6 +42,10 @@ const userSchema = new Schema({
   status: { type: String, enum: ['active', 'inactive', 'blocked'], default: 'active' }
 }, { timestamps: true });
 
+// ================================
+// PRODUCT CATEGORIZATION SCHEMAS
+// ================================
+
 // Category Schema
 const categorySchema = new Schema({
   name: { type: String, required: true, unique: true, trim: true },
@@ -65,31 +73,21 @@ const brandSchema = new Schema({
   admin: { type: Schema.Types.ObjectId, ref: 'Admin', required: true }
 }, { timestamps: true });
 
+// ================================
+// SPECIFICATION SCHEMAS
+// ================================
+
 // SpecList Schema
 const specListSchema = new Schema({
   title: { type: String, required: true, trim: true },
   value: { type: String, trim: true },
   status: { type: String, enum: ['active', 'inactive'], default: 'active' },
+  displayInFilter: { type: Boolean, default: false },
   category: { type: Schema.Types.ObjectId, ref: 'Category' },
   subCategory: { type: Schema.Types.ObjectId, ref: 'SubCategory' },
   type: { type: Schema.Types.ObjectId, ref: 'Type' },
   brand: { type: Schema.Types.ObjectId, ref: 'Brand' },
   admin: { type: Schema.Types.ObjectId, ref: 'Admin', required: true }
-}, { timestamps: true });
-
-// Product Schema
-const productSchema = new Schema({
-  slug: { type: String, required: true, unique: true, trim: true },
-  title: { type: String, required: true, trim: true },
-  description: { type: String, required: true },
-  images: [{ type: String, trim: true }],
-  price: { type: Number, required: true, min: 0 },
-  rating: { type: Number, default: 0, min: 0, max: 5 },
-  reviewCount: { type: Number, default: 0 },
-  category: { type: Schema.Types.ObjectId, ref: 'Category', required: true },
-  subCategory: { type: Schema.Types.ObjectId, ref: 'SubCategory', required: true },
-  type: { type: Schema.Types.ObjectId, ref: 'Type', required: true },
-  brand: { type: Schema.Types.ObjectId, ref: 'Brand', required: true }
 }, { timestamps: true });
 
 // ProductSpecs Schema
@@ -99,29 +97,129 @@ const productSpecsSchema = new Schema({
   value: { type: String, required: true, trim: true }
 }, { timestamps: true });
 
-// ProductInventory Schema
-const productInventorySchema = new Schema({
+// ================================
+// PRODUCT SCHEMAS
+// ================================
+
+// Product Variant Schema
+const variantSchema = new Schema({
+  sku: { type: String, required: true, trim: true },
+  color: { type: String, trim: true },
+  size: { type: String, trim: true },
+  material: { type: String, trim: true },
+  weight: { type: Number, min: 0 },
+  dimensions: {
+    length: { type: Number, min: 0 },
+    width: { type: Number, min: 0 },
+    height: { type: Number, min: 0 }
+  },
+  images: [{ type: String, trim: true }],
   price: { type: Number, required: true, min: 0 },
   oldPrice: { type: Number, min: 0 },
   discountPrice: { type: Number, min: 0 },
-  qty: { type: Number, required: true, min: 0 },
-  thresholdQty: { type: Number, min: 0 },
-  status: { type: String, enum: ['in_stock', 'out_of_stock', 'low_stock'], default: 'in_stock' },
+  qty: { type: Number, required: true, min: 0, default: 0 },
+  thresholdQty: { type: Number, min: 0, default: 5 },
+  status: { 
+    type: String, 
+    enum: ['in_stock', 'out_of_stock', 'low_stock', 'discontinued'], 
+    default: 'in_stock' 
+  },
   shipping: { type: Boolean, default: true },
-  product: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
-  category: { type: Schema.Types.ObjectId, ref: 'Category' },
-  subCategory: { type: Schema.Types.ObjectId, ref: 'SubCategory' },
-  type: { type: Schema.Types.ObjectId, ref: 'Type' },
-  brand: { type: Schema.Types.ObjectId, ref: 'Brand' }
-}, { timestamps: true });
+  isDefault: { type: Boolean, default: false }
+}, { _id: true });
+
+// Product Schema
+const productSchema = new Schema({
+  slug: { 
+    type: String, 
+    required: true, 
+    unique: true, 
+    trim: true,
+    lowercase: true
+  },
+  title: { 
+    type: String, 
+    required: true, 
+    trim: true,
+    maxlength: 200,
+    index: 'text'
+  },
+  description: { 
+    type: String, 
+    required: true,
+    maxlength: 5000
+  },
+  shortDescription: { type: String, maxlength: 500 },
+  images: [{ type: String, trim: true }],
+  thumbnail: { type: String, trim: true },
+  
+  // Base pricing
+  price: { type: Number, required: true, min: 0 },
+  
+  // Categories
+  category: { type: Schema.Types.ObjectId, ref: 'Category', required: true },
+  subCategory: { type: Schema.Types.ObjectId, ref: 'SubCategory', required: true },
+  type: { type: Schema.Types.ObjectId, ref: 'Type', required: true },
+  brand: { type: Schema.Types.ObjectId, ref: 'Brand', required: true },
+  
+  // Variants (Inventory Management)
+  variants: [variantSchema],
+  
+  // Calculated fields
+  rating: { type: Number, default: 0, min: 0, max: 5 },
+  reviewCount: { type: Number, default: 0, min: 0 },
+  totalStock: { type: Number, default: 0, min: 0 },
+  minPrice: { type: Number, default: 0, min: 0 },
+  maxPrice: { type: Number, default: 0, min: 0 },
+  
+  // Status
+  status: { 
+    type: String, 
+    enum: ['draft', 'active', 'inactive', 'discontinued'], 
+    default: 'draft' 
+  },
+  featured: { type: Boolean, default: false },
+  isDiscounted: { type: Boolean, default: false },
+  
+  // Admin
+  admin: { type: Schema.Types.ObjectId, ref: 'Admin', required: true },
+  
+  // Business
+  warranty: { type: String, trim: true },
+  returnPolicy: { type: String, trim: true },
+  shippingInfo: { type: String, trim: true },
+  tags: [{ type: String, trim: true }],
+  totalSales: { type: Number, default: 0, min: 0 },
+  viewCount: { type: Number, default: 0, min: 0 }
+}, { 
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
+});
+
+// ================================
+// REVIEW SCHEMAS
+// ================================
 
 // Review Schema
 const reviewSchema = new Schema({
   product: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
+  user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   rating: { type: Number, required: true, min: 1, max: 5 },
-  review: { type: String, required: true, trim: true },
-  user: { type: Schema.Types.ObjectId, ref: 'User', required: true }
+  title: { type: String, trim: true, maxlength: 100 },
+  review: { type: String, required: true, trim: true, minlength: 10, maxlength: 1000 },
+  verified: { type: Boolean, default: false },
+  helpful: { type: Number, default: 0 },
+  status: { 
+    type: String, 
+    enum: ['pending', 'approved', 'rejected'], 
+    default: 'pending' 
+  }
 }, { timestamps: true });
+
+// ================================
+// SHOPPING SCHEMAS
+// ================================
 
 // Wishlist Schema
 const wishlistSchema = new Schema({
@@ -152,6 +250,10 @@ const cartSchema = new Schema({
   product: { type: Schema.Types.ObjectId, ref: 'Product', required: true }
 }, { timestamps: true });
 
+// ================================
+// ORDER SCHEMAS
+// ================================
+
 // Order Schema
 const orderSchema = new Schema({
   totalPrice: { type: Number, required: true, min: 0 },
@@ -166,13 +268,13 @@ const orderSchema = new Schema({
   user: { type: Schema.Types.ObjectId, ref: 'User', required: true }
 }, { timestamps: true });
 
-// CartOrder Schema
+// CartOrder Schema (Junction table for Order-Cart relationship)
 const cartOrderSchema = new Schema({
   order: { type: Schema.Types.ObjectId, ref: 'Order', required: true },
   cart: { type: Schema.Types.ObjectId, ref: 'Cart', required: true }
 }, { timestamps: true });
 
-// OrderStatus Schema
+// OrderStatus Schema (Order status history)
 const orderStatusSchema = new Schema({
   statusTitle: { type: String, required: true, trim: true },
   status: { type: String, required: true, enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'] },
@@ -182,7 +284,48 @@ const orderStatusSchema = new Schema({
   order: { type: Schema.Types.ObjectId, ref: 'Order', required: true }
 }, { timestamps: true });
 
-// HeroContent Schema
+// ================================
+// INVENTORY & REPORTING SCHEMAS
+// ================================
+
+// InventoryLog Schema (Stock movement tracking)
+const inventoryLogSchema = new Schema({
+  product: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
+  variantSku: { type: String, required: true, trim: true },
+  type: { type: String, enum: ['sale', 'restock', 'adjustment'], required: true },
+  quantity: { type: Number, required: true },
+  previousStock: { type: Number, required: true },
+  newStock: { type: Number, required: true },
+  orderId: { type: Schema.Types.ObjectId, ref: 'Order' },
+  admin: { type: Schema.Types.ObjectId, ref: 'Admin', required: true },
+  notes: { type: String, trim: true }
+}, { timestamps: true });
+
+// PriceLog Schema (Price change tracking)
+const priceLogSchema = new Schema({
+  product: { type: Schema.Types.ObjectId, ref: 'Product', required: true, index: true },
+  variantSku: { type: String, required: true, index: true },
+  oldPrice: { type: Number, required: true },
+  newPrice: { type: Number, required: true },
+  changedAt: { type: Date, default: Date.now, index: true }
+}, { timestamps: false });
+
+// Sale Schema (Sales tracking)
+const saleSchema = new Schema({
+  orderId: { type: Schema.Types.ObjectId, ref: 'Order', required: true, index: true },
+  product: { type: Schema.Types.ObjectId, ref: 'Product', required: true, index: true },
+  variantSku: { type: String, required: true, index: true },
+  quantity: { type: Number, required: true, min: 1 },
+  salePrice: { type: Number, required: true },
+  totalLinePrice: { type: Number, required: true },
+  soldAt: { type: Date, default: Date.now, index: true }
+}, { timestamps: true });
+
+// ================================
+// CONTENT MANAGEMENT SCHEMAS
+// ================================
+
+// HeroContent Schema (Homepage carousel)
 const heroContentSchema = new Schema({
   title: { type: String, required: true, trim: true },
   image: { type: String, required: true, trim: true },
@@ -191,7 +334,7 @@ const heroContentSchema = new Schema({
   admin: { type: Schema.Types.ObjectId, ref: 'Admin', required: true }
 }, { timestamps: true });
 
-// AdsPanel Schema
+// AdsPanel Schema (Advertisement management)
 const adsPanelSchema = new Schema({
   title: { type: String, required: true, trim: true },
   image: { type: String, required: true, trim: true },
@@ -200,13 +343,31 @@ const adsPanelSchema = new Schema({
   admin: { type: Schema.Types.ObjectId, ref: 'Admin', required: true }
 }, { timestamps: true });
 
-// SystemInfo Schema
-const systemInfoSchema = new Schema({
+// CompanyInfo Schema (Company information)
+const companyInfoSchema = new Schema({
+  title: { type: String, required: true, trim: true },
   description: { type: String, required: true },
+  email: { type: String, trim: true },
+  phone: { type: String, trim: true },
+  address: { type: String, trim: true },
+  website: { type: String, trim: true },
+  socialMedia: {
+    facebook: { type: String, trim: true },
+    twitter: { type: String, trim: true },
+    instagram: { type: String, trim: true },
+    linkedin: { type: String, trim: true }
+  },
+  businessHours: { type: String, trim: true },
+  logo: { type: String, trim: true },
+  status: { type: String, enum: ['active', 'inactive'], default: 'active' },
   admin: { type: Schema.Types.ObjectId, ref: 'Admin', required: true }
 }, { timestamps: true });
 
-// Export models
+// ================================
+// MODEL EXPORTS
+// ================================
+
+// Create models
 const Admin = mongoose.model('Admin', adminSchema);
 const User = mongoose.model('User', userSchema);
 const Category = mongoose.model('Category', categorySchema);
@@ -216,7 +377,6 @@ const Brand = mongoose.model('Brand', brandSchema);
 const SpecList = mongoose.model('SpecList', specListSchema);
 const Product = mongoose.model('Product', productSchema);
 const ProductSpecs = mongoose.model('ProductSpecs', productSpecsSchema);
-const ProductInventory = mongoose.model('ProductInventory', productInventorySchema);
 const Review = mongoose.model('Review', reviewSchema);
 const Wishlist = mongoose.model('Wishlist', wishlistSchema);
 const ShippingAddress = mongoose.model('ShippingAddress', shippingAddressSchema);
@@ -226,10 +386,48 @@ const CartOrder = mongoose.model('CartOrder', cartOrderSchema);
 const OrderStatus = mongoose.model('OrderStatus', orderStatusSchema);
 const HeroContent = mongoose.model('HeroContent', heroContentSchema);
 const AdsPanel = mongoose.model('AdsPanel', adsPanelSchema);
-const SystemInfo = mongoose.model('SystemInfo', systemInfoSchema);
+const CompanyInfo = mongoose.model('CompanyInfo', companyInfoSchema);
+const InventoryLog = mongoose.model('InventoryLog', inventoryLogSchema);
+const PriceLog = mongoose.model('PriceLog', priceLogSchema);
+const Sale = mongoose.model('Sale', saleSchema);
 
+// Export all models
 module.exports = {
-  Admin, User, Category, SubCategory, Type, Brand, SpecList, Product, ProductSpecs,
-  ProductInventory, Review, Wishlist, ShippingAddress, Cart, Order, CartOrder,
-  OrderStatus, HeroContent, AdsPanel, SystemInfo
+  // User Management
+  Admin, 
+  User,
+  
+  // Product Categorization
+  Category, 
+  SubCategory, 
+  Type, 
+  Brand,
+  
+  // Product & Specifications
+  SpecList,
+  Product, 
+  ProductSpecs,
+  
+  // Reviews & Ratings
+  Review,
+  
+  // Shopping Experience
+  Wishlist, 
+  ShippingAddress, 
+  Cart,
+  
+  // Order Management
+  Order, 
+  CartOrder,
+  OrderStatus,
+  
+  // Content Management
+  HeroContent, 
+  AdsPanel, 
+  CompanyInfo,
+  
+  // Inventory & Reporting
+  InventoryLog,
+  PriceLog,
+  Sale
 };
