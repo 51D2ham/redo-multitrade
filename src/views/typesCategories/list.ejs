@@ -51,7 +51,73 @@
         </a>
       </div>
     <% } else { %>
-      <div class="overflow-x-auto">
+      <!-- Mobile Cards (Hidden on Desktop) -->
+      <div class="block md:hidden space-y-4 p-4">
+        <% types.forEach((type, idx) => { %>
+          <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow">
+            <div class="flex items-start justify-between mb-3">
+              <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white font-semibold">
+                  <i class="fa fa-tags"></i>
+                </div>
+                <div>
+                  <h3 class="font-semibold text-gray-900"><%= type.name %></h3>
+                  <p class="text-sm text-gray-600">Type</p>
+                </div>
+              </div>
+              <span class="text-xs font-medium px-2 py-1 rounded-full bg-blue-100 text-blue-700">
+                #<%= idx + 1 %>
+              </span>
+            </div>
+            
+            <div class="grid grid-cols-1 gap-3 mb-4 text-sm">
+              <div>
+                <span class="text-gray-500 font-medium">Category:</span>
+                <% if (type.category) { %>
+                  <p class="text-gray-900"><%= type.category.name %></p>
+                <% } else { %>
+                  <p class="text-gray-400">No category</p>
+                <% } %>
+              </div>
+              <div>
+                <span class="text-gray-500 font-medium">Subcategory:</span>
+                <% if (type.subCategory) { %>
+                  <p class="text-gray-900"><%= type.subCategory.name %></p>
+                <% } else { %>
+                  <p class="text-gray-400">No subcategory</p>
+                <% } %>
+              </div>
+              <div>
+                <span class="text-gray-500 font-medium">Created by:</span>
+                <% if (type.admin) { %>
+                  <p class="text-gray-900"><%= type.admin.username %></p>
+                  <p class="text-xs text-gray-500"><%= type.admin.email %></p>
+                <% } else { %>
+                  <p class="text-gray-400">Admin not found</p>
+                <% } %>
+              </div>
+            </div>
+            
+            <div class="flex flex-wrap gap-2 pt-3 border-t border-gray-100">
+              <a href="/admin/v1/parameters/types/<%= type._id %>" class="flex-1 text-center px-3 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition text-sm font-medium">
+                <i class="fa fa-eye mr-1"></i> View
+              </a>
+              <a href="/admin/v1/parameters/types/<%= type._id %>/edit" class="flex-1 text-center px-3 py-2 bg-yellow-50 text-yellow-700 rounded-lg hover:bg-yellow-100 transition text-sm font-medium">
+                <i class="fa fa-edit mr-1"></i> Edit
+              </a>
+              <form action="/admin/v1/parameters/types/<%= type._id %>" method="POST" class="flex-1">
+                <input type="hidden" name="_method" value="DELETE">
+                <button type="submit" class="w-full px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition text-sm font-medium" onclick="return confirm('Delete this type?')">
+                  <i class="fa fa-trash mr-1"></i> Delete
+                </button>
+              </form>
+            </div>
+          </div>
+        <% }) %>
+      </div>
+      
+      <!-- Desktop Table (Hidden on Mobile) -->
+      <div class="hidden md:block overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
             <tr class="border-b border-gray-200 bg-gray-50">
@@ -69,27 +135,36 @@
                 <td class="py-4 px-4 font-semibold text-gray-500">
                   <%= idx + 1 %>
                 </td>
-                <td class="py-4 px-4 font-medium text-gray-800">
-                  <%= type.name %>
+                <td class="py-4 px-4">
+                  <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white text-sm">
+                      <i class="fa fa-tags"></i>
+                    </div>
+                    <span class="font-medium text-gray-800"><%= type.name %></span>
+                  </div>
                 </td>
                 <td class="py-4 px-4 text-gray-700">
                   <% if (type.category) { %>
-                    <%= type.category.name %>
+                    <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-green-100 text-green-800">
+                      <%= type.category.name %>
+                    </span>
                   <% } else { %>
                     <span class="text-gray-400">No category</span>
                   <% } %>
                 </td>
                 <td class="py-4 px-4 text-gray-700">
                   <% if (type.subCategory) { %>
-                    <%= type.subCategory.name %>
+                    <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800">
+                      <%= type.subCategory.name %>
+                    </span>
                   <% } else { %>
                     <span class="text-gray-400">No subcategory</span>
                   <% } %>
                 </td>
                 <td class="py-4 px-4 text-gray-700">
                   <% if (type.admin) { %>
-                    <%= type.admin.username %>
-                    <div class="text-xs text-gray-400"><%= type.admin.email %></div>
+                    <div class="font-medium"><%= type.admin.username %></div>
+                    <div class="text-xs text-gray-500"><%= type.admin.email %></div>
                   <% } else { %>
                     <span class="text-gray-400">Admin not found</span>
                   <% } %>
@@ -104,11 +179,7 @@
                     </a>
                     <form action="/admin/v1/parameters/types/<%= type._id %>" method="POST" class="inline">
                       <input type="hidden" name="_method" value="DELETE">
-                      <button 
-                        type="submit" 
-                        class="btn btn-small bg-red-100 text-red-600 hover:bg-red-200 transition flex items-center px-3 py-2"
-                        onclick="return confirm('Are you sure you want to delete this type? This cannot be undone.')"
-                      >
+                      <button type="submit" class="btn btn-small bg-red-100 text-red-600 hover:bg-red-200 transition flex items-center px-3 py-2" onclick="return confirm('Are you sure you want to delete this type? This cannot be undone.')">
                         <i class="fa fa-trash mr-1.5"></i> Delete
                       </button>
                     </form>

@@ -1,0 +1,141 @@
+<%- include('../partials/header.ejs', { title: 'Edit Company Information' }) %>
+
+<nav class="flex flex-wrap gap-3 mb-8 p-4 bg-white rounded-xl shadow-sm border border-gray-100 items-center">
+  <a href="/admin/v1/staff/dashboard" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition">
+    <i class="fa fa-home"></i> Dashboard
+  </a>
+  <a href="/admin/v1/parameters/company-info" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-50 text-gray-700 hover:bg-gray-100 transition">
+    <i class="fa fa-building"></i> Company Info List
+  </a>
+</nav>
+
+<main class="container mx-auto max-w-2xl px-4">
+  <!-- Flash Messages -->
+  <% if (success && success.length) { %>
+    <div class="mb-6 p-4 rounded-lg border-l-4 border-green-400 bg-green-50 text-green-800 shadow-sm">
+      <% success.forEach(msg => { %>
+        <div class="flex items-center gap-2">
+          <i class="fa fa-check-circle"></i>
+          <%= msg %>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+
+  <div class="bg-white rounded-xl shadow-md p-8 mb-10 border border-gray-100">
+    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-8 gap-4">
+      <h1 class="text-2xl font-bold text-gray-800">Edit Company Information</h1>
+      <a href="/admin/v1/parameters/company-info" class="text-sm text-blue-600 hover:text-blue-700 flex items-center transition">
+        <span class="mr-1">←</span> Back to List
+      </a>
+    </div>
+    
+    <form action="/admin/v1/parameters/company-info/<%= item._id %>?_method=PUT" method="POST" enctype="multipart/form-data" class="space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label for="title" class="block font-semibold mb-2 text-gray-700">Company Name *</label>
+          <input id="title" name="title" type="text" value="<%= item.title %>" required 
+            class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+        </div>
+        
+        <div>
+          <label for="email" class="block font-semibold mb-2 text-gray-700">Email</label>
+          <input id="email" name="email" type="email" value="<%= item.email || '' %>"
+            class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+        </div>
+        
+        <div>
+          <label for="phone" class="block font-semibold mb-2 text-gray-700">Phone</label>
+          <input id="phone" name="phone" type="tel" value="<%= item.phone || '' %>"
+            class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+        </div>
+        
+        <div>
+          <label for="website" class="block font-semibold mb-2 text-gray-700">Website</label>
+          <input id="website" name="website" type="url" value="<%= item.website || '' %>"
+            class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+        </div>
+      </div>
+      
+      <div>
+        <label for="description" class="block font-semibold mb-2 text-gray-700">Description *</label>
+        <textarea id="description" name="description" rows="4" required
+          class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"><%= item.description %></textarea>
+      </div>
+      
+      <div>
+        <label for="address" class="block font-semibold mb-2 text-gray-700">Address</label>
+        <textarea id="address" name="address" rows="3"
+          class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"><%= item.address || '' %></textarea>
+      </div>
+      
+      <div>
+        <label for="businessHours" class="block font-semibold mb-2 text-gray-700">Business Hours</label>
+        <input id="businessHours" name="businessHours" type="text" value="<%= item.businessHours || '' %>"
+          class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+      </div>
+      
+      <!-- Social Media -->
+      <div class="border-t pt-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">Social Media Links</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label for="facebook" class="block font-medium mb-2 text-gray-700">Facebook</label>
+            <input id="facebook" name="facebook" type="url" value="<%= item.socialMedia?.facebook || '' %>"
+              class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+          </div>
+          <div>
+            <label for="twitter" class="block font-medium mb-2 text-gray-700">Twitter</label>
+            <input id="twitter" name="twitter" type="url" value="<%= item.socialMedia?.twitter || '' %>"
+              class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+          </div>
+          <div>
+            <label for="instagram" class="block font-medium mb-2 text-gray-700">Instagram</label>
+            <input id="instagram" name="instagram" type="url" value="<%= item.socialMedia?.instagram || '' %>"
+              class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+          </div>
+          <div>
+            <label for="linkedin" class="block font-medium mb-2 text-gray-700">LinkedIn</label>
+            <input id="linkedin" name="linkedin" type="url" value="<%= item.socialMedia?.linkedin || '' %>"
+              class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+          </div>
+        </div>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label for="logo" class="block font-semibold mb-2 text-gray-700">Company Logo</label>
+          <% if (item.logo) { %>
+            <div class="mb-3">
+              <img src="/uploads/<%= item.logo %>" alt="<%= item.title %>" class="w-20 h-20 object-cover rounded-lg shadow-sm border">
+              <p class="text-sm text-gray-500 mt-1">Current logo</p>
+            </div>
+          <% } %>
+          <input id="logo" name="logo" type="file" accept="image/*"
+            class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+          <p class="mt-1 text-sm text-gray-500">Leave empty to keep current logo</p>
+        </div>
+        
+        <div>
+          <label for="status" class="block font-semibold mb-2 text-gray-700">Status</label>
+          <select id="status" name="status"
+            class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+            <option value="active" <%= item.status === 'active' ? 'selected' : '' %>>Active</option>
+            <option value="inactive" <%= item.status === 'inactive' ? 'selected' : '' %>>Inactive</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="flex flex-col sm:flex-row gap-3 sm:justify-end">
+        <a href="/admin/v1/parameters/company-info" class="px-4 py-3 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition flex items-center justify-center gap-2">
+          <i class="fa fa-times"></i> Cancel
+        </a>
+        <button type="submit" class="px-4 py-3 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition flex items-center justify-center gap-2">
+          <i class="fa fa-save"></i> Update Company Info
+        </button>
+      </div>
+    </form>
+  </div>
+</main>
+
+<%- include('../partials/footer.ejs') %>

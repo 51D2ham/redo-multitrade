@@ -73,105 +73,148 @@
       </div>
     </form>
   </div>
-  <!-- Staff Table Card -->
-  <div class="bg-white rounded-xl shadow-md overflow-x-auto mb-10 border border-gray-100">
-    <table class="w-full text-sm">
-      <thead>
-        <tr class="border-b border-gray-200 bg-gray-50">
-          <th class="py-3 px-4 text-left font-semibold text-gray-600 w-12">S.N</th>
-          <th class="py-3 px-4 text-left font-semibold text-gray-600">Name</th>
-          <th class="py-3 px-4 text-left font-semibold text-gray-600">Email</th>
-          <th class="py-3 px-4 text-left font-semibold text-gray-600">Phone</th>
-          <th class="py-3 px-4 text-left font-semibold text-gray-600">Role</th>
-          <th class="py-3 px-4 text-left font-semibold text-gray-600">Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <% if (!admins || admins.length === 0) { %>
-          <tr>
-            <td colspan="6" class="py-12 text-center text-gray-400">
-              <i class="fa fa-user-shield text-4xl mb-4 opacity-25"></i>
-              <p class="text-lg font-medium">No staff members found</p>
-              <p class="text-gray-500">Try adjusting your search or filters</p>
-            </td>
-          </tr>
-        <% } else { %>
-          <% admins.filter(admin => admin.role !== 'developer').forEach((admin, idx) => { %>
-            <tr class="hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-0">
-              <td class="py-4 px-4 font-semibold text-gray-500"><%= (pagination && typeof pagination.limit === 'number' && typeof pagination.currentPage === 'number' ? (pagination.currentPage - 1) * pagination.limit : 0) + idx + 1 %></td>
-              <td class="py-4 px-4 font-medium text-gray-800 flex items-center gap-3">
+  <!-- Staff List -->
+  <div class="bg-white rounded-xl shadow-md mb-10 border border-gray-100">
+    <% if (!admins || admins.length === 0) { %>
+      <div class="p-8 text-center">
+        <i class="fa fa-user-shield text-5xl text-gray-300 mb-4"></i>
+        <h2 class="text-xl font-semibold text-gray-800 mb-2">No Staff Members Found</h2>
+        <p class="text-gray-500 mb-6">Try adjusting your search or filters</p>
+        <a href="/admin/v1/staff/register" class="inline-flex items-center px-4 py-2.5 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition">
+          <i class="fa fa-plus mr-2"></i> Add First Admin
+        </a>
+      </div>
+    <% } else { %>
+      <!-- Mobile Cards (Hidden on Desktop) -->
+      <div class="block lg:hidden space-y-4 p-4">
+        <% admins.filter(admin => admin.role !== 'developer').forEach((admin, idx) => { %>
+          <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow">
+            <div class="flex items-start justify-between mb-4">
+              <div class="flex items-center gap-3">
                 <% if (admin.profileImage) { %>
-                  <img src="<%= admin.profileImage %>" alt="Profile" class="w-10 h-10 rounded-full object-cover">
+                  <img src="<%= admin.profileImage %>" alt="Profile" class="w-12 h-12 rounded-full object-cover">
                 <% } else { %>
-                  <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-medium">
+                  <div class="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 flex items-center justify-center text-white font-semibold">
                     <%= admin.fullname ? admin.fullname.charAt(0).toUpperCase() : '?' %>
                   </div>
                 <% } %>
-                <span><%= admin.fullname || 'Unnamed Admin' %></span>
-              </td>
-              <td class="py-4 px-4 text-gray-700"><%= admin.email || '—' %></td>
-              <td class="py-4 px-4 text-gray-700"><%= admin.phone || '—' %></td>
-              <td class="py-4 px-4">
+                <div>
+                  <h3 class="font-semibold text-gray-900"><%= admin.fullname || 'Unnamed Admin' %></h3>
+                  <p class="text-sm text-gray-600"><%= admin.email || '—' %></p>
+                </div>
+              </div>
+              <span class="text-xs font-medium px-2 py-1 rounded-full bg-blue-100 text-blue-700">
+                #<%= (pagination && typeof pagination.limit === 'number' && typeof pagination.currentPage === 'number' ? (pagination.currentPage - 1) * pagination.limit : 0) + idx + 1 %>
+              </span>
+              <div class="text-right">
                 <% 
                   const adminRole = admin.role || 'admin';
                   const displayRole = adminRole.charAt(0).toUpperCase() + adminRole.slice(1);
-                  const roleColor = adminRole === 'superadmin' ? 'yellow' : adminRole === 'developer' ? 'purple' : 'blue';
+                  const roleColor = adminRole === 'superadmin' ? 'amber' : adminRole === 'developer' ? 'purple' : 'indigo';
                 %>
-                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold
-                  bg-<%= roleColor %>-100 text-<%= roleColor %>-700">
-                  <i class="fa fa-circle text-[6px] mr-1.5 text-<%= roleColor %>-500"></i>
-                  <%= displayRole %>
-                </span>
-              </td>
-              <td class="py-4 px-4">
-                <div class="flex flex-wrap gap-2">
-                  <a href="/admin/v1/staff/<%= admin._id %>/profile" class="btn btn-small bg-blue-100 text-blue-700 hover:bg-blue-200 transition flex items-center px-3 py-2">
-                    <i class="fa fa-eye mr-1.5"></i> View
-                  </a>
-                  <a href="/admin/v1/staff/<%= admin._id %>/edit" class="btn btn-small bg-yellow-100 text-yellow-700 hover:bg-yellow-200 transition flex items-center px-3 py-2">
-                    <i class="fa fa-edit mr-1.5"></i> Edit
-                  </a>
-                  <form action="/admin/v1/staff/<%= admin._id %>/delete" method="POST" class="inline">
-                    <input type="hidden" name="_method" value="DELETE">
-                    <button 
-                      type="submit" 
-                      class="btn btn-small bg-red-100 text-red-600 hover:bg-red-200 transition flex items-center px-3 py-2"
-                      onclick="return confirm('Permanently delete this staff member? This action cannot be undone.')"
-                    >
-                      <i class="fa fa-trash mr-1.5"></i> Delete
-                    </button>
-                  </form>
+                <div class="mt-2">
+                  <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-<%= roleColor %>-100 text-<%= roleColor %>-700">
+                    <%= displayRole %>
+                  </span>
                 </div>
-              </td>
+              </div>
+            </div>
+            
+            <div class="mb-4 text-sm">
+              <span class="text-gray-500 font-medium">Phone:</span>
+              <p class="text-gray-900"><%= admin.phone || '—' %></p>
+            </div>
+            
+            <div class="flex flex-wrap gap-2 pt-3 border-t border-gray-100">
+              <a href="/admin/v1/staff/<%= admin._id %>/profile" class="flex-1 text-center px-3 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition text-sm font-medium">
+                <i class="fa fa-eye mr-1"></i> View
+              </a>
+              <a href="/admin/v1/staff/<%= admin._id %>/edit" class="flex-1 text-center px-3 py-2 bg-yellow-50 text-yellow-700 rounded-lg hover:bg-yellow-100 transition text-sm font-medium">
+                <i class="fa fa-edit mr-1"></i> Edit
+              </a>
+              <form action="/admin/v1/staff/<%= admin._id %>/delete" method="POST" class="flex-1">
+                <input type="hidden" name="_method" value="DELETE">
+                <button type="submit" class="w-full px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition text-sm font-medium" onclick="return confirm('Delete this staff member?')">
+                  <i class="fa fa-trash mr-1"></i> Delete
+                </button>
+              </form>
+            </div>
+          </div>
+        <% }) %>
+      </div>
+      
+      <!-- Desktop Table (Hidden on Mobile) -->
+      <div class="hidden lg:block overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-gray-200 bg-gray-50">
+              <th class="py-3 px-4 text-left font-semibold text-gray-600 w-12">S.N</th>
+              <th class="py-3 px-4 text-left font-semibold text-gray-600">Staff Member</th>
+              <th class="py-3 px-4 text-left font-semibold text-gray-600">Contact</th>
+              <th class="py-3 px-4 text-left font-semibold text-gray-600">Role</th>
+              <th class="py-3 px-4 text-left font-semibold text-gray-600">Actions</th>
             </tr>
-          <% }) %>
-        <% } %>
-      </tbody>
-    </table>
-  <style nonce="<%= (typeof cspNonce !== 'undefined' ? cspNonce : '') %>">
-      @media (max-width: 768px) {
-        table.w-full, thead, tbody, th, td, tr { display: block; }
-        thead tr { display: none; }
-        tbody tr { margin-bottom: 1rem; background: #fff; border-radius: 0.5rem; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
-        td { position: relative; padding-left: 50%; min-height: 40px; }
-        td:before {
-          position: absolute;
-          left: 1rem;
-          top: 50%;
-          transform: translateY(-50%);
-          white-space: nowrap;
-          font-weight: 600;
-          color: #6b7280;
-          font-size: 0.95em;
-        }
-        td:nth-child(1):before { content: 'S.N'; }
-        td:nth-child(2):before { content: 'Name'; }
-        td:nth-child(3):before { content: 'Email'; }
-        td:nth-child(4):before { content: 'Phone'; }
-        td:nth-child(5):before { content: 'Role'; }
-        td:nth-child(6):before { content: 'Actions'; }
-      }
-    </style>
+          </thead>
+          <tbody>
+            <% admins.filter(admin => admin.role !== 'developer').forEach((admin, idx) => { %>
+              <tr class="hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-0">
+                <td class="py-4 px-4 font-semibold text-gray-500">
+                  <%= (pagination && typeof pagination.limit === 'number' && typeof pagination.currentPage === 'number' ? (pagination.currentPage - 1) * pagination.limit : 0) + idx + 1 %>
+                </td>
+                <td class="py-4 px-4">
+                  <div class="flex items-center gap-3">
+                    <% if (admin.profileImage) { %>
+                      <img src="<%= admin.profileImage %>" alt="Profile" class="w-10 h-10 rounded-full object-cover">
+                    <% } else { %>
+                      <div class="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 flex items-center justify-center text-white font-medium">
+                        <%= admin.fullname ? admin.fullname.charAt(0).toUpperCase() : '?' %>
+                      </div>
+                    <% } %>
+                    <div>
+                      <div class="font-medium text-gray-800"><%= admin.fullname || 'Unnamed Admin' %></div>
+                      <div class="text-xs text-gray-500">ID: <%= admin._id.toString().slice(-6) %></div>
+                    </div>
+                  </div>
+                </td>
+                <td class="py-4 px-4">
+                  <div class="text-gray-700">
+                    <div class="font-medium"><%= admin.email || '—' %></div>
+                    <div class="text-xs text-gray-500"><%= admin.phone || 'No phone' %></div>
+                  </div>
+                </td>
+                <td class="py-4 px-4">
+                  <% 
+                    const adminRole = admin.role || 'admin';
+                    const displayRole = adminRole.charAt(0).toUpperCase() + adminRole.slice(1);
+                    const roleColor = adminRole === 'superadmin' ? 'amber' : adminRole === 'developer' ? 'purple' : 'indigo';
+                  %>
+                  <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-<%= roleColor %>-100 text-<%= roleColor %>-700">
+                    <i class="fa fa-shield-alt text-[10px] mr-1.5 text-<%= roleColor %>-500"></i>
+                    <%= displayRole %>
+                  </span>
+                </td>
+                <td class="py-4 px-4">
+                  <div class="flex flex-wrap gap-2">
+                    <a href="/admin/v1/staff/<%= admin._id %>/profile" class="btn btn-small bg-blue-100 text-blue-700 hover:bg-blue-200 transition flex items-center px-3 py-2">
+                      <i class="fa fa-eye mr-1.5"></i> View
+                    </a>
+                    <a href="/admin/v1/staff/<%= admin._id %>/edit" class="btn btn-small bg-yellow-100 text-yellow-700 hover:bg-yellow-200 transition flex items-center px-3 py-2">
+                      <i class="fa fa-edit mr-1.5"></i> Edit
+                    </a>
+                    <form action="/admin/v1/staff/<%= admin._id %>/delete" method="POST" class="inline">
+                      <input type="hidden" name="_method" value="DELETE">
+                      <button type="submit" class="btn btn-small bg-red-100 text-red-600 hover:bg-red-200 transition flex items-center px-3 py-2" onclick="return confirm('Permanently delete this staff member? This action cannot be undone.')">
+                        <i class="fa fa-trash mr-1.5"></i> Delete
+                      </button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
   </div>
   <!-- Pagination -->
   <% if (admins && admins.length > 0) { %>

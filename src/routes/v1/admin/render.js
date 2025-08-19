@@ -53,9 +53,13 @@ router.post('/:id/delete', authMiddleware,rbac('developer', 'superAdmin'), admin
 const renderContentDashboard = async (req, res) => {
   try {
     const HeroContent = require('../../../models/heroCarouselModel');
+    const AdsPanel = require('../../../models/AdsPanelModel');
+    const CompanyInfo = require('../../../models/companyInfoModel');
     
-    const [heroContentCount, heroCarousel] = await Promise.all([
+    const [heroContentCount, adsPanelCount, companyInfoCount, heroCarousel] = await Promise.all([
       HeroContent.countDocuments({ admin: req.session.admin.id }),
+      AdsPanel.countDocuments({ admin: req.session.admin.id }),
+      CompanyInfo.countDocuments({ admin: req.session.admin.id }),
       HeroContent.find({ admin: req.session.admin.id }).sort({ order: 1, createdAt: -1 }).limit(10)
     ]);
     
@@ -64,7 +68,9 @@ const renderContentDashboard = async (req, res) => {
       username: req.session.admin?.username || null,
       fullname: req.session.admin?.fullname || null,
       counts: {
-        heroContent: heroContentCount
+        heroContent: heroContentCount,
+        adsPanel: adsPanelCount,
+        companyInfo: companyInfoCount
       },
       heroCarousel: heroCarousel || []
     });
@@ -74,7 +80,7 @@ const renderContentDashboard = async (req, res) => {
       title: 'Content Dashboard',
       username: req.session.admin?.username || null,
       fullname: req.session.admin?.fullname || null,
-      counts: { heroContent: 0 },
+      counts: { heroContent: 0, adsPanel: 0, companyInfo: 0 },
       heroCarousel: []
     });
   }

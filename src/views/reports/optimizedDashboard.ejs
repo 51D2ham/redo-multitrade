@@ -27,30 +27,27 @@ if (typeof report !== 'undefined' && report && report.monthlyTrend && report.mon
     
     <!-- Header -->
     <div class="mb-8">
-      <div class="flex items-center justify-between">
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h1 class="text-3xl font-bold text-gray-900">Business Dashboard</h1>
+          <h1 class="text-2xl lg:text-3xl font-bold text-gray-900">Business Dashboard</h1>
           <p class="text-gray-600 mt-2">Real-time insights and analytics for your e-commerce business</p>
         </div>
-        <div class="flex items-center gap-4">
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           <!-- Filters Form -->
-          <form method="get" action="/admin/reports/comprehensive" class="flex items-center gap-3">
+          <form method="get" action="/admin/reports/comprehensive" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <input type="text" id="dateRange" name="dateRange" 
-                   class="px-3 py-2 border border-gray-300 rounded-lg text-sm" 
+                   class="px-3 py-2 border border-gray-300 rounded-lg text-sm w-full sm:w-auto" 
                    placeholder="Select date range" 
                    value="<%= startDate && endDate ? `${startDate} to ${endDate}` : '' %>">
             <input type="hidden" name="startDate" value="<%= startDate || '' %>">
             <input type="hidden" name="endDate" value="<%= endDate || '' %>">
-            
-
-            
             <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
               Apply
             </button>
           </form>
           <!-- Export Button -->
           <div class="relative">
-            <button id="exportBtn" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 flex items-center gap-2">
+            <button id="exportBtn" class="w-full sm:w-auto px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 flex items-center justify-center gap-2">
               <i class="fas fa-download"></i> Export
             </button>
             <div id="exportMenu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-10">
@@ -140,26 +137,26 @@ if (typeof report !== 'undefined' && report && report.monthlyTrend && report.mon
     </div>
 
     <!-- Charts and Tables -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 mb-8">
       
       <!-- Sales Chart -->
-      <div class="lg:col-span-2 bg-white rounded-xl p-6 shadow-sm border">
-        <div class="flex items-center justify-between mb-6">
+      <div class="lg:col-span-2 bg-white rounded-xl p-4 lg:p-6 shadow-sm border">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <h3 class="text-lg font-semibold text-gray-900">Sales Trend</h3>
           <div class="flex items-center gap-4">
-            <select id="trendMetric" class="text-sm border border-gray-300 rounded px-3 py-1">
+            <select id="trendMetric" class="text-sm border border-gray-300 rounded px-3 py-1 w-full sm:w-auto">
               <option value="revenue">Revenue</option>
               <option value="orders">Orders</option>
             </select>
           </div>
         </div>
-        <div class="h-80">
+        <div class="h-64 sm:h-80">
           <canvas id="salesChart"></canvas>
         </div>
       </div>
 
       <!-- Top Products -->
-      <div class="bg-white rounded-xl p-6 shadow-sm border">
+      <div class="bg-white rounded-xl p-4 lg:p-6 shadow-sm border">
         <h3 class="text-lg font-semibold text-gray-900 mb-6">Top Products</h3>
         <script type="application/json" id="topProductsData"><%- JSON.stringify(report.topProducts || []) %></script>
         <div class="space-y-4" id="topProductsList">
@@ -189,29 +186,31 @@ if (typeof report !== 'undefined' && report && report.monthlyTrend && report.mon
     </div>
 
     <!-- Recent Activity & Low Stock -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 mb-8">
       
       <!-- Recent Orders -->
-      <div class="bg-white rounded-xl p-6 shadow-sm border">
+      <div class="bg-white rounded-xl p-4 lg:p-6 shadow-sm border">
         <div class="flex items-center justify-between mb-6">
           <h3 class="text-lg font-semibold text-gray-900">Recent Orders</h3>
           <a href="/admin/v1/order" class="text-sm text-blue-600 hover:text-blue-700">View all →</a>
         </div>
         <script type="application/json" id="recentOrdersData"><%- JSON.stringify(report.recentOrders || []) %></script>
-        <div class="space-y-4" id="recentOrdersList">
+        <div class="space-y-3" id="recentOrdersList">
           <% if (report.recentOrders && report.recentOrders.length > 0) { %>
             <% report.recentOrders.slice(0, 5).forEach(order => { %>
-              <div class="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
-                <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                  <i class="fas fa-receipt text-green-600"></i>
+              <div class="flex items-start sm:items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                <div class="w-8 h-8 sm:w-10 sm:h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <i class="fas fa-receipt text-green-600 text-sm"></i>
                 </div>
                 <div class="flex-1 min-w-0">
-                  <p class="text-sm font-medium text-gray-900">Order #<%= order.orderId || order._id %></p>
-                  <p class="text-xs text-gray-500"><%= order.customerName || 'Customer' %> • <%= new Date(order.createdAt).toLocaleDateString() %></p>
+                  <p class="text-sm font-medium text-gray-900 truncate">Order #<%= (order.orderId || order._id).toString().slice(-6) %></p>
+                  <p class="text-xs text-gray-500"><%= order.customerName || 'Customer' %></p>
+                  <p class="text-xs text-gray-400 sm:hidden"><%= new Date(order.createdAt).toLocaleDateString() %></p>
                 </div>
-                <div class="text-right">
+                <div class="text-right flex-shrink-0">
                   <p class="text-sm font-medium text-green-600">₹<%= (order.totalAmount || 0).toLocaleString('en-IN') %></p>
                   <p class="text-xs text-gray-500"><%= order.items?.length || 0 %> items</p>
+                  <p class="text-xs text-gray-400 hidden sm:block"><%= new Date(order.createdAt).toLocaleDateString() %></p>
                 </div>
               </div>
             <% }) %>
@@ -232,7 +231,7 @@ if (typeof report !== 'undefined' && report && report.monthlyTrend && report.mon
       </div>
 
       <!-- Low Stock Alerts -->
-      <div class="bg-white rounded-xl p-6 shadow-sm border">
+      <div class="bg-white rounded-xl p-4 lg:p-6 shadow-sm border">
         <div class="flex items-center justify-between mb-6">
           <h3 class="text-lg font-semibold text-gray-900">Low Stock Alerts</h3>
           <a href="/admin/inventory/low-stock" class="text-sm text-red-600 hover:text-red-700">View all →</a>
@@ -273,31 +272,31 @@ if (typeof report !== 'undefined' && report && report.monthlyTrend && report.mon
     </div>
 
     <!-- Sales Overview & Inventory Stats -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 mb-8">
       
       <!-- Sales Overview -->
-      <div class="bg-white rounded-xl p-6 shadow-sm border">
+      <div class="bg-white rounded-xl p-4 lg:p-6 shadow-sm border">
         <h3 class="text-lg font-semibold text-gray-900 mb-6">Sales Overview</h3>
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div class="bg-blue-50 rounded-lg p-4 text-center">
             <p class="text-sm text-blue-600 mb-2">Items Sold</p>
-            <p class="text-2xl font-bold text-blue-800"><%= report.salesMetrics?.totalItemsSold || 0 %></p>
+            <p class="text-xl lg:text-2xl font-bold text-blue-800"><%= report.salesMetrics?.totalItemsSold || 0 %></p>
           </div>
           <div class="bg-green-50 rounded-lg p-4 text-center">
             <p class="text-sm text-green-600 mb-2">Unique Products</p>
-            <p class="text-2xl font-bold text-green-800"><%= report.salesMetrics?.uniqueProductCount || 0 %></p>
+            <p class="text-xl lg:text-2xl font-bold text-green-800"><%= report.salesMetrics?.uniqueProductCount || 0 %></p>
           </div>
         </div>
         <div class="mt-4 p-4 bg-purple-50 rounded-lg">
           <div class="flex justify-between items-center">
             <span class="text-sm text-purple-600">Stock Value</span>
-            <span class="text-lg font-bold text-purple-800">₹<%= (report.stockValue || 0).toLocaleString('en-IN') %></span>
+            <span class="text-base lg:text-lg font-bold text-purple-800">₹<%= (report.stockValue || 0).toLocaleString('en-IN') %></span>
           </div>
         </div>
       </div>
 
       <!-- Inventory Stats -->
-      <div class="bg-white rounded-xl p-6 shadow-sm border">
+      <div class="bg-white rounded-xl p-4 lg:p-6 shadow-sm border">
         <h3 class="text-lg font-semibold text-gray-900 mb-6">Inventory Status</h3>
         <div class="space-y-4">
           <div class="flex items-center justify-between p-3 bg-green-50 rounded-lg">
@@ -326,15 +325,15 @@ if (typeof report !== 'undefined' && report && report.monthlyTrend && report.mon
     </div>
 
     <!-- Low Stock Threshold Section -->
-    <div class="bg-white rounded-xl p-6 shadow-sm border mb-8">
-      <div class="flex items-center justify-between mb-6">
+    <div class="bg-white rounded-xl p-4 lg:p-6 shadow-sm border mb-8">
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
         <div>
           <h3 class="text-lg font-semibold text-gray-900">Low Stock Management</h3>
           <p class="text-sm text-gray-600">Products below their individual threshold levels</p>
         </div>
-        <div class="flex items-center gap-4">
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          <label class="text-sm text-gray-600">Global Threshold:</label>
           <div class="flex items-center gap-2">
-            <label class="text-sm text-gray-600">Global Threshold:</label>
             <input type="number" id="globalThreshold" value="5" min="0" max="100" 
                    class="w-20 px-2 py-1 border border-gray-300 rounded text-sm">
             <button onclick="updateGlobalThreshold()" 
@@ -345,7 +344,7 @@ if (typeof report !== 'undefined' && report && report.monthlyTrend && report.mon
         </div>
       </div>
       
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
         <!-- Low Stock Summary -->
         <div class="bg-gradient-to-r from-red-50 to-orange-50 rounded-lg p-4">
           <div class="flex items-center justify-between">
@@ -393,11 +392,11 @@ if (typeof report !== 'undefined' && report && report.monthlyTrend && report.mon
           <table class="min-w-full">
             <thead>
               <tr class="border-b border-gray-200">
-                <th class="text-left py-3 px-4 font-medium text-gray-600">Product</th>
-                <th class="text-left py-3 px-4 font-medium text-gray-600">SKU</th>
-                <th class="text-left py-3 px-4 font-medium text-gray-600">Current Stock</th>
-                <th class="text-left py-3 px-4 font-medium text-gray-600">Status</th>
-                <th class="text-left py-3 px-4 font-medium text-gray-600">Action</th>
+                <th class="text-left py-3 px-2 lg:px-4 font-medium text-gray-600 text-sm">Product</th>
+                <th class="text-left py-3 px-2 lg:px-4 font-medium text-gray-600 text-sm hidden sm:table-cell">SKU</th>
+                <th class="text-left py-3 px-2 lg:px-4 font-medium text-gray-600 text-sm">Stock</th>
+                <th class="text-left py-3 px-2 lg:px-4 font-medium text-gray-600 text-sm hidden md:table-cell">Status</th>
+                <th class="text-left py-3 px-2 lg:px-4 font-medium text-gray-600 text-sm">Action</th>
               </tr>
             </thead>
             <tbody id="lowStockTableBody">
@@ -408,17 +407,18 @@ if (typeof report !== 'undefined' && report && report.monthlyTrend && report.mon
                   const isCritical = currentStock <= 2;
                 %>
                   <tr class="border-b border-gray-100 hover:bg-gray-50">
-                    <td class="py-3 px-4">
-                      <div class="font-medium text-gray-900"><%= alert.title || alert.productTitle || 'Unknown Product' %></div>
+                    <td class="py-3 px-2 lg:px-4">
+                      <div class="font-medium text-gray-900 text-sm lg:text-base truncate"><%= alert.title || alert.productTitle || 'Unknown Product' %></div>
+                      <div class="text-xs text-gray-500 sm:hidden">SKU: <%= alert.sku || alert.variantSku || 'N/A' %></div>
                     </td>
-                    <td class="py-3 px-4 text-sm text-gray-600"><%= alert.sku || alert.variantSku || 'N/A' %></td>
-                    <td class="py-3 px-4">
-                      <span class="text-lg font-bold <%= isOutOfStock ? 'text-red-600' : isCritical ? 'text-orange-600' : 'text-yellow-600' %>">
+                    <td class="py-3 px-2 lg:px-4 text-sm text-gray-600 hidden sm:table-cell"><%= alert.sku || alert.variantSku || 'N/A' %></td>
+                    <td class="py-3 px-2 lg:px-4">
+                      <span class="text-base lg:text-lg font-bold <%= isOutOfStock ? 'text-red-600' : isCritical ? 'text-orange-600' : 'text-yellow-600' %>">
                         <%= currentStock %>
                       </span>
-                      <span class="text-sm text-gray-500">units</span>
+                      <span class="text-xs lg:text-sm text-gray-500 block lg:inline">units</span>
                     </td>
-                    <td class="py-3 px-4">
+                    <td class="py-3 px-2 lg:px-4 hidden md:table-cell">
                       <% if (isOutOfStock) { %>
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
                           <i class="fas fa-times-circle mr-1"></i> Out of Stock
@@ -433,15 +433,15 @@ if (typeof report !== 'undefined' && report && report.monthlyTrend && report.mon
                         </span>
                       <% } %>
                     </td>
-                    <td class="py-3 px-4">
-                      <div class="flex items-center gap-2">
+                    <td class="py-3 px-2 lg:px-4">
+                      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-1 sm:gap-2">
                         <a href="/admin/products/<%= alert.productId || alert._id %>/edit" 
-                           class="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700">
-                          <i class="fas fa-edit mr-1"></i> Edit
+                           class="px-2 lg:px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 text-center">
+                          <i class="fas fa-edit mr-1"></i><span class="hidden sm:inline"> Edit</span>
                         </a>
                         <a href="/admin/inventory/restock/<%= alert.productId || alert._id %>" 
-                           class="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700">
-                          <i class="fas fa-plus mr-1"></i> Restock
+                           class="px-2 lg:px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 text-center">
+                          <i class="fas fa-plus mr-1"></i><span class="hidden sm:inline"> Restock</span>
                         </a>
                       </div>
                     </td>
@@ -473,7 +473,7 @@ if (typeof report !== 'undefined' && report && report.monthlyTrend && report.mon
     </div>
 
     <!-- Recent Movements -->
-    <div class="bg-white rounded-xl p-6 shadow-sm border mb-8">
+    <div class="bg-white rounded-xl p-4 lg:p-6 shadow-sm border mb-8">
       <div class="flex items-center justify-between mb-6">
         <h3 class="text-lg font-semibold text-gray-900">Recent Inventory Movements</h3>
         <a href="/admin/inventory/movements" class="text-sm text-blue-600 hover:text-blue-700">View all →</a>
@@ -482,26 +482,28 @@ if (typeof report !== 'undefined' && report && report.monthlyTrend && report.mon
         <table class="min-w-full">
           <thead>
             <tr class="border-b border-gray-200">
-              <th class="text-left py-3 px-4 font-medium text-gray-600">Product</th>
-              <th class="text-left py-3 px-4 font-medium text-gray-600">SKU</th>
-              <th class="text-left py-3 px-4 font-medium text-gray-600">Movement</th>
-              <th class="text-left py-3 px-4 font-medium text-gray-600">Date</th>
+              <th class="text-left py-3 px-2 lg:px-4 font-medium text-gray-600 text-sm">Product</th>
+              <th class="text-left py-3 px-2 lg:px-4 font-medium text-gray-600 text-sm hidden sm:table-cell">SKU</th>
+              <th class="text-left py-3 px-2 lg:px-4 font-medium text-gray-600 text-sm">Movement</th>
+              <th class="text-left py-3 px-2 lg:px-4 font-medium text-gray-600 text-sm hidden md:table-cell">Date</th>
             </tr>
           </thead>
           <tbody id="recentMovementsBody">
             <% if (report.recentMovements && report.recentMovements.length > 0) { %>
               <% report.recentMovements.slice(0, 5).forEach(movement => { %>
                 <tr class="border-b border-gray-100 hover:bg-gray-50">
-                  <td class="py-3 px-4">
-                    <div class="font-medium text-gray-900"><%= movement.product?.title || movement.productTitle || 'Unknown Product' %></div>
+                  <td class="py-3 px-2 lg:px-4">
+                    <div class="font-medium text-gray-900 text-sm lg:text-base truncate"><%= movement.product?.title || movement.productTitle || 'Unknown Product' %></div>
+                    <div class="text-xs text-gray-500 sm:hidden">SKU: <%= movement.variantSku || 'N/A' %></div>
                   </td>
-                  <td class="py-3 px-4 text-sm text-gray-600"><%= movement.variantSku || 'N/A' %></td>
-                  <td class="py-3 px-4">
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium <%= movement.type === 'sale' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800' %>">
+                  <td class="py-3 px-2 lg:px-4 text-sm text-gray-600 hidden sm:table-cell"><%= movement.variantSku || 'N/A' %></td>
+                  <td class="py-3 px-2 lg:px-4">
+                    <span class="inline-flex items-center px-2 lg:px-2.5 py-0.5 rounded-full text-xs font-medium <%= movement.type === 'sale' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800' %>">
                       <%= movement.type === 'sale' ? '-' : '+' %><%= movement.quantity %> <%= movement.type %>
                     </span>
+                    <div class="text-xs text-gray-500 md:hidden mt-1"><%= new Date(movement.createdAt).toLocaleDateString() %></div>
                   </td>
-                  <td class="py-3 px-4 text-sm text-gray-600"><%= new Date(movement.createdAt).toLocaleDateString() %></td>
+                  <td class="py-3 px-2 lg:px-4 text-sm text-gray-600 hidden md:table-cell"><%= new Date(movement.createdAt).toLocaleDateString() %></td>
                 </tr>
               <% }) %>
               <% if (report.recentMovements.length > 5) { %>
