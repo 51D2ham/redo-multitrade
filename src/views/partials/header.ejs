@@ -7,106 +7,80 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <script src="https://cdn.tailwindcss.com"></script>
   <style nonce="<%= cspNonce %>">
-    .sidebar-transition { transition: transform 0.3s ease-in-out; }
-    .overlay { backdrop-filter: blur(4px); }
+    .sidebar-transition { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .overlay { backdrop-filter: blur(8px); }
+    .nav-item { transition: all 0.2s ease-in-out; }
+    .nav-item:hover { transform: translateX(4px); }
+    @media (max-width: 768px) {
+      .mobile-optimized { font-size: 14px; }
+      .mobile-padding { padding: 0.75rem; }
+    }
   </style>
 </head>
-<body class="bg-gray-50 font-sans">
+<body class="bg-gradient-to-br from-gray-50 to-blue-50 font-sans antialiased">
   <!-- Mobile Menu Overlay -->
-  <div id="overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden overlay"></div>
+  <div id="overlay" class="fixed inset-0 bg-black bg-opacity-60 z-40 hidden overlay transition-opacity duration-300"></div>
   
   <!-- Sidebar -->
-  <aside id="sidebar" class="fixed left-0 top-0 h-full w-64 bg-white shadow-xl z-50 transform -translate-x-full lg:translate-x-0 sidebar-transition">
+  <aside id="sidebar" class="fixed left-0 top-0 h-full w-72 sm:w-64 bg-white shadow-2xl z-50 transform -translate-x-full lg:translate-x-0 sidebar-transition">
     <div class="flex flex-col h-full">
       <!-- Logo -->
-      <div class="flex items-center justify-between p-6 border-b border-gray-200">
+      <div class="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-purple-600">
         <div class="flex items-center gap-3">
-          <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-            <i class="fas fa-store text-white text-sm"></i>
+          <div class="w-10 h-10 bg-white bg-opacity-20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+            <i class="fas fa-store text-white text-lg"></i>
           </div>
-          <span class="text-xl font-bold text-gray-800">EcomAdmin</span>
+          <span class="text-xl font-bold text-white">Multitrade</span>
         </div>
-        <button id="closeSidebar" class="lg:hidden text-gray-500 hover:text-gray-700">
-          <i class="fas fa-times"></i>
+        <button id="closeSidebar" class="lg:hidden text-white hover:text-gray-200 p-2 rounded-lg hover:bg-white hover:bg-opacity-20 transition-colors">
+          <i class="fas fa-times text-lg"></i>
         </button>
       </div>
 
       <!-- Navigation -->
-      <nav class="flex-1 p-4 space-y-2">
-        <a href="/admin/reports/comprehensive" class="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors">
-          <i class="fas fa-home w-5"></i>
-          <span>Dashboard</span>
+      <nav class="flex-1 p-3 sm:p-4 space-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+        <a href="/admin/v1/staff/dashboard" class="nav-item flex items-center gap-3 px-3 sm:px-4 py-3 text-gray-700 rounded-xl hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:text-blue-600 transition-all mobile-optimized">
+          <i class="fas fa-home w-5 text-center"></i>
+          <span class="font-medium">Main Dashboard</span>
+        </a>
+        <a href="/admin/reports/comprehensive" class="nav-item flex items-center gap-3 px-3 sm:px-4 py-3 text-gray-700 rounded-xl hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:text-blue-600 transition-all mobile-optimized">
+          <i class="fas fa-chart-bar w-5 text-center"></i>
+          <span class="font-medium">Analytics</span>
         </a>
         
         <div class="pt-4">
-          <p class="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Parameters</p>
-          <a href="/admin/v1/parameters" class="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors">
-            <i class="fas fa-cog w-5"></i>
-            <span>Parameter Dashboard</span>
-          </a>
-          <!-- <a href="/admin/v1/parameters/categories" class="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors">
-            <i class="fas fa-folder w-5"></i>
-            <span>Categories</span>
-          </a>
-          <a href="/admin/v1/parameters/subcategories" class="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors">
-            <i class="fas fa-sitemap w-5"></i>
-            <span>Subcategories</span>
-          </a>
-          <a href="/admin/v1/parameters/types" class="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors">
-            <i class="fas fa-tags w-5"></i>
-            <span>Types</span>
-          </a>
-          <a href="/admin/v1/parameters/brands" class="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors">
-            <i class="fas fa-star w-5"></i>
-            <span>Brands</span>
-          </a>
-          <a href="/admin/v1/parameters/hero-carousel" class="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors">
-            <i class="fas fa-images w-5"></i>
-            <span>Hero Content</span>
-          </a> -->
-        </div>
-
-        <div class="pt-4">
-          <p class="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Content</p>
-          <a href="/admin/v1/content" class="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors">
-            <i class="fas fa-palette w-5"></i>
-            <span>Content Dashboard</span>
-          </a>
-          <a href="/admin/v1/parameters/hero-carousel" class="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors">
-            <i class="fas fa-images w-5"></i>
-            <span>Hero Carousel</span>
+          <p class="px-3 sm:px-4 text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Parameters</p>
+          <a href="/admin/v1/parameters" class="nav-item flex items-center gap-3 px-3 sm:px-4 py-3 text-gray-700 rounded-xl hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:text-blue-600 transition-all mobile-optimized">
+            <i class="fas fa-cog w-5 text-center"></i>
+            <span class="font-medium">Parameter Dashboard</span>
           </a>
         </div>
 
         <div class="pt-4">
-          <p class="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Management</p>
-          <a href="/admin/v1/customers/users" class="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors">
-            <i class="fas fa-users w-5"></i>
-            <span>Customers</span>
+          <p class="px-3 sm:px-4 text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Content</p>
+          <a href="/admin/v1/staff/content" class="nav-item flex items-center gap-3 px-3 sm:px-4 py-3 text-gray-700 rounded-xl hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:text-blue-600 transition-all mobile-optimized">
+            <i class="fas fa-palette w-5 text-center"></i>
+            <span class="font-medium">Content Management</span>
           </a>
-          <a href="/admin/v1/order" class="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors">
-            <i class="fas fa-shopping-cart w-5"></i>
-            <span>Orders</span>
+        </div>
+
+        <div class="pt-4">
+          <p class="px-3 sm:px-4 text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Management</p>
+          <a href="/admin/v1/customers/users" class="nav-item flex items-center gap-3 px-3 sm:px-4 py-3 text-gray-700 rounded-xl hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:text-blue-600 transition-all mobile-optimized">
+            <i class="fas fa-users w-5 text-center"></i>
+            <span class="font-medium">Customers</span>
           </a>
-          <a href="/admin/reports/comprehensive" class="flex items-center gap-3 px-4 py-3 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors">
-            <i class="fas fa-cubes w-5"></i>
-            <span>Inventory & Reports</span>
+          <a href="/admin/v1/order" class="nav-item flex items-center gap-3 px-3 sm:px-4 py-3 text-gray-700 rounded-xl hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:text-blue-600 transition-all mobile-optimized">
+            <i class="fas fa-shopping-cart w-5 text-center"></i>
+            <span class="font-medium">Orders</span>
           </a>
+
         </div>
       </nav>
 
-      <!-- User Info -->
-      <div class="p-4 border-t border-gray-200">
-        <div class="flex items-center gap-3 mb-3">
-          <div class="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-            <i class="fas fa-user text-gray-600 text-sm"></i>
-          </div>
-          <div class="flex-1 min-w-0">
-            <p class="text-sm font-medium text-gray-800 truncate"><%= locals.currentUser?.fullname || 'Admin' %></p>
-            <p class="text-xs text-gray-500 truncate"><%= locals.currentUser?.email || 'admin@example.com' %></p>
-          </div>
-        </div>
-        <a href="/admin/v1/staff/logout" class="flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+      <!-- Logout -->
+      <div class="p-3 sm:p-4 border-t border-gray-200">
+        <a href="/admin/v1/staff/logout" class="flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-xl transition-colors font-medium w-full">
           <i class="fas fa-sign-out-alt"></i>
           <span>Logout</span>
         </a>
@@ -115,24 +89,30 @@
   </aside>
 
   <!-- Main Content -->
-  <div class="lg:ml-64">
+  <div class="lg:ml-64 transition-all duration-300">
     <!-- Top Bar -->
-    <header class="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
+    <header class="bg-white shadow-lg border-b border-gray-200 px-4 sm:px-6 py-4 sticky top-0 z-30">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-4">
-          <button id="openSidebar" class="lg:hidden text-gray-500 hover:text-gray-700">
+          <button id="openSidebar" class="lg:hidden text-gray-500 hover:text-gray-700 p-2 rounded-lg hover:bg-gray-100 transition-colors">
             <i class="fas fa-bars text-xl"></i>
           </button>
-          <h1 class="text-2xl font-semibold text-gray-800"><%= title %></h1>
+          <div>
+            <h1 class="text-xl sm:text-2xl font-bold text-gray-800"><%= title %></h1>
+            <p class="text-xs sm:text-sm text-gray-500 hidden sm:block">Manage your e-commerce platform</p>
+          </div>
         </div>
-        <div class="flex items-center gap-4">
-          <div class="hidden md:flex items-center gap-2 text-sm text-gray-600">
-            <i class="fas fa-clock"></i>
-            <span id="currentTime"></span>
+        <div class="flex items-center gap-2 sm:gap-4">
+          <div class="hidden sm:flex items-center gap-2 text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-lg">
+            <i class="fas fa-clock text-blue-500"></i>
+            <span id="currentTime" class="font-medium"></span>
+          </div>
+          <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+            <i class="fas fa-user text-white text-xs"></i>
           </div>
         </div>
       </div>
     </header>
 
     <!-- Page Content -->
-    <main class="p-6">
+    <main class="p-4 sm:p-6 min-h-screen">

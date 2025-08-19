@@ -195,7 +195,7 @@ if (typeof report !== 'undefined' && report && report.monthlyTrend && report.mon
       <div class="bg-white rounded-xl p-6 shadow-sm border">
         <div class="flex items-center justify-between mb-6">
           <h3 class="text-lg font-semibold text-gray-900">Recent Orders</h3>
-          <a href="/admin/orders" class="text-sm text-blue-600 hover:text-blue-700">View all →</a>
+          <a href="/admin/v1/order" class="text-sm text-blue-600 hover:text-blue-700">View all →</a>
         </div>
         <script type="application/json" id="recentOrdersData"><%- JSON.stringify(report.recentOrders || []) %></script>
         <div class="space-y-4" id="recentOrdersList">

@@ -54,7 +54,10 @@ const renderContentDashboard = async (req, res) => {
   try {
     const HeroContent = require('../../../models/heroCarouselModel');
     
-    const heroContentCount = await HeroContent.countDocuments({ admin: req.session.admin.id });
+    const [heroContentCount, heroCarousel] = await Promise.all([
+      HeroContent.countDocuments({ admin: req.session.admin.id }),
+      HeroContent.find({ admin: req.session.admin.id }).sort({ order: 1, createdAt: -1 }).limit(10)
+    ]);
     
     res.render('admin/content_dashboard', {
       title: 'Content Dashboard',
@@ -62,7 +65,8 @@ const renderContentDashboard = async (req, res) => {
       fullname: req.session.admin?.fullname || null,
       counts: {
         heroContent: heroContentCount
-      }
+      },
+      heroCarousel: heroCarousel || []
     });
   } catch (error) {
     console.error('Content dashboard error:', error);
@@ -70,7 +74,8 @@ const renderContentDashboard = async (req, res) => {
       title: 'Content Dashboard',
       username: req.session.admin?.username || null,
       fullname: req.session.admin?.fullname || null,
-      counts: { heroContent: 0 }
+      counts: { heroContent: 0 },
+      heroCarousel: []
     });
   }
 };

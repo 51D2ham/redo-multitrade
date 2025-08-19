@@ -103,14 +103,7 @@ module.exports = {
         totalVariants: parseInt(inventoryData?.totalVariants || 0, 10)
       };
 
-      // Debug logging to see what data we're getting
-      console.log('Dashboard Report Data:', {
-        totalProducts: report.totalProducts,
-        totalRevenue: report.revenueSummary?.totalRevenue,
-        lowStockCount: report.lowStockAlerts?.length,
-        recentMovementsCount: report.recentMovements?.length,
-        topProductsCount: report.topProducts?.length
-      });
+
 
       if (req.accepts('html')) {
         return res.render('reports/optimizedDashboard', {

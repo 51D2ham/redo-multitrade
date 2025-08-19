@@ -2,7 +2,7 @@
   </div>
 
   <script nonce="<%= cspNonce %>">
-    // Sidebar functionality
+    // Sidebar functionality with improved animations
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('overlay');
     const openSidebar = document.getElementById('openSidebar');
@@ -11,26 +11,32 @@
     function showSidebar() {
       sidebar.classList.remove('-translate-x-full');
       overlay.classList.remove('hidden');
-      document.body.classList.add('overflow-hidden');
+      document.body.classList.add('overflow-hidden', 'lg:overflow-auto');
+      // Add animation class
+      setTimeout(() => overlay.classList.add('opacity-100'), 10);
     }
 
     function hideSidebar() {
       sidebar.classList.add('-translate-x-full');
-      overlay.classList.add('hidden');
-      document.body.classList.remove('overflow-hidden');
+      overlay.classList.remove('opacity-100');
+      setTimeout(() => {
+        overlay.classList.add('hidden');
+        document.body.classList.remove('overflow-hidden', 'lg:overflow-auto');
+      }, 300);
     }
 
     openSidebar?.addEventListener('click', showSidebar);
     closeSidebar?.addEventListener('click', hideSidebar);
     overlay?.addEventListener('click', hideSidebar);
 
-    // Current time
+    // Enhanced time display
     function updateTime() {
       const now = new Date();
       const timeString = now.toLocaleTimeString('en-US', { 
         hour12: true, 
         hour: '2-digit', 
-        minute: '2-digit' 
+        minute: '2-digit',
+        second: '2-digit'
       });
       const timeElement = document.getElementById('currentTime');
       if (timeElement) {
@@ -41,22 +47,73 @@
     updateTime();
     setInterval(updateTime, 1000);
 
-    // Active link highlighting
+    // Enhanced active link highlighting
     const currentPath = window.location.pathname;
     const navLinks = document.querySelectorAll('aside nav a');
     
     navLinks.forEach(link => {
-      if (link.getAttribute('href') === currentPath || 
-          (currentPath.includes(link.getAttribute('href')) && link.getAttribute('href') !== '/')) {
-        link.classList.add('bg-blue-50', 'text-blue-600', 'border-r-2', 'border-blue-600');
+      const href = link.getAttribute('href');
+      if (href === currentPath || 
+          (currentPath.includes(href) && href !== '/' && href.length > 1)) {
+        link.classList.add('bg-gradient-to-r', 'from-blue-100', 'to-purple-100', 'text-blue-700', 'font-semibold', 'shadow-sm');
+        link.classList.remove('text-gray-700');
       }
     });
 
-    // Close sidebar on window resize
-    window.addEventListener('resize', () => {
+    // Responsive sidebar handling
+    function handleResize() {
       if (window.innerWidth >= 1024) {
         hideSidebar();
       }
+    }
+
+    window.addEventListener('resize', handleResize);
+
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        hideSidebar();
+      }
+    });
+
+    // Touch gestures for mobile
+    let touchStartX = 0;
+    let touchEndX = 0;
+
+    document.addEventListener('touchstart', (e) => {
+      touchStartX = e.changedTouches[0].screenX;
+    });
+
+    document.addEventListener('touchend', (e) => {
+      touchEndX = e.changedTouches[0].screenX;
+      handleSwipe();
+    });
+
+    function handleSwipe() {
+      const swipeThreshold = 100;
+      const diff = touchStartX - touchEndX;
+      
+      if (Math.abs(diff) > swipeThreshold) {
+        if (diff > 0 && !sidebar.classList.contains('-translate-x-full')) {
+          // Swipe left - close sidebar
+          hideSidebar();
+        } else if (diff < 0 && sidebar.classList.contains('-translate-x-full') && touchStartX < 50) {
+          // Swipe right from edge - open sidebar
+          showSidebar();
+        }
+      }
+    }
+
+    // Loading states for navigation
+    navLinks.forEach(link => {
+      link.addEventListener('click', function(e) {
+        if (this.href && !this.href.includes('#')) {
+          const icon = this.querySelector('i');
+          if (icon) {
+            icon.className = 'fas fa-spinner fa-spin w-5 text-center';
+          }
+        }
+      });
     });
   </script>
 </body>

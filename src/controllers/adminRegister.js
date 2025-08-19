@@ -518,7 +518,7 @@ const isAuthenticated = (req, res, next) => {
 // Dashboard Controller
 const renderDashboard = async (req, res) => {
   try {
-    const admin = await Admin.findById(req.session.admin.id).select('username fullname role status');
+    const admin = await Admin.findById(req.session.admin.id).select('username fullname email role status');
     if (!admin) {
       req.session.destroy();
       res.clearCookie(process.env.SESSION_NAME || 'ecom.sid');
@@ -548,6 +548,8 @@ const renderDashboard = async (req, res) => {
     const todayStart = moment().tz('Asia/Kathmandu').startOf('day').toDate();
     const todayEnd = moment().tz('Asia/Kathmandu').endOf('day').toDate();
     
+    const { Product } = require('../models/productModel');
+    
     const [stats, inventoryData] = await Promise.all([
       Promise.all([
         Admin.countDocuments({ status: 'active' }),
@@ -557,6 +559,7 @@ const renderDashboard = async (req, res) => {
         SubCategory.countDocuments({ admin: req.session.admin.id }),
         Type.countDocuments({ admin: req.session.admin.id }),
         Brand.countDocuments({ admin: req.session.admin.id }),
+        Product.countDocuments({ status: 'active' }),
         Order.aggregate([
           { $match: { createdAt: { $gte: todayStart, $lte: todayEnd } } },
           { $group: { _id: null, total: { $sum: '$totalPrice' } } }
@@ -565,11 +568,12 @@ const renderDashboard = async (req, res) => {
       InventoryService.getDashboardData().catch(() => ({ lowStockCount: 0, criticalStockCount: 0, recentMovements: [] }))
     ]);
     
-    const [totalAdmins, totalUsers, todayOrders, totalCategories, totalSubCategories, totalTypes, totalBrands, todayRevenue] = stats;
+    const [totalAdmins, totalUsers, todayOrders, totalCategories, totalSubCategories, totalTypes, totalBrands, totalProducts, todayRevenue] = stats;
     
     res.render('admin/dashboard', {
       username: admin.username,
       fullname: admin.fullname,
+      email: admin.email,
       role: admin.role,
       today,
       day,
@@ -578,7 +582,7 @@ const renderDashboard = async (req, res) => {
         totalAdmins,
         totalUsers,
         todayOrders,
-        totalProducts: 0,
+        totalProducts,
         totalCategories,
         totalSubCategories,
         totalTypes,

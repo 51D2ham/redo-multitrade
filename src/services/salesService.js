@@ -1,4 +1,4 @@
-const Order = require('../models/orderModel');
+const { Order } = require('../models/orderModel');
 const Product = require('../models/productModel').Product;
 const InventoryLog = require('../models/inventoryLogModel');
 const Sale = require('../models/saleModel');
@@ -596,14 +596,15 @@ module.exports = {
       const orders = await Order.find({})
         .sort({ createdAt: -1 })
         .limit(limit)
-        .populate('customer', 'fullname email')
+        .populate('user', 'fullname email')
+        .populate('shippingAddress')
         .lean();
       
       return orders.map(order => ({
         _id: order._id,
         orderId: order.orderId || order._id,
-        customerName: order.customer?.fullname || order.shippingAddress?.fullName || 'Guest',
-        totalAmount: order.totalAmount || 0,
+        customerName: order.user?.fullname || order.shippingAddress?.fullName || 'Guest',
+        totalAmount: order.totalPrice || 0,
         status: order.status,
         items: order.items || [],
         createdAt: order.createdAt
