@@ -257,7 +257,7 @@
           }
         },
         {
-          "name": "Add Item to Cart",
+          "name": "Add Item to Cart (with Variant)",
           "request": {
             "method": "POST",
             "header": [
@@ -272,7 +272,32 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"productId\": \"product_object_id\",\n  \"qty\": 2,\n  \"productType\": \"electronics\"\n}"
+              "raw": "{\n  \"productId\": \"product_object_id\",\n  \"qty\": 2,\n  \"variantSku\": \"SKU-001\",\n  \"productType\": \"electronics\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/cart/",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "cart", ""]
+            }
+          }
+        },
+        {
+          "name": "Add Item to Cart (No Variant)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"product_object_id\",\n  \"qty\": 1\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/cart/",

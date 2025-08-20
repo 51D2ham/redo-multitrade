@@ -4,23 +4,74 @@ const subCategoryController = {
   // List all subcategories with their categories
   listSubCategories: async (req, res) => {
     try {
-      const subcategories = await SubCategory.find({ admin: req.user._id })
-        .populate('category', 'name')
-        .populate('admin', 'username email')
-        .sort({ name: 1 });
+      const filters = req.query || {};
+      const page = parseInt(filters.page) || 1;
+      const limit = parseInt(filters.limit) || 20;
+      const skip = (page - 1) * limit;
       
-      // Get all categories for the dropdown in create/edit forms
-      const categories = await Category.find({ admin: req.user._id }).sort({ name: 1 });
+      const filter = {};
+      if (req.user && req.user._id) {
+        filter.admin = req.user._id;
+      }
+      
+      if (filters.search) {
+        const searchRegex = new RegExp(filters.search, 'i');
+        filter.name = searchRegex;
+      }
+      
+      if (filters.category) {
+        filter.category = filters.category;
+      }
+      
+      let sort = { createdAt: -1 };
+      switch (filters.sort) {
+        case 'oldest': sort = { createdAt: 1 }; break;
+        case 'name_asc': sort = { name: 1 }; break;
+        case 'name_desc': sort = { name: -1 }; break;
+        case 'newest':
+        default: sort = { createdAt: -1 }; break;
+      }
+      
+      const [subcategories, total, categories] = await Promise.all([
+        SubCategory.find(filter)
+          .populate('category', 'name')
+          .populate('admin', 'username email')
+          .sort(sort)
+          .skip(skip)
+          .limit(limit),
+        SubCategory.countDocuments(filter),
+        Category.find({ admin: req.user._id }).sort({ name: 1 })
+      ]);
+      
+      const totalPages = Math.ceil(total / limit);
       
       res.render('subcategories/list', {
-        subcategories,
-        categories,
-        success: req.flash('success'),
-        error: req.flash('error')
+        subcategories: subcategories || [],
+        categories: categories || [],
+        pagination: {
+          current: page,
+          total: totalPages,
+          hasNext: page < totalPages,
+          hasPrev: page > 1,
+          next: page + 1,
+          prev: page - 1,
+          totalSubCategories: total
+        },
+        filters: filters || {},
+        success: req.flash('success') || [],
+        error: req.flash('error') || []
       });
     } catch (error) {
       req.flash('error', 'Error fetching subcategories: ' + error.message);
-      res.redirect('/admin/v1/parameters/subcategories');
+      
+      res.render('subcategories/list', {
+        subcategories: [],
+        categories: [],
+        pagination: { current: 1, total: 1, hasNext: false, hasPrev: false, next: 1, prev: 1, totalSubCategories: 0 },
+        filters: req.query || {},
+        success: req.flash('success') || [],
+        error: req.flash('error') || []
+      });
     }
   },
 

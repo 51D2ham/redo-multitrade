@@ -4,24 +4,82 @@ const typeController = {
   // List all types with their categories and subcategories
   listTypes: async (req, res) => {
     try {
-      const types = await Type.find({ admin: req.user._id })
-        .populate('category', 'name')
-        .populate('subCategory', 'name')
-        .populate('admin', 'username email')
-        .sort({ name: 1 });
+      const filters = req.query || {};
+      const page = parseInt(filters.page) || 1;
+      const limit = parseInt(filters.limit) || 20;
+      const skip = (page - 1) * limit;
       
-      // Get all categories and subcategories for dropdowns
-      const categories = await Category.find({ admin: req.user._id }).sort({ name: 1 });
+      const filter = {};
+      if (req.user && req.user._id) {
+        filter.admin = req.user._id;
+      }
+      
+      if (filters.search) {
+        const searchRegex = new RegExp(filters.search, 'i');
+        filter.name = searchRegex;
+      }
+      
+      if (filters.category) {
+        filter.category = filters.category;
+      }
+      
+      if (filters.subCategory) {
+        filter.subCategory = filters.subCategory;
+      }
+      
+      let sort = { createdAt: -1 };
+      switch (filters.sort) {
+        case 'oldest': sort = { createdAt: 1 }; break;
+        case 'name_asc': sort = { name: 1 }; break;
+        case 'name_desc': sort = { name: -1 }; break;
+        case 'newest':
+        default: sort = { createdAt: -1 }; break;
+      }
+      
+      const [types, total, categories, subcategories] = await Promise.all([
+        Type.find(filter)
+          .populate('category', 'name')
+          .populate('subCategory', 'name')
+          .populate('admin', 'username email')
+          .sort(sort)
+          .skip(skip)
+          .limit(limit),
+        Type.countDocuments(filter),
+        Category.find({ admin: req.user._id }).sort({ name: 1 }),
+        SubCategory.find({ admin: req.user._id }).sort({ name: 1 })
+      ]);
+      
+      const totalPages = Math.ceil(total / limit);
       
       res.render('typesCategories/list', {
-        types,
-        categories,
-        success: req.flash('success'),
-        error: req.flash('error')
+        types: types || [],
+        categories: categories || [],
+        subcategories: subcategories || [],
+        pagination: {
+          current: page,
+          total: totalPages,
+          hasNext: page < totalPages,
+          hasPrev: page > 1,
+          next: page + 1,
+          prev: page - 1,
+          totalTypes: total
+        },
+        filters: filters || {},
+        success: req.flash('success') || [],
+        error: req.flash('error') || []
       });
     } catch (error) {
       req.flash('error', 'Error fetching types: ' + error.message);
-      res.redirect('/admin/v1/parameters/types');
+      
+      res.render('typesCategories/list', {
+        types: [],
+        categories: [],
+        subcategories: [],
+        pagination: { current: 1, total: 1, hasNext: false, hasPrev: false, next: 1, prev: 1, totalTypes: 0 },
+        filters: req.query || {},
+        success: req.flash('success') || [],
+        error: req.flash('error') || []
+      });
     }
   },
 

@@ -4,18 +4,66 @@ const brandController = {
   // List all brands
   listBrands: async (req, res) => {
     try {
-      const brands = await Brand.find({ admin: req.user._id })
-        .populate('admin', 'username email')
-        .sort({ name: 1 });
+      const filters = req.query || {};
+      const page = parseInt(filters.page) || 1;
+      const limit = parseInt(filters.limit) || 20;
+      const skip = (page - 1) * limit;
+      
+      const filter = {};
+      if (req.user && req.user._id) {
+        filter.admin = req.user._id;
+      }
+      
+      if (filters.search) {
+        const searchRegex = new RegExp(filters.search, 'i');
+        filter.name = searchRegex;
+      }
+      
+      let sort = { createdAt: -1 };
+      switch (filters.sort) {
+        case 'oldest': sort = { createdAt: 1 }; break;
+        case 'name_asc': sort = { name: 1 }; break;
+        case 'name_desc': sort = { name: -1 }; break;
+        case 'newest':
+        default: sort = { createdAt: -1 }; break;
+      }
+      
+      const [brands, total] = await Promise.all([
+        Brand.find(filter)
+          .populate('admin', 'username email')
+          .sort(sort)
+          .skip(skip)
+          .limit(limit),
+        Brand.countDocuments(filter)
+      ]);
+      
+      const totalPages = Math.ceil(total / limit);
       
       res.render('brands/list', {
-        brands,
-        success: req.flash('success'),
-        error: req.flash('error')
+        brands: brands || [],
+        pagination: {
+          current: page,
+          total: totalPages,
+          hasNext: page < totalPages,
+          hasPrev: page > 1,
+          next: page + 1,
+          prev: page - 1,
+          totalBrands: total
+        },
+        filters: filters || {},
+        success: req.flash('success') || [],
+        error: req.flash('error') || []
       });
     } catch (error) {
       req.flash('error', 'Error fetching brands: ' + error.message);
-      res.redirect('/admin/v1/parameters/brands');
+      
+      res.render('brands/list', {
+        brands: [],
+        pagination: { current: 1, total: 1, hasNext: false, hasPrev: false, next: 1, prev: 1, totalBrands: 0 },
+        filters: req.query || {},
+        success: req.flash('success') || [],
+        error: req.flash('error') || []
+      });
     }
   },
 
@@ -34,10 +82,16 @@ const brandController = {
       
       const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
       
+      const adminId = req.user && req.user._id ? req.user._id : req.session?.admin?.id;
+      if (!adminId) {
+        req.flash('error', 'Authentication required');
+        return res.redirect('/admin/v1/staff/login');
+      }
+      
       const brand = await Brand.create({ 
         name, 
         slug,
-        admin: req.user._id
+        admin: adminId
       });
 
       req.flash('success', 'Brand created successfully');

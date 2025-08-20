@@ -196,7 +196,7 @@ const startServer = async () => {
     
     app.listen(port, () => {
       console.log(` Server running: http://localhost:${port}`);
-      console.log(`Dashboard: http://localhost:${port}/admin/reports/comprehensive`);
+      console.log(`Dashboard: http://localhost:${port}/admin/v1/staff/dashboard`);
     });
   } catch (error) {
     console.error(' Server failed:', error.message);

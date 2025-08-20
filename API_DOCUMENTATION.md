@@ -152,10 +152,20 @@ Authorization: Bearer <jwt_token>
         "productType": "electronics",
         "productPrice": 999,
         "totalPrice": 1998,
+        "variantSku": "SKU-001",
         "product": {
           "_id": "product_id",
           "title": "Wireless Headphones",
           "images": ["/uploads/product1.jpg"]
+        },
+        "variant": {
+          "sku": "SKU-001",
+          "color": "Black",
+          "size": "Medium",
+          "price": 999,
+          "discountPrice": 899,
+          "qty": 15,
+          "status": "in_stock"
         }
       }
     ],
@@ -169,12 +179,21 @@ Authorization: Bearer <jwt_token>
 **POST** `/api/v1/cart/`
 **Requires:** JWT Authentication
 
-**Request Body:**
+**Request Body (with Variant):**
 ```json
 {
   "productId": "product_object_id",
   "qty": 2,
+  "variantSku": "SKU-001",
   "productType": "electronics"
+}
+```
+
+**Request Body (without Variant):**
+```json
+{
+  "productId": "product_object_id",
+  "qty": 1
 }
 ```
 
@@ -183,11 +202,30 @@ Authorization: Bearer <jwt_token>
 {
   "success": true,
   "message": "Item added to cart successfully",
-  "cartItem": {
-    "_id": "cart_item_id",
-    "qty": 2,
-    "productPrice": 999,
-    "totalPrice": 1998
+  "data": {
+    "items": [
+      {
+        "id": "cart_item_id",
+        "qty": 2,
+        "productPrice": 999,
+        "totalPrice": 1998,
+        "variantSku": "SKU-001",
+        "product": {
+          "id": "product_id",
+          "title": "Wireless Headphones",
+          "thumbnail": "/uploads/product1.jpg"
+        },
+        "variant": {
+          "sku": "SKU-001",
+          "color": "Black",
+          "price": 999,
+          "qty": 15,
+          "status": "in_stock"
+        }
+      }
+    ],
+    "totalPrice": 1998,
+    "totalItems": 2
   }
 }
 ```

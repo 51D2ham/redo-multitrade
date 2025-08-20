@@ -91,20 +91,69 @@ module.exports = {
    */
   listCategories: async (req, res) => {
     try {
-      const categories = await Category.find({ admin: req.user._id })
-        .populate('admin', 'username email fullname')
-        .sort({ createdAt: -1 });
+      const filters = req.query || {};
+      const page = parseInt(filters.page) || 1;
+      const limit = parseInt(filters.limit) || 20;
+      const skip = (page - 1) * limit;
+      
+      const filter = {};
+      if (req.user && req.user._id) {
+        filter.admin = req.user._id;
+      }
+      
+      if (filters.search) {
+        const searchRegex = new RegExp(filters.search, 'i');
+        filter.name = searchRegex;
+      }
+      
+      let sort = { createdAt: -1 };
+      switch (filters.sort) {
+        case 'oldest': sort = { createdAt: 1 }; break;
+        case 'name_asc': sort = { name: 1 }; break;
+        case 'name_desc': sort = { name: -1 }; break;
+        case 'newest':
+        default: sort = { createdAt: -1 }; break;
+      }
+      
+      const [categories, total] = await Promise.all([
+        Category.find(filter)
+          .populate('admin', 'username email fullname')
+          .sort(sort)
+          .skip(skip)
+          .limit(limit),
+        Category.countDocuments(filter)
+      ]);
+      
+      const totalPages = Math.ceil(total / limit);
 
       res.render('categories/list', {
         title: 'Manage Categories',
-        categories,
-        success: req.flash('success'),
-        error: req.flash('error')
+        categories: categories || [],
+        pagination: {
+          current: page,
+          total: totalPages,
+          hasNext: page < totalPages,
+          hasPrev: page > 1,
+          next: page + 1,
+          prev: page - 1,
+          totalCategories: total
+        },
+        filters: filters || {},
+        success: req.flash('success') || [],
+        error: req.flash('error') || []
       });
     } catch (error) {
       console.error('Category list error:', error);
       req.flash('error', 'Error loading categories');
-      res.redirect('/admin/v1/staff/dashboard');
+      
+      res.render('categories/list', {
+        title: 'Manage Categories',
+        categories: [],
+        pagination: { current: 1, total: 1, hasNext: false, hasPrev: false, next: 1, prev: 1, totalCategories: 0 },
+        filters: req.query || {},
+        success: req.flash('success') || [],
+        error: req.flash('error') || []
+      });
     }
   },
 
@@ -132,10 +181,16 @@ module.exports = {
       
       const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
       
+      const adminId = req.user && req.user._id ? req.user._id : req.session?.admin?.id;
+      if (!adminId) {
+        req.flash('error', 'Authentication required');
+        return res.redirect('/admin/v1/staff/login');
+      }
+      
       const newCategory = await Category.create({
         name: name,
         slug: slug,
-        admin: req.user._id
+        admin: adminId
       });
       
       req.flash('success', 'Category created successfully');

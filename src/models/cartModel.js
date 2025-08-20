@@ -6,6 +6,7 @@ const cartSchema = new Schema({
   productType: { type: String, trim: true },
   productPrice: { type: Number, required: true, min: 0 },
   totalPrice: { type: Number, required: true, min: 0 },
+  variantSku: { type: String, trim: true }, // For variant-specific cart items
   user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   product: { type: Schema.Types.ObjectId, ref: 'Product', required: true }
 }, { timestamps: true });

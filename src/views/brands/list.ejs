@@ -1,5 +1,14 @@
 <%- include('../partials/header.ejs', { title: 'Brands' }) %>
 
+<% 
+  // Initialize all safe variables at the top
+  const safeFilters = typeof filters !== 'undefined' ? filters : {};
+  const successMsgs = success ? (Array.isArray(success) ? success : [success]) : [];
+  const errorMsgs = error ? (Array.isArray(error) ? error : [error]) : [];
+  const safeBrands = typeof brands !== 'undefined' ? brands : [];
+  const safePagination = typeof pagination !== 'undefined' ? pagination : { current: 1, total: 1, hasNext: false, hasPrev: false, next: 1, prev: 1, totalBrands: 0 };
+%>
+
 <!-- Modern Navigation Bar -->
 <nav class="flex flex-wrap gap-3 mb-8 p-4 bg-white rounded-xl shadow-sm border border-gray-100 items-center">
   <a href="/admin/v1/staff/dashboard" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition">
@@ -18,10 +27,50 @@
     </a>
   </div>
 
+  <!-- Search and Filters -->
+  <div class="bg-white rounded-xl shadow-md p-6 border border-gray-100 mb-6">
+    <div class="flex items-center gap-3 mb-4">
+      <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+        <i class="fa fa-filter text-blue-600"></i>
+      </div>
+      <h3 class="text-lg font-semibold text-gray-800">Search & Filter Brands</h3>
+    </div>
+    <form method="GET" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div>
+        <label class="block font-semibold mb-2 text-gray-700">Search</label>
+        <div class="relative">
+          <input name="search" value="<%= safeFilters.search || '' %>" 
+                 class="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                 placeholder="Search by brand name..." />
+          <i class="fa fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+        </div>
+      </div>
+      
+      <div>
+        <label class="block font-semibold mb-2 text-gray-700">Sort By</label>
+        <select name="sort" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          <option value="newest" <%= safeFilters.sort === 'newest' ? 'selected' : '' %>>Newest First</option>
+          <option value="oldest" <%= safeFilters.sort === 'oldest' ? 'selected' : '' %>>Oldest First</option>
+          <option value="name_asc" <%= safeFilters.sort === 'name_asc' ? 'selected' : '' %>>Name A-Z</option>
+          <option value="name_desc" <%= safeFilters.sort === 'name_desc' ? 'selected' : '' %>>Name Z-A</option>
+        </select>
+      </div>
+      
+      <div class="flex items-end gap-2">
+        <button type="submit" class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+          <i class="fa fa-search mr-2"></i>Apply
+        </button>
+        <a href="/admin/v1/parameters/brands" class="px-3 py-3 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition" title="Clear All">
+          <i class="fa fa-times"></i>
+        </a>
+      </div>
+    </form>
+  </div>
+
   <!-- Flash Messages -->
-  <% if (success && success.length) { %>
+  <% if (successMsgs.length > 0) { %>
     <div class="mb-6 p-4 rounded-lg border-l-4 border-green-400 bg-green-50 text-green-800 shadow-sm">
-      <% success.forEach(msg => { %>
+      <% successMsgs.forEach(msg => { %>
         <div class="flex items-center gap-2">
           <i class="fa fa-check-circle"></i>
           <%= msg %>
@@ -29,9 +78,9 @@
       <% }) %>
     </div>
   <% } %>
-  <% if (error && error.length) { %>
+  <% if (errorMsgs.length > 0) { %>
     <div class="mb-6 p-4 rounded-lg border-l-4 border-red-400 bg-red-50 text-red-800 shadow-sm">
-      <% error.forEach(msg => { %>
+      <% errorMsgs.forEach(msg => { %>
         <div class="flex items-center gap-2">
           <i class="fa fa-exclamation-circle"></i>
           <%= msg %>
@@ -41,7 +90,23 @@
   <% } %>
 
   <div class="bg-white rounded-xl shadow-md mb-10 border border-gray-100">
-    <% if (!brands || brands.length === 0) { %>
+    <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
+          <i class="fa fa-table text-blue-600"></i> Brands Catalog
+        </h3>
+        <div class="flex items-center gap-4 text-sm text-gray-600">
+          <span>Showing <%= safeBrands.length %> of <%= safePagination.totalBrands || safeBrands.length %> brands</span>
+          <% if (safeFilters.search) { %>
+            <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs">
+              <i class="fa fa-filter"></i> Filtered
+            </span>
+          <% } %>
+        </div>
+      </div>
+    </div>
+    
+    <% if (!safeBrands || safeBrands.length === 0) { %>
       <div class="p-8 text-center">
         <i class="fa fa-star text-5xl text-gray-300 mb-4"></i>
         <h2 class="text-xl font-semibold text-gray-800 mb-2">No Brands Found</h2>
@@ -53,7 +118,7 @@
     <% } else { %>
       <!-- Mobile Cards (Hidden on Desktop) -->
       <div class="block md:hidden space-y-4 p-4">
-        <% brands.forEach((brand, idx) => { %>
+        <% safeBrands.forEach((brand, idx) => { %>
           <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow">
             <div class="flex items-start justify-between mb-3">
               <div class="flex items-center gap-3">
@@ -110,7 +175,7 @@
             </tr>
           </thead>
           <tbody>
-            <% brands.forEach((brand, idx) => { %>
+            <% safeBrands.forEach((brand, idx) => { %>
               <tr class="hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-0">
                 <td class="py-4 px-4 font-semibold text-gray-500">
                   <%= idx + 1 %>
@@ -154,6 +219,78 @@
       </div>
     <% } %>
   </div>
+
+  <!-- Pagination -->
+  <% if (safePagination && safePagination.total > 1) { %>
+    <div class="flex flex-col sm:flex-row justify-between items-center mt-8 gap-4">
+      <div class="text-sm text-gray-600">
+        Showing page <%= safePagination.current %> of <%= safePagination.total %>
+      </div>
+      <nav class="flex items-center gap-2">
+        <% if (safePagination.hasPrev) { %>
+          <a href="?page=1<%= safeFilters.search ? '&search=' + encodeURIComponent(safeFilters.search) : '' %><%= safeFilters.sort ? '&sort=' + safeFilters.sort : '' %>" 
+             class="px-3 py-2 rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-blue-50 hover:border-blue-300 transition" 
+             title="First Page">
+            <i class="fa fa-angle-double-left"></i>
+          </a>
+          <a href="?page=<%= safePagination.prev %><%= safeFilters.search ? '&search=' + encodeURIComponent(safeFilters.search) : '' %><%= safeFilters.sort ? '&sort=' + safeFilters.sort : '' %>" 
+             class="px-3 py-2 rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-blue-50 hover:border-blue-300 transition" 
+             title="Previous Page">
+            <i class="fa fa-chevron-left"></i>
+          </a>
+        <% } %>
+        
+        <% for (let i = Math.max(1, safePagination.current - 2); i <= Math.min(safePagination.total, safePagination.current + 2); i++) { %>
+          <% if (i === safePagination.current) { %>
+            <span class="px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold"><%= i %></span>
+          <% } else { %>
+            <a href="?page=<%= i %><%= safeFilters.search ? '&search=' + encodeURIComponent(safeFilters.search) : '' %><%= safeFilters.sort ? '&sort=' + safeFilters.sort : '' %>" 
+               class="px-3 py-2 rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-blue-50 hover:border-blue-300 transition">
+              <%= i %>
+            </a>
+          <% } %>
+        <% } %>
+        
+        <% if (safePagination.hasNext) { %>
+          <a href="?page=<%= safePagination.next %><%= safeFilters.search ? '&search=' + encodeURIComponent(safeFilters.search) : '' %><%= safeFilters.sort ? '&sort=' + safeFilters.sort : '' %>" 
+             class="px-3 py-2 rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-blue-50 hover:border-blue-300 transition" 
+             title="Next Page">
+            <i class="fa fa-chevron-right"></i>
+          </a>
+          <a href="?page=<%= safePagination.total %><%= safeFilters.search ? '&search=' + encodeURIComponent(safeFilters.search) : '' %><%= safeFilters.sort ? '&sort=' + safeFilters.sort : '' %>" 
+             class="px-3 py-2 rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-blue-50 hover:border-blue-300 transition" 
+             title="Last Page">
+            <i class="fa fa-angle-double-right"></i>
+          </a>
+        <% } %>
+      </nav>
+    </div>
+  <% } %>
+
 </main>
+
+<script>
+// Auto-submit form on sort change
+document.addEventListener('DOMContentLoaded', function() {
+  const sortSelect = document.querySelector('select[name="sort"]');
+  if (sortSelect) {
+    sortSelect.addEventListener('change', function() {
+      this.form.submit();
+    });
+  }
+  
+  // Add loading state to filter form
+  const filterForm = document.querySelector('form');
+  if (filterForm) {
+    filterForm.addEventListener('submit', function() {
+      const submitBtn = this.querySelector('button[type="submit"]');
+      if (submitBtn) {
+        submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i>Loading...';
+        submitBtn.disabled = true;
+      }
+    });
+  }
+});
+</script>
 
 <%- include('../partials/footer.ejs') %>

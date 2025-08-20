@@ -17,7 +17,7 @@ const specListSchema = new mongoose.Schema({
   },
   displayInFilter: {
     type: Boolean,
-    default: false
+    default: true
   },
   category: {
     type: mongoose.Schema.Types.ObjectId,

@@ -520,24 +520,85 @@ module.exports = {
   // ADMIN DASHBOARD CONTROLLERS
   listSpecLists: async (req, res) => {
     try {
-      const specLists = await SpecList.find({ admin: req.user._id })
-        .populate('admin', 'username email fullname')
-        .populate('category', 'name')
-        .populate('subCategory', 'name')
-        .populate('type', 'name')
-        .populate('brand', 'name')
-        .sort({ createdAt: -1 });
+      const filters = req.query || {};
+      const page = parseInt(filters.page) || 1;
+      const limit = parseInt(filters.limit) || 20;
+      const skip = (page - 1) * limit;
+      
+      const filter = {};
+      if (req.user && req.user._id) {
+        filter.admin = req.user._id;
+      }
+      
+      if (filters.status) filter.status = filters.status;
+      if (filters.category) filter.category = filters.category;
+      if (filters.displayInFilter) {
+        filter.displayInFilter = filters.displayInFilter === 'true';
+      }
+      
+      if (filters.search) {
+        const searchRegex = new RegExp(filters.search, 'i');
+        filter.$or = [
+          { title: searchRegex },
+          { value: searchRegex }
+        ];
+      }
+      
+      let sort = { createdAt: -1 };
+      switch (filters.sort) {
+        case 'oldest': sort = { createdAt: 1 }; break;
+        case 'title_asc': sort = { title: 1 }; break;
+        case 'title_desc': sort = { title: -1 }; break;
+        case 'newest':
+        default: sort = { createdAt: -1 }; break;
+      }
+      
+      const [specLists, total, categories] = await Promise.all([
+        SpecList.find(filter)
+          .populate('admin', 'username email fullname')
+          .populate('category', 'name')
+          .populate('subCategory', 'name')
+          .populate('type', 'name')
+          .populate('brand', 'name')
+          .sort(sort)
+          .skip(skip)
+          .limit(limit),
+        SpecList.countDocuments(filter),
+        Category.find().sort({ name: 1 })
+      ]);
+      
+      const totalPages = Math.ceil(total / limit);
 
       res.render('specLists/list', {
         title: 'Manage Spec Lists',
-        specLists,
-        success: req.flash('success'),
-        error: req.flash('error')
+        specLists: specLists || [],
+        categories: categories || [],
+        pagination: {
+          current: page,
+          total: totalPages,
+          hasNext: page < totalPages,
+          hasPrev: page > 1,
+          next: page + 1,
+          prev: page - 1,
+          totalSpecLists: total
+        },
+        filters: filters || {},
+        success: req.flash('success') || [],
+        error: req.flash('error') || []
       });
     } catch (error) {
       console.error('SpecList list error:', error);
       req.flash('error', 'Error loading spec lists');
-      res.redirect('/admin/v1/staff/dashboard');
+      
+      res.render('specLists/list', {
+        title: 'Manage Spec Lists',
+        specLists: [],
+        categories: [],
+        pagination: { current: 1, total: 1, hasNext: false, hasPrev: false, next: 1, prev: 1, totalSpecLists: 0 },
+        filters: req.query || {},
+        success: req.flash('success') || [],
+        error: req.flash('error') || []
+      });
     }
   },
 
@@ -568,12 +629,17 @@ module.exports = {
 
   createSpecList: async (req, res) => {
     try {
-      const { title, value, status, category, subCategory, type, brand } = req.body;
+      const { title, value, status, category, subCategory, type, brand, displayInFilter } = req.body;
       
-      // Validation
       if (!title || title.trim().length === 0) {
         req.flash('error', 'Spec title is required');
         return res.redirect('/admin/v1/parameters/spec-lists/new');
+      }
+      
+      const adminId = req.user && req.user._id ? req.user._id : req.session?.admin?.id;
+      if (!adminId) {
+        req.flash('error', 'Authentication required');
+        return res.redirect('/admin/v1/staff/login');
       }
       
       await SpecList.create({
@@ -584,7 +650,8 @@ module.exports = {
         subCategory: subCategory || null,
         type: type || null,
         brand: brand || null,
-        admin: req.user._id
+        displayInFilter: displayInFilter === 'on' || displayInFilter === 'true',
+        admin: adminId
       });
       
       req.flash('success', 'Spec list created successfully');
@@ -600,7 +667,6 @@ module.exports = {
     try {
       const specListId = req.params.id;
       
-      // Validate ObjectId
       if (!specListId.match(/^[0-9a-fA-F]{24}$/)) {
         req.flash('error', 'Invalid spec list ID');
         return res.redirect('/admin/v1/parameters/spec-lists');
@@ -679,25 +745,27 @@ module.exports = {
 
   updateSpecList: async (req, res) => {
     try {
-  const specListId = req.params.id;
-  const { title, value, status, category, subCategory, type, brand } = req.body;
-  // Checkbox: if present, true; if missing, false
-  const displayInFilter = req.body.displayInFilter === 'on' || req.body.displayInFilter === 'true';
+      const specListId = req.params.id;
+      const { title, value, status, category, subCategory, type, brand, displayInFilter } = req.body;
 
-      // Validate ObjectId
       if (!specListId.match(/^[0-9a-fA-F]{24}$/)) {
         req.flash('error', 'Invalid spec list ID');
         return res.redirect('/admin/v1/parameters/spec-lists');
       }
 
-      // Validation
       if (!title || title.trim().length === 0) {
         req.flash('error', 'Spec title is required');
         return res.redirect(`/admin/v1/parameters/spec-lists/${specListId}/edit`);
       }
 
+      const adminId = req.user && req.user._id ? req.user._id : req.session?.admin?.id;
+      if (!adminId) {
+        req.flash('error', 'Authentication required');
+        return res.redirect('/admin/v1/staff/login');
+      }
+
       const updatedSpecList = await SpecList.findOneAndUpdate(
-        { _id: specListId, admin: req.user._id },
+        { _id: specListId, admin: adminId },
         {
           title: title.trim(),
           value: value ? value.trim() : '',
@@ -706,7 +774,7 @@ module.exports = {
           subCategory: subCategory || null,
           type: type || null,
           brand: brand || null,
-          displayInFilter
+          displayInFilter: displayInFilter === 'on' || displayInFilter === 'true'
         },
         { new: true, runValidators: true }
       );

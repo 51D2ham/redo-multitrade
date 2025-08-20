@@ -5,6 +5,11 @@ const mongoose = require('mongoose');
 
 // Format cart item response
 const formatCartItem = (item) => {
+  let variant = null;
+  if (item.variantSku && item.product?.variants) {
+    variant = item.product.variants.find(v => v.sku === item.variantSku);
+  }
+  
   return {
     id: item._id,
     product: {
@@ -13,10 +18,20 @@ const formatCartItem = (item) => {
       thumbnail: item.product.thumbnail,
       price: item.product.price
     },
+    variant: variant ? {
+      sku: variant.sku,
+      color: variant.color,
+      size: variant.size,
+      price: variant.price,
+      discountPrice: variant.discountPrice,
+      qty: variant.qty,
+      status: variant.status
+    } : null,
     qty: item.qty,
     productType: item.productType,
     productPrice: item.productPrice,
-    totalPrice: item.totalPrice
+    totalPrice: item.totalPrice,
+    variantSku: item.variantSku
   };
 };
 
@@ -55,17 +70,26 @@ exports.getCart = async (req, res) => {
         stockStatus = 'inactive';
         stockMessage = 'Product is no longer active';
       } else if (item.product.variants?.length > 0) {
-        // Check variant stock
-        const defaultVariant = item.product.variants.find(v => v.isDefault) || item.product.variants[0];
-        if (defaultVariant) {
-          availableQty = defaultVariant.qty;
-          if (defaultVariant.status === 'out_of_stock' || defaultVariant.qty === 0) {
+        // Check specific variant stock if variantSku exists
+        let targetVariant;
+        if (item.variantSku) {
+          targetVariant = item.product.variants.find(v => v.sku === item.variantSku);
+        } else {
+          targetVariant = item.product.variants.find(v => v.isDefault) || item.product.variants[0];
+        }
+        
+        if (targetVariant) {
+          availableQty = targetVariant.qty;
+          if (targetVariant.status === 'out_of_stock' || targetVariant.qty === 0) {
             stockStatus = 'out_of_stock';
             stockMessage = 'Currently out of stock';
-          } else if (defaultVariant.qty < item.qty) {
+          } else if (targetVariant.qty < item.qty) {
             stockStatus = 'limited_stock';
-            stockMessage = `Only ${defaultVariant.qty} available`;
+            stockMessage = `Only ${targetVariant.qty} available`;
           }
+        } else if (item.variantSku) {
+          stockStatus = 'variant_not_found';
+          stockMessage = 'Selected variant no longer available';
         }
       }
 
@@ -78,6 +102,8 @@ exports.getCart = async (req, res) => {
           price: item.product.price,
           slug: item.product.slug
         },
+        variant: item.variantSku && item.product.variants ? 
+          item.product.variants.find(v => v.sku === item.variantSku) : null,
         qty: item.qty,
         productType: item.productType,
         productPrice: item.productPrice,
@@ -177,10 +203,11 @@ exports.addToCart = async (req, res) => {
       productPrice = selectedVariant.discountPrice || selectedVariant.price;
     }
 
-    // Check if this exact product already exists in cart
+    // Check if this exact product+variant combination already exists in cart
     const existingItem = await Cart.findOne({
       user: req.userInfo.userId,
-      product: productId
+      product: productId,
+      ...(selectedVariant && { variantSku: selectedVariant.sku })
     });
 
     let isUpdate = false;
@@ -206,6 +233,7 @@ exports.addToCart = async (req, res) => {
         productType: product.category?.name || 'General',
         productPrice,
         totalPrice: qty * productPrice,
+        variantSku: selectedVariant?.sku || null,
         user: req.userInfo.userId,
         product: productId
       });
