@@ -244,6 +244,7 @@ const getAllUsersRender = async (req, res) => {
     const pagination = {
       currentPage: page,
       totalPages: Math.ceil(totalUsers / limit),
+      total: totalUsers,
       hasPrev: page > 1,
       hasNext: page < Math.ceil(totalUsers / limit),
     };
@@ -252,6 +253,8 @@ const getAllUsersRender = async (req, res) => {
       users,
       pagination,
       filters: { search, sortBy, sortOrder },
+      success: req.flash('success'),
+      error: req.flash('error')
     });
   } catch (error) {
     console.error(error);

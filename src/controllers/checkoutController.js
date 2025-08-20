@@ -66,16 +66,29 @@ exports.checkout = async (req, res) => {
         isAvailable = false;
         stockMessage = `${item.product.title} is no longer active`;
       } else if (item.product.variants?.length > 0) {
-        // Check variant stock
-        const defaultVariant = item.product.variants.find(v => v.isDefault) || item.product.variants[0];
-        if (defaultVariant) {
-          if (defaultVariant.status === 'out_of_stock' || defaultVariant.qty === 0) {
+        // Check specific variant stock - use provided variant or default
+        let targetVariant;
+        if (item.variantSku) {
+          targetVariant = item.product.variants.find(v => v.sku === item.variantSku);
+        } else {
+          targetVariant = item.product.variants.find(v => v.isDefault) || item.product.variants[0];
+          // Assign default variant to cart item for checkout
+          if (targetVariant) {
+            item.variantSku = targetVariant.sku;
+          }
+        }
+        
+        if (targetVariant) {
+          if (targetVariant.status === 'out_of_stock' || targetVariant.qty === 0) {
             isAvailable = false;
             stockMessage = `${item.product.title} is currently out of stock`;
-          } else if (defaultVariant.qty < item.qty) {
+          } else if (targetVariant.qty < item.qty) {
             isAvailable = false;
-            stockMessage = `Only ${defaultVariant.qty} available for ${item.product.title}, but ${item.qty} in cart`;
+            stockMessage = `Only ${targetVariant.qty} available for ${item.product.title}, but ${item.qty} in cart`;
           }
+        } else if (item.variantSku) {
+          isAvailable = false;
+          stockMessage = `Selected variant for ${item.product.title} is no longer available`;
         }
       }
 
@@ -151,14 +164,52 @@ exports.checkout = async (req, res) => {
     const totalItem = availableItems.length;
     const totalQty = availableItems.reduce((sum, item) => sum + item.qty, 0);
 
-    // Create order items with product details
-    const orderItems = availableItems.map(item => ({
-      productId: item.product._id,
-      productTitle: item.product.title,
-      productPrice: item.productPrice,
-      qty: item.qty,
-      totalPrice: item.totalPrice
-    }));
+    // Create order items with product details and variant info
+    const orderItems = availableItems.map(item => {
+      const orderItem = {
+        productId: item.product._id,
+        productTitle: item.product.title,
+        productPrice: item.productPrice,
+        qty: item.qty,
+        totalPrice: item.totalPrice
+      };
+      
+      // Handle variant info for products with variants
+      if (item.product.variants && item.product.variants.length > 0) {
+        let selectedVariant = null;
+        
+        // Try to find the variant from cart first
+        if (item.variantSku) {
+          selectedVariant = item.product.variants.find(v => v.sku === item.variantSku);
+        }
+        
+        // If no variant found in cart, FORCE use default variant
+        if (!selectedVariant) {
+          selectedVariant = item.product.variants.find(v => v.isDefault) || item.product.variants[0];
+        }
+        
+        // ALWAYS save variant info to order for products with variants
+        if (selectedVariant) {
+          orderItem.variantSku = selectedVariant.sku;
+          orderItem.variantDetails = {
+            color: selectedVariant.color || 'Standard',
+            size: selectedVariant.size || 'Default',
+            material: selectedVariant.material || 'Standard',
+            weight: selectedVariant.weight || 0,
+            dimensions: selectedVariant.dimensions || { length: 0, width: 0, height: 0 }
+          };
+          
+          // Use the actual variant price instead of cart price if different
+          const variantPrice = selectedVariant.discountPrice || selectedVariant.price;
+          if (variantPrice !== item.productPrice) {
+            orderItem.productPrice = variantPrice;
+            orderItem.totalPrice = variantPrice * item.qty;
+          }
+        }
+      }
+      
+      return orderItem;
+    });
 
     // Create order
     const order = new Order({
@@ -187,19 +238,26 @@ exports.checkout = async (req, res) => {
     // Atomic stock deduction with race condition protection
     for (const item of availableItems) {
       if (item.product.variants?.length > 0) {
-        const variant = item.product.variants.find(v => v.isDefault) || item.product.variants[0];
-        if (variant) {
+        let targetVariant;
+        if (item.variantSku) {
+          targetVariant = item.product.variants.find(v => v.sku === item.variantSku);
+        }
+        if (!targetVariant) {
+          targetVariant = item.product.variants.find(v => v.isDefault) || item.product.variants[0];
+        }
+        
+        if (targetVariant) {
           const result = await Product.updateOne(
             { 
               _id: item.product._id, 
-              'variants._id': variant._id,
-              'variants.qty': { $gte: item.qty } // Ensure stock still available
+              'variants._id': targetVariant._id,
+              'variants.qty': { $gte: item.qty }
             },
             { $inc: { 'variants.$.qty': -item.qty } }
           );
           
           if (result.modifiedCount === 0) {
-            throw new Error(`${item.product.title} is no longer available in requested quantity`);
+            throw new Error(`${item.product.title} variant ${targetVariant.sku} is no longer available in requested quantity`);
           }
         }
       }
@@ -262,7 +320,8 @@ exports.checkout = async (req, res) => {
     console.error('Checkout error:', error);
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message: 'Checkout failed. Please try again.'
+      message: 'Checkout failed. Please try again.',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -273,6 +332,10 @@ exports.getOrderHistory = async (req, res) => {
 
     const orders = await Order.find({ user: userId })
       .populate('shippingAddress')
+      .populate({
+        path: 'items.productId',
+        select: 'title price thumbnail images variants'
+      })
       .sort({ createdAt: -1 })
       .lean();
 
@@ -293,6 +356,33 @@ exports.getOrderHistory = async (req, res) => {
                       order.status === 'delivered' ? 100 : 
                       Math.max(0, (currentIndex + 1) * 25);
       
+      // Enhance order items with variant information
+      const enhancedItems = (order.items || []).map(item => {
+        const enhancedItem = {
+          ...item,
+          product: item.productId ? {
+            id: item.productId._id,
+            title: item.productId.title || item.productTitle,
+            price: item.productId.price,
+            thumbnail: item.productId.thumbnail,
+            images: item.productId.images
+          } : null,
+          orderedVariant: item.variantDetails || null
+        };
+        
+        // Find current variant info if product still exists
+        if (item.variantSku && item.productId?.variants) {
+          const currentVariant = item.productId.variants.find(v => v.sku === item.variantSku);
+          enhancedItem.currentVariant = currentVariant || null;
+          enhancedItem.variantStillExists = !!currentVariant;
+        } else {
+          enhancedItem.currentVariant = null;
+          enhancedItem.variantStillExists = false;
+        }
+        
+        return enhancedItem;
+      });
+      
       return {
         orderId: order._id,
         totalPrice: order.totalPrice,
@@ -306,7 +396,7 @@ exports.getOrderHistory = async (req, res) => {
         estimatedDelivery: order.estimatedDelivery,
         progress: progress,
         canCancel: ['pending', 'processing'].includes(order.status),
-        items: order.items || [],
+        items: enhancedItems,
         shippingAddress: order.shippingAddress,
         createdAt: order.createdAt,
         updatedAt: order.updatedAt

@@ -171,9 +171,10 @@ exports.addToCart = async (req, res) => {
 
     let productPrice = product.price;
     let selectedVariant = null;
+    let finalVariantSku = null;
     
-    // Handle variants if they exist
-    if (product.variants?.length > 0) {
+    // FORCE variant assignment for products with variants
+    if (product.variants && product.variants.length > 0) {
       if (variantSku) {
         selectedVariant = product.variants.find(v => v.sku === variantSku);
         if (!selectedVariant) {
@@ -183,8 +184,12 @@ exports.addToCart = async (req, res) => {
           });
         }
       } else {
+        // Use default variant if no variant specified
         selectedVariant = product.variants.find(v => v.isDefault) || product.variants[0];
       }
+      
+      finalVariantSku = selectedVariant.sku;
+      productPrice = selectedVariant.discountPrice || selectedVariant.price;
       
       if (selectedVariant.status === 'out_of_stock' || selectedVariant.qty === 0) {
         return res.status(StatusCodes.BAD_REQUEST).json({
@@ -199,16 +204,20 @@ exports.addToCart = async (req, res) => {
           message: `Only ${selectedVariant.qty} items available`
         });
       }
-      
-      productPrice = selectedVariant.discountPrice || selectedVariant.price;
     }
 
     // Check if this exact product+variant combination already exists in cart
-    const existingItem = await Cart.findOne({
+    const cartQuery = {
       user: req.userInfo.userId,
-      product: productId,
-      ...(selectedVariant && { variantSku: selectedVariant.sku })
-    });
+      product: productId
+    };
+    
+    // Include variant SKU in query if we have one
+    if (finalVariantSku) {
+      cartQuery.variantSku = finalVariantSku;
+    }
+    
+    const existingItem = await Cart.findOne(cartQuery);
 
     let isUpdate = false;
     
@@ -227,17 +236,25 @@ exports.addToCart = async (req, res) => {
       await existingItem.save();
       isUpdate = true;
     } else {
-      // Different product, create new cart item
-      const cartItem = new Cart({
+      // Create new cart item with FORCED variant SKU
+      const cartData = {
         qty,
         productType: product.category?.name || 'General',
         productPrice,
         totalPrice: qty * productPrice,
-        variantSku: selectedVariant?.sku || null,
         user: req.userInfo.userId,
         product: productId
-      });
+      };
       
+      // ALWAYS add variant SKU for products with variants
+      if (finalVariantSku) {
+        cartData.variantSku = finalVariantSku;
+      } else if (product.variants && product.variants.length > 0) {
+        const defaultVar = product.variants.find(v => v.isDefault) || product.variants[0];
+        cartData.variantSku = defaultVar.sku;
+      }
+      
+      const cartItem = new Cart(cartData);
       await cartItem.save();
     }
     

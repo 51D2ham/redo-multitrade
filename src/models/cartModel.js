@@ -27,10 +27,7 @@ cartSchema.pre('save', function(next) {
 cartSchema.add({
   expiresAt: { type: Date, index: { expireAfterSeconds: 0 } }
 });
-cartSchema.pre('save', function(next) {
-  this.totalPrice = this.qty * this.productPrice;
-  next();
-});
+
 
 // Static method to get user's cart with populated product
 cartSchema.statics.getUserCart = function(userId) {

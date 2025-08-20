@@ -273,6 +273,56 @@ exports.getOrderDetails = async (req, res) => {
       return res.redirect('/admin/v1/order');
     }
 
+    // Enhance items with product details and variant information
+    if (order.items?.length > 0) {
+      order.items = order.items.map(item => {
+        const enhancedItem = {
+          ...item,
+          productImage: item.productId?.thumbnail || item.productId?.images?.[0],
+          brand: item.productId?.brand?.name || 'Unknown Brand',
+          category: item.productId?.category?.name || 'Unknown Category',
+          variants: item.productId?.variants || []
+        };
+        
+        // Find and attach the specific ordered variant details
+        if (item.variantSku && item.productId?.variants) {
+          const orderedVariant = item.productId.variants.find(v => v.sku === item.variantSku);
+          if (orderedVariant) {
+            enhancedItem.orderedVariant = orderedVariant;
+            if (!item.variantDetails || Object.keys(item.variantDetails).length === 0) {
+              enhancedItem.variantDetails = {
+                color: orderedVariant.color,
+                size: orderedVariant.size,
+                material: orderedVariant.material,
+                weight: orderedVariant.weight,
+                dimensions: orderedVariant.dimensions
+              };
+            }
+          }
+        } else if (!item.variantSku && item.productId?.variants?.length > 0) {
+          const defaultVariant = item.productId.variants.find(v => v.isDefault) || item.productId.variants[0];
+          if (defaultVariant) {
+            enhancedItem.variantSku = defaultVariant.sku;
+            enhancedItem.variantDetails = {
+              color: defaultVariant.color,
+              size: defaultVariant.size,
+              material: defaultVariant.material,
+              weight: defaultVariant.weight,
+              dimensions: defaultVariant.dimensions
+            };
+            enhancedItem.orderedVariant = defaultVariant;
+          }
+        }
+        
+        return enhancedItem;
+      });
+    }
+
+    if (!order) {
+      req.flash('error', 'Order not found');
+      return res.redirect('/admin/v1/order');
+    }
+
     // Get product specifications for each item
     if (order?.items) {
       const { ProductSpecs } = require('../models/productModel');
@@ -292,15 +342,49 @@ exports.getOrderDetails = async (req, res) => {
       }
     }
 
-    // Enhance items with product details
+    // Enhance items with product details and variant information (final processing)
     if (order.items?.length > 0) {
-      order.items = order.items.map(item => ({
-        ...item,
-        productImage: item.productId?.thumbnail || item.productId?.images?.[0],
-        brand: item.productId?.brand?.name || 'Unknown Brand',
-        category: item.productId?.category?.name || 'Unknown Category',
-        variants: item.productId?.variants || []
-      }));
+      order.items = order.items.map(item => {
+        const enhancedItem = {
+          ...item,
+          productImage: item.productId?.thumbnail || item.productId?.images?.[0],
+          brand: item.productId?.brand?.name || 'Unknown Brand',
+          category: item.productId?.category?.name || 'Unknown Category',
+          variants: item.productId?.variants || []
+        };
+        
+        // Find and attach the specific ordered variant details
+        if (item.variantSku && item.productId?.variants) {
+          const orderedVariant = item.productId.variants.find(v => v.sku === item.variantSku);
+          if (orderedVariant) {
+            enhancedItem.orderedVariant = orderedVariant;
+            if (!item.variantDetails || Object.keys(item.variantDetails).length === 0) {
+              enhancedItem.variantDetails = {
+                color: orderedVariant.color,
+                size: orderedVariant.size,
+                material: orderedVariant.material,
+                weight: orderedVariant.weight,
+                dimensions: orderedVariant.dimensions
+              };
+            }
+          }
+        } else if (!item.variantSku && item.productId?.variants?.length > 0) {
+          const defaultVariant = item.productId.variants.find(v => v.isDefault) || item.productId.variants[0];
+          if (defaultVariant) {
+            enhancedItem.variantSku = defaultVariant.sku;
+            enhancedItem.variantDetails = {
+              color: defaultVariant.color,
+              size: defaultVariant.size,
+              material: defaultVariant.material,
+              weight: defaultVariant.weight,
+              dimensions: defaultVariant.dimensions
+            };
+            enhancedItem.orderedVariant = defaultVariant;
+          }
+        }
+        
+        return enhancedItem;
+      });
     } else {
       // Fallback for orders without items
       order.items = [{
@@ -359,11 +443,64 @@ exports.renderEditOrder = async (req, res) => {
     const order = await Order.findById(id)
       .populate('user', 'username fullname email phone')
       .populate('shippingAddress')
+      .populate({
+        path: 'items.productId',
+        select: 'title price thumbnail images variants brand category description warranty tags',
+        populate: [
+          { path: 'brand', select: 'name' },
+          { path: 'category', select: 'name' }
+        ]
+      })
       .lean();
 
     if (!order) {
       req.flash('error', 'Order not found');
       return res.redirect('/admin/v1/order');
+    }
+
+    // Enhance items with product details and variant information
+    if (order.items?.length > 0) {
+      order.items = order.items.map(item => {
+        const enhancedItem = {
+          ...item,
+          productImage: item.productId?.thumbnail || item.productId?.images?.[0],
+          brand: item.productId?.brand?.name || 'Unknown Brand',
+          category: item.productId?.category?.name || 'Unknown Category',
+          variants: item.productId?.variants || []
+        };
+        
+        // Find and attach the specific ordered variant details
+        if (item.variantSku && item.productId?.variants) {
+          const orderedVariant = item.productId.variants.find(v => v.sku === item.variantSku);
+          if (orderedVariant) {
+            enhancedItem.orderedVariant = orderedVariant;
+            if (!item.variantDetails || Object.keys(item.variantDetails).length === 0) {
+              enhancedItem.variantDetails = {
+                color: orderedVariant.color,
+                size: orderedVariant.size,
+                material: orderedVariant.material,
+                weight: orderedVariant.weight,
+                dimensions: orderedVariant.dimensions
+              };
+            }
+          }
+        } else if (!item.variantSku && item.productId?.variants?.length > 0) {
+          const defaultVariant = item.productId.variants.find(v => v.isDefault) || item.productId.variants[0];
+          if (defaultVariant) {
+            enhancedItem.variantSku = defaultVariant.sku;
+            enhancedItem.variantDetails = {
+              color: defaultVariant.color,
+              size: defaultVariant.size,
+              material: defaultVariant.material,
+              weight: defaultVariant.weight,
+              dimensions: defaultVariant.dimensions
+            };
+            enhancedItem.orderedVariant = defaultVariant;
+          }
+        }
+        
+        return enhancedItem;
+      });
     }
 
     res.render('orders/edit', { 
@@ -705,7 +842,19 @@ exports.exportOrdersCSV = async (req, res) => {
       CreatedAt: order.createdAt ? new Date(order.createdAt).toISOString() : 'N/A',
       Products: order.items?.map(item => item.productTitle).join('; ') || 'N/A',
       Quantities: order.items?.map(item => item.qty).join('; ') || 'N/A',
-      Prices: order.items?.map(item => `₹${item.productPrice}`).join('; ') || 'N/A'
+      Prices: order.items?.map(item => `₹${item.productPrice}`).join('; ') || 'N/A',
+      VariantSKUs: order.items?.map(item => item.variantSku || 'No Variant').join('; ') || 'N/A',
+      VariantColors: order.items?.map(item => item.variantDetails?.color || 'N/A').join('; ') || 'N/A',
+      VariantSizes: order.items?.map(item => item.variantDetails?.size || 'N/A').join('; ') || 'N/A',
+      VariantMaterials: order.items?.map(item => item.variantDetails?.material || 'N/A').join('; ') || 'N/A',
+      VariantWeights: order.items?.map(item => item.variantDetails?.weight ? `${item.variantDetails.weight}g` : 'N/A').join('; ') || 'N/A',
+      VariantDimensions: order.items?.map(item => {
+        const dims = item.variantDetails?.dimensions;
+        if (dims && (dims.length || dims.width || dims.height)) {
+          return `${dims.length || 0}×${dims.width || 0}×${dims.height || 0}cm`;
+        }
+        return 'N/A';
+      }).join('; ') || 'N/A'
     }));
 
     const parser = new Parser();

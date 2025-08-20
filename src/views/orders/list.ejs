@@ -201,6 +201,14 @@
                       <span class="font-semibold text-lg text-gray-900">₹<%= order.totalPrice.toLocaleString() %></span>
                       <span class="text-sm text-gray-500"><%= order.totalItem %> items (<%= order.totalQty %> qty)</span>
                       <span class="text-xs text-gray-400 capitalize"><%= order.paymentMethod %></span>
+                      <% if (order.items && order.items.length > 0) { %>
+                        <% const variantItems = order.items.filter(item => item.variantSku); %>
+                        <% if (variantItems.length > 0) { %>
+                          <div class="text-xs text-blue-600 mt-1">
+                            <i class="fas fa-layer-group mr-1"></i><%= variantItems.length %> variant(s)
+                          </div>
+                        <% } %>
+                      <% } %>
                     </div>
                   </td>
 
@@ -304,6 +312,14 @@
                   <p class="text-sm text-blue-600 font-medium">Total Amount</p>
                   <p class="text-xl font-bold text-blue-800">₹<%= order.totalPrice.toLocaleString() %></p>
                   <p class="text-xs text-blue-600"><%= order.totalItem %> items (<%= order.totalQty %> qty)</p>
+                  <% if (order.items && order.items.length > 0) { %>
+                    <% const variantItems = order.items.filter(item => item.variantSku); %>
+                    <% if (variantItems.length > 0) { %>
+                      <p class="text-xs text-blue-700 mt-1">
+                        <i class="fas fa-layer-group mr-1"></i><%= variantItems.length %> variant(s) ordered
+                      </p>
+                    <% } %>
+                  <% } %>
                 </div>
                 <div class="p-3 bg-green-50 rounded-xl">
                   <p class="text-sm text-green-600 font-medium">Order Date</p>

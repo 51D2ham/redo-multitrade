@@ -1,3 +1,14 @@
+<%
+// Safe variable initialization
+const safeUsers = users || [];
+const safePagination = pagination || { total: 0, currentPage: 1, totalPages: 1, hasPrev: false, hasNext: false };
+const safeFilters = filters || {};
+const safeSuccess = success || [];
+const safeError = error || [];
+// Ensure total is a number
+safePagination.total = safePagination.total || safeUsers.length;
+%>
+
 <%- include('../partials/header.ejs', { title: 'User List' }) %>
 
 <!-- Modern Navigation Bar -->
@@ -14,14 +25,14 @@
   <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-8 gap-4">
     <h1 class="text-3xl font-bold text-gray-800">User Management</h1>
     <div class="text-sm text-gray-500">
-      Total Users: <span class="font-semibold"><%= pagination?.total || 0 %></span>
+      Total Users: <span class="font-semibold text-blue-600"><%= safePagination.total %></span>
     </div>
   </div>
 
   <!-- Flash Messages -->
-  <% if (success && success.length) { %>
+  <% if (safeSuccess.length > 0) { %>
     <div class="mb-6 p-4 rounded-lg border-l-4 border-green-400 bg-green-50 text-green-800 shadow-sm">
-      <% success.forEach(msg => { %>
+      <% safeSuccess.forEach(msg => { %>
         <div class="flex items-center gap-2">
           <i class="fa fa-check-circle"></i>
           <%= msg %>
@@ -29,9 +40,9 @@
       <% }) %>
     </div>
   <% } %>
-  <% if (error && error.length) { %>
+  <% if (safeError.length > 0) { %>
     <div class="mb-6 p-4 rounded-lg border-l-4 border-red-400 bg-red-50 text-red-800 shadow-sm">
-      <% error.forEach(msg => { %>
+      <% safeError.forEach(msg => { %>
         <div class="flex items-center gap-2">
           <i class="fa fa-exclamation-circle"></i>
           <%= msg %>
@@ -56,7 +67,7 @@
             type="text"
             name="search"
             placeholder="Name, email, phone..."
-            value="<%= filters?.search || '' %>"
+            value="<%= safeFilters.search || '' %>"
             class="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
           <i class="fa fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
@@ -67,9 +78,9 @@
         <label class="block font-semibold mb-2 text-gray-700">Role</label>
         <select name="role" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
           <option value="">All Roles</option>
-          <option value="customer" <%= (filters?.role === 'customer') ? 'selected' : '' %>>Customer</option>
-          <option value="admin" <%= (filters?.role === 'admin') ? 'selected' : '' %>>Admin</option>
-          <option value="staff" <%= (filters?.role === 'staff') ? 'selected' : '' %>>Staff</option>
+          <option value="customer" <%= (safeFilters.role === 'customer') ? 'selected' : '' %>>Customer</option>
+          <option value="admin" <%= (safeFilters.role === 'admin') ? 'selected' : '' %>>Admin</option>
+          <option value="staff" <%= (safeFilters.role === 'staff') ? 'selected' : '' %>>Staff</option>
         </select>
       </div>
       
@@ -77,19 +88,19 @@
         <label class="block font-semibold mb-2 text-gray-700">Status</label>
         <select name="status" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
           <option value="">All Status</option>
-          <option value="active" <%= (filters?.status === 'active') ? 'selected' : '' %>>Active</option>
-          <option value="inactive" <%= (filters?.status === 'inactive') ? 'selected' : '' %>>Inactive</option>
-          <option value="suspended" <%= (filters?.status === 'suspended') ? 'selected' : '' %>>Suspended</option>
+          <option value="active" <%= (safeFilters.status === 'active') ? 'selected' : '' %>>Active</option>
+          <option value="inactive" <%= (safeFilters.status === 'inactive') ? 'selected' : '' %>>Inactive</option>
+          <option value="suspended" <%= (safeFilters.status === 'suspended') ? 'selected' : '' %>>Suspended</option>
         </select>
       </div>
       
       <div>
         <label class="block font-semibold mb-2 text-gray-700">Sort By</label>
         <select name="sortBy" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-          <option value="createdAt" <%= (filters?.sortBy === 'createdAt') ? 'selected' : '' %>>Join Date</option>
-          <option value="username" <%= (filters?.sortBy === 'username') ? 'selected' : '' %>>Username</option>
-          <option value="email" <%= (filters?.sortBy === 'email') ? 'selected' : '' %>>Email</option>
-          <option value="fullname" <%= (filters?.sortBy === 'fullname') ? 'selected' : '' %>>Full Name</option>
+          <option value="createdAt" <%= (safeFilters.sortBy === 'createdAt') ? 'selected' : '' %>>Join Date</option>
+          <option value="username" <%= (safeFilters.sortBy === 'username') ? 'selected' : '' %>>Username</option>
+          <option value="email" <%= (safeFilters.sortBy === 'email') ? 'selected' : '' %>>Email</option>
+          <option value="fullname" <%= (safeFilters.sortBy === 'fullname') ? 'selected' : '' %>>Full Name</option>
         </select>
       </div>
       
@@ -106,7 +117,7 @@
 
   <!-- Users List -->
   <div class="bg-white rounded-xl shadow-md mb-10 border border-gray-100">
-    <% if (!users || users.length === 0) { %>
+    <% if (safeUsers.length === 0) { %>
       <div class="p-8 text-center">
         <i class="fa fa-users text-5xl text-gray-300 mb-4"></i>
         <h2 class="text-xl font-semibold text-gray-800 mb-2">No Users Found</h2>
@@ -118,7 +129,7 @@
     <% } else { %>
       <!-- Mobile Cards (Hidden on Desktop) -->
       <div class="block lg:hidden space-y-4 p-4">
-        <% users.forEach((u, idx) => { %>
+        <% safeUsers.forEach((u, idx) => { %>
           <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow">
             <div class="flex items-start justify-between mb-4">
               <div class="flex items-center gap-3">
@@ -215,7 +226,7 @@
             <% users.forEach((u, idx) => { %>
               <tr class="hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-0">
                 <td class="py-4 px-4 font-semibold text-gray-500">
-                  <%= (pagination.currentPage - 1) * 10 + idx + 1 %>
+                  <%= (safePagination.currentPage - 1) * 10 + idx + 1 %>
                 </td>
                 <td class="py-4 px-4">
                   <div class="flex items-center gap-3">
@@ -310,12 +321,13 @@
   </div>
 
   <!-- Pagination -->
-  <% if (users && users.length > 0) { %>
+  <% if (safeUsers.length > 0) { %>
     <div class="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-4 rounded-xl border border-gray-100">
       <% 
         const pageSize = 10;
-        const total = pagination?.total || 0;
-        const start = total === 0 ? 0 : (pagination.currentPage - 1) * pageSize + 1;
+        const total = Number(safePagination.total) || 0;
+        const currentPage = Number(safePagination.currentPage) || 1;
+        const start = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
         const end = total === 0 ? 0 : Math.min(start + pageSize - 1, total);
       %>
       
@@ -324,9 +336,9 @@
       </span>
       
       <div class="flex flex-wrap gap-2">
-        <% if (pagination.hasPrev) { %>
+        <% if (safePagination.hasPrev) { %>
           <a 
-            href="?page=<%= pagination.currentPage - 1 %>&search=<%= encodeURIComponent(filters.search || '') %>&sortBy=<%= filters.sortBy || '' %>&sortOrder=<%= filters.sortOrder || 'asc' %>"
+            href="?page=<%= safePagination.currentPage - 1 %>&search=<%= encodeURIComponent(safeFilters.search || '') %>&sortBy=<%= safeFilters.sortBy || '' %>&sortOrder=<%= safeFilters.sortOrder || 'asc' %>"
             class="px-4 py-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition flex items-center"
           >
             <i class="fa fa-arrow-left mr-2"></i> Previous
@@ -334,12 +346,12 @@
         <% } %>
         
         <span class="px-4 py-2 rounded-lg bg-gray-50 text-gray-700">
-          Page <%= pagination.currentPage %> of <%= pagination.totalPages %>
+          Page <%= safePagination.currentPage %> of <%= safePagination.totalPages %>
         </span>
         
-        <% if (pagination.hasNext) { %>
+        <% if (safePagination.hasNext) { %>
           <a 
-            href="?page=<%= pagination.currentPage + 1 %>&search=<%= encodeURIComponent(filters.search || '') %>&sortBy=<%= filters.sortBy || '' %>&sortOrder=<%= filters.sortOrder || 'asc' %>"
+            href="?page=<%= safePagination.currentPage + 1 %>&search=<%= encodeURIComponent(safeFilters.search || '') %>&sortBy=<%= safeFilters.sortBy || '' %>&sortOrder=<%= safeFilters.sortOrder || 'asc' %>"
             class="px-4 py-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition flex items-center"
           >
             Next <i class="fa fa-arrow-right ml-2"></i>

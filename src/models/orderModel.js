@@ -7,7 +7,19 @@ const orderItemSchema = new Schema({
   productTitle: { type: String, required: true },
   productPrice: { type: Number, required: true },
   qty: { type: Number, required: true },
-  totalPrice: { type: Number, required: true }
+  totalPrice: { type: Number, required: true },
+  variantSku: { type: String, trim: true }, // Store which variant was ordered
+  variantDetails: {
+    color: { type: String, trim: true },
+    size: { type: String, trim: true },
+    material: { type: String, trim: true },
+    weight: { type: Number },
+    dimensions: {
+      length: { type: Number },
+      width: { type: Number },
+      height: { type: Number }
+    }
+  }
 });
 
 // Status History Schema

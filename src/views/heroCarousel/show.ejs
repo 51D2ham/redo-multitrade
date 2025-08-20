@@ -1,3 +1,10 @@
+<%
+// Safe variable initialization
+const safeItem = item || {};
+const safeSuccess = success || [];
+const safeError = error || [];
+%>
+
 <%- include('../partials/header.ejs', { title: 'Hero Content Details' }) %>
 
 <!-- Navigation Bar -->
@@ -10,44 +17,95 @@
   </a>
 </nav>
 
-<main class="container mx-auto max-w-lg px-4">
+<!-- Flash Messages -->
+<% if (safeSuccess.length > 0) { %>
+  <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+    <% safeSuccess.forEach(msg => { %><p><%= msg %></p><% }); %>
+  </div>
+<% } %>
+<% if (safeError.length > 0) { %>
+  <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+    <% safeError.forEach(msg => { %><p><%= msg %></p><% }); %>
+  </div>
+<% } %>
+
+<main class="container mx-auto max-w-2xl px-4">
   <div class="bg-white rounded-xl shadow-md p-8 border border-gray-100 mb-6">
-    <h2 class="text-2xl font-semibold text-gray-800 mb-4">Hero Content Details</h2>
-    <div class="space-y-4 text-gray-700">
-      <p><strong>Title:</strong> <%= item.title || '-' %></p>
-      <p><strong>Status:</strong> 
-        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold
-          <%= item.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700' %>">
-          <%= item.status || 'active' %>
-        </span>
-      </p>
-      <p>
-        <strong>Link:</strong>
-        <% if (item.link) { %>
-          <a href="<%= item.link %>" target="_blank" class="text-blue-600 hover:underline"><%= item.link %></a>
-        <% } else { %>
-          <span class="text-gray-400">-</span>
-        <% } %>
-      </p>
+    <h2 class="text-2xl font-semibold text-gray-800 mb-6">Hero Content Details</h2>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Content Details -->
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-1">Title</label>
+          <p class="text-gray-800 font-medium"><%= safeItem.title || '-' %></p>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-1">Status</label>
+          <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+            <%= safeItem.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' %>">
+            <i class="fa <%= safeItem.status === 'active' ? 'fa-check-circle' : 'fa-times-circle' %> mr-1"></i>
+            <%= safeItem.status || 'active' %>
+          </span>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-1">Link</label>
+          <% if (safeItem.link) { %>
+            <a href="<%= safeItem.link %>" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline break-all">
+              <i class="fa fa-external-link mr-1"></i><%= safeItem.link %>
+            </a>
+          <% } else { %>
+            <span class="text-gray-400 italic">No link provided</span>
+          <% } %>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-1">Created</label>
+          <p class="text-gray-700"><%= safeItem.createdAt ? new Date(safeItem.createdAt).toLocaleDateString() : '-' %></p>
+        </div>
+      </div>
+      
+      <!-- Image Preview -->
       <div>
-        <strong>Image:</strong><br>
-        <% if (item.image) { %>
-          <img src="/uploads/<%= item.image %>" alt="<%= item.title %>" class="w-full h-auto mt-2 rounded-md shadow-sm">
+        <label class="block text-sm font-medium text-gray-600 mb-2">Image Preview</label>
+        <% if (safeItem.image) { %>
+          <div class="border border-gray-200 rounded-lg overflow-hidden">
+            <img src="/uploads/<%= safeItem.image %>" alt="<%= safeItem.title || 'Hero image' %>" 
+                 class="w-full h-auto max-h-64 object-cover">
+          </div>
         <% } else { %>
-          <span class="text-gray-400">No image available</span>
+          <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+            <i class="fa fa-image text-gray-400 text-3xl mb-2"></i>
+            <p class="text-gray-500">No image available</p>
+          </div>
         <% } %>
       </div>
-
     </div>
   </div>
 
-  <div class="flex justify-end gap-3">
-    <a href="/admin/v1/parameters/hero-carousel/<%= item._id %>/edit" class="px-4 py-2 rounded-lg bg-yellow-500 text-white hover:bg-yellow-600 transition flex items-center gap-2">
-      <i class="fa fa-edit"></i> Edit
-    </a>
-    <a href="/admin/v1/parameters/hero-carousel" class="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition flex items-center gap-2">
+  <!-- Action Buttons -->
+  <div class="flex justify-between items-center">
+    <a href="/admin/v1/parameters/hero-carousel" 
+       class="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition flex items-center gap-2">
       <i class="fa fa-arrow-left"></i> Back to List
     </a>
+    
+    <div class="flex gap-3">
+      <a href="/admin/v1/parameters/hero-carousel/<%= safeItem._id %>/edit" 
+         class="px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition flex items-center gap-2">
+        <i class="fa fa-edit"></i> Edit
+      </a>
+      
+      <form method="POST" action="/admin/v1/parameters/hero-carousel/<%= safeItem._id %>?_method=DELETE" 
+            class="inline" onsubmit="return confirm('Are you sure you want to delete this hero content?')">
+        <button type="submit" 
+                class="px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition flex items-center gap-2">
+          <i class="fa fa-trash"></i> Delete
+        </button>
+      </form>
+    </div>
   </div>
 </main>
 
