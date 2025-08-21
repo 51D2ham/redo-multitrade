@@ -297,8 +297,18 @@ exports.checkout = async (req, res) => {
 
     // Send order confirmation email (non-blocking)
     try {
-      const addressDoc = await ShippingAddress.findById(finalShippingAddress);
-      await sendOrderConfirmation(req.userInfo.email, order, addressDoc);
+      const NotificationService = require('../services/notificationService');
+      const user = await User.findById(req.userInfo.userId);
+      await NotificationService.sendOrderConfirmation(user.email, {
+        customerName: user.fullname,
+        orderId: order._id,
+        orderNumber: order._id.toString().slice(-8),
+        orderDate: order.createdAt.toLocaleDateString(),
+        totalPrice: order.totalPrice,
+        totalItem: order.totalItem,
+        paymentMethod: order.paymentMethod,
+        items: order.items
+      });
     } catch (emailError) {
       console.error('Email notification failed:', emailError);
     }

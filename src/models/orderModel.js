@@ -1,6 +1,14 @@
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
+// Status History Schema
+const statusHistorySchema = new Schema({
+  status: { type: String, required: true },
+  message: { type: String, trim: true },
+  updatedBy: { type: Schema.Types.ObjectId, ref: 'Admin' },
+  updatedAt: { type: Date, default: Date.now }
+});
+
 // Order Item Schema
 const orderItemSchema = new Schema({
   productId: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
@@ -20,15 +28,13 @@ const orderItemSchema = new Schema({
       height: { type: Number }
     }
   }
+  ,
+  // Per-item status allows administrators to track fulfillment per line item
+  status: { type: String, enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'], default: 'pending' },
+  statusHistory: [statusHistorySchema]
 });
 
-// Status History Schema
-const statusHistorySchema = new Schema({
-  status: { type: String, required: true },
-  message: { type: String, trim: true },
-  updatedBy: { type: Schema.Types.ObjectId, ref: 'Admin' },
-  updatedAt: { type: Date, default: Date.now }
-});
+// ...existing code...
 
 // Order Schema
 const orderSchema = new Schema({

@@ -5,16 +5,23 @@ const { sendOrderStatusUpdate } = require('../utils/orderNotification');
 const { Parser } = require('json2csv');
 const { StatusCodes } = require('http-status-codes');
 
-// Status transition validation
+// Status transition validation - Enhanced with better logic
 const validateStatusTransition = (currentStatus, newStatus) => {
-  const statusFlow = {
-    'pending': ['processing', 'cancelled'],
-    'processing': ['shipped', 'cancelled'],
-    'shipped': ['delivered', 'cancelled'],
-    'delivered': [],
-    'cancelled': []
-  };
-  return statusFlow[currentStatus]?.includes(newStatus) || false;
+  const allowedStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+
+  if (!allowedStatuses.includes(newStatus)) {
+    console.log('Invalid status:', newStatus);
+    return false;
+  }
+
+  // If current status is a final state, don't allow changing away from it
+  if (['delivered', 'cancelled'].includes(currentStatus) && currentStatus !== newStatus) {
+    console.log('Cannot change from final state:', currentStatus, 'to', newStatus);
+    return false;
+  }
+
+  // Otherwise allow the change (administrators can control the flow from UI)
+  return true;
 };
 
 // ======================
@@ -458,54 +465,52 @@ exports.renderEditOrder = async (req, res) => {
       return res.redirect('/admin/v1/order');
     }
 
-    // Enhance items with product details and variant information
+    // Preprocess complex data to avoid EJS parsing errors
+    const orderNumber = order._id.toString().slice(-8).toUpperCase();
+    const formattedTotal = (order.totalPrice || 0).toLocaleString();
+    const itemCount = (order.items?.length || 0);
+    const statusDisplay = (order.status || 'pending').charAt(0).toUpperCase() + (order.status || 'pending').slice(1);
+    const trackingNumber = order.trackingNumber || '';
+    const orderStatus = order.status || 'pending';
+    const paidStatus = order.paid ? 'true' : 'false';
+    const orderItemsJson = JSON.stringify(order.items || []);
+
+    // Process items to eliminate complex EJS expressions
+    const processedItems = [];
     if (order.items?.length > 0) {
-      order.items = order.items.map(item => {
-        const enhancedItem = {
-          ...item,
-          productImage: item.productId?.thumbnail || item.productId?.images?.[0],
-          brand: item.productId?.brand?.name || 'Unknown Brand',
-          category: item.productId?.category?.name || 'Unknown Category',
-          variants: item.productId?.variants || []
-        };
+      order.items.forEach((item, index) => {
+        const imageUrl = item.productId?.thumbnail || item.productId?.images?.[0] || null;
+        const title = item.productTitle || 'Unknown Product';
+        const price = (item.productPrice || 0).toLocaleString();
+        const qty = item.qty || 1;
+        const priceDisplay = `₹${price} × ${qty}`;
+        const status = item.status || 'pending';
+        const statusDisplay = status.charAt(0).toUpperCase() + status.slice(1);
+        const canUpdate = status !== 'cancelled' && status !== 'delivered';
         
-        // Find and attach the specific ordered variant details
-        if (item.variantSku && item.productId?.variants) {
-          const orderedVariant = item.productId.variants.find(v => v.sku === item.variantSku);
-          if (orderedVariant) {
-            enhancedItem.orderedVariant = orderedVariant;
-            if (!item.variantDetails || Object.keys(item.variantDetails).length === 0) {
-              enhancedItem.variantDetails = {
-                color: orderedVariant.color,
-                size: orderedVariant.size,
-                material: orderedVariant.material,
-                weight: orderedVariant.weight,
-                dimensions: orderedVariant.dimensions
-              };
-            }
-          }
-        } else if (!item.variantSku && item.productId?.variants?.length > 0) {
-          const defaultVariant = item.productId.variants.find(v => v.isDefault) || item.productId.variants[0];
-          if (defaultVariant) {
-            enhancedItem.variantSku = defaultVariant.sku;
-            enhancedItem.variantDetails = {
-              color: defaultVariant.color,
-              size: defaultVariant.size,
-              material: defaultVariant.material,
-              weight: defaultVariant.weight,
-              dimensions: defaultVariant.dimensions
-            };
-            enhancedItem.orderedVariant = defaultVariant;
-          }
-        }
-        
-        return enhancedItem;
+        processedItems.push({
+          imageUrl,
+          title,
+          priceDisplay,
+          statusDisplay,
+          canUpdate,
+          originalItem: item
+        });
       });
     }
 
     res.render('orders/edit', { 
       title: 'Edit Order',
       order,
+      orderNumber,
+      formattedTotal,
+      itemCount,
+      statusDisplay,
+      trackingNumber,
+      orderStatus,
+      paidStatus,
+      orderItemsJson,
+      processedItems,
       success: req.flash('success'),
       error: req.flash('error')
     });
@@ -519,7 +524,9 @@ exports.renderEditOrder = async (req, res) => {
 exports.updateOrder = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, paid, trackingNumber, estimatedDelivery, statusMessage } = req.body;
+  const { status, paid, trackingNumber, estimatedDelivery, statusMessage } = req.body;
+  // items may be posted as an object/array of item updates
+  const postedItems = req.body.items;
 
     const order = await Order.findById(id).populate('user', 'email fullname');
     if (!order) {
@@ -527,10 +534,14 @@ exports.updateOrder = async (req, res) => {
       return res.redirect('/admin/v1/order');
     }
 
-    // Prevent updates to final states (unless it's the same status)
-    if (['delivered', 'cancelled'].includes(order.status) && order.status !== status) {
-      req.flash('error', `Cannot modify ${order.status} orders`);
-      return res.redirect(`/admin/v1/order/${id}`);
+    // Prevent changing status away from final states (delivered/cancelled),
+    // but allow updating other fields (tracking, payment, messages) for audit/fixes.
+    if (['delivered', 'cancelled'].includes(order.status)) {
+      if (status && status !== order.status) {
+        req.flash('error', `Cannot change status from ${order.status} to ${status}`);
+        return res.redirect(`/admin/v1/order/${id}`);
+      }
+      // allow other non-status updates to proceed
     }
 
     let statusChanged = false;
@@ -540,6 +551,36 @@ exports.updateOrder = async (req, res) => {
       // Validate status transition
       if (!validateStatusTransition(order.status, status)) {
         req.flash('error', `Cannot change status from ${order.status} to ${status}`);
+        return res.redirect(`/admin/v1/order/${id}/edit`);
+      }
+      
+      // Additional validation based on item statuses
+      const itemStatuses = order.items.map(item => item.status || 'pending');
+      const allCancelled = itemStatuses.every(s => s === 'cancelled');
+      const allDelivered = itemStatuses.filter(s => s !== 'cancelled').every(s => s === 'delivered');
+      const hasProcessing = itemStatuses.some(s => s === 'processing');
+      const hasShipped = itemStatuses.some(s => s === 'shipped');
+      const hasPending = itemStatuses.some(s => s === 'pending');
+      
+      // Prevent invalid status changes
+      if (status === 'cancelled' && !allCancelled) {
+        req.flash('error', 'Cannot mark order as cancelled - not all items are cancelled');
+        return res.redirect(`/admin/v1/order/${id}/edit`);
+      }
+      if (status === 'delivered' && !allDelivered) {
+        req.flash('error', 'Cannot mark order as delivered - not all active items are delivered');
+        return res.redirect(`/admin/v1/order/${id}/edit`);
+      }
+      if (status === 'pending' && !hasPending) {
+        req.flash('error', 'Cannot mark order as pending - no items are pending');
+        return res.redirect(`/admin/v1/order/${id}/edit`);
+      }
+      if (status === 'processing' && !hasProcessing && !hasPending) {
+        req.flash('error', 'Cannot mark order as processing - no items are processing or pending');
+        return res.redirect(`/admin/v1/order/${id}/edit`);
+      }
+      if (status === 'shipped' && !hasShipped && !hasProcessing && !hasPending) {
+        req.flash('error', 'Cannot mark order as shipped - no items are shipped, processing, or pending');
         return res.redirect(`/admin/v1/order/${id}/edit`);
       }
       
@@ -578,6 +619,47 @@ exports.updateOrder = async (req, res) => {
         updatedBy: req.session?.admin?.id,
         updatedAt: new Date()
       });
+    }
+
+    // Handle per-item status updates if provided
+    if (postedItems && Array.isArray(postedItems)) {
+      const StockManager = require('../utils/stockManager');
+      for (const pItem of postedItems) {
+        try {
+          const idx = Number(pItem.index);
+          if (isNaN(idx) || !order.items[idx]) continue;
+          const existingItem = order.items[idx];
+          const newItemStatus = String(pItem.status || existingItem.status || '').toLowerCase();
+          if (newItemStatus && newItemStatus !== existingItem.status) {
+            // Validate status
+            const allowed = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+            if (!allowed.includes(newItemStatus)) continue;
+
+            // If item is being cancelled, restore its stock
+            if (newItemStatus === 'cancelled' && existingItem.status !== 'cancelled') {
+              try {
+                const restoreResult = await StockManager.restoreStock([existingItem], id, req.session?.admin?.id);
+                if (!restoreResult.success) {
+                  console.error('Item stock restoration errors:', restoreResult.errors);
+                  // don't block other updates; record flash message later
+                  req.flash('error', 'Some item stock restorations failed: ' + restoreResult.errors.join(', '));
+                }
+              } catch (e) {
+                console.error('Item stock restoration failed:', e);
+                req.flash('error', 'Failed to restore stock for cancelled item');
+              }
+            }
+
+            // push item-level status history
+            if (!existingItem.statusHistory) existingItem.statusHistory = [];
+            existingItem.statusHistory.push({ status: newItemStatus, message: pItem.statusMessage || `Item status changed to ${newItemStatus}`, updatedBy: req.session?.admin?.id, updatedAt: new Date() });
+
+            existingItem.status = newItemStatus;
+          }
+        } catch (itemErr) {
+          console.error('Error processing posted item update:', itemErr);
+        }
+      }
     }
 
     // Handle payment status
@@ -637,10 +719,50 @@ exports.deleteOrder = async (req, res) => {
   }
 };
 
+// Get item status history
+exports.getItemStatusHistory = async (req, res) => {
+  try {
+    const { id, itemIndex } = req.params;
+    
+    const order = await Order.findById(id)
+      .populate('items.statusHistory.updatedBy', 'username fullname')
+      .lean();
+      
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    const itemIdx = parseInt(itemIndex);
+    if (isNaN(itemIdx) || !order.items[itemIdx]) {
+      return res.status(400).json({ success: false, message: 'Invalid item index' });
+    }
+
+    const item = order.items[itemIdx];
+    const statusHistory = item.statusHistory || [];
+
+    res.json({ 
+      success: true, 
+      data: {
+        productTitle: item.productTitle,
+        currentStatus: item.status,
+        statusHistory: statusHistory.map(h => ({
+          status: h.status,
+          message: h.message,
+          updatedBy: h.updatedBy?.fullname || h.updatedBy?.username || 'System',
+          updatedAt: h.updatedAt
+        }))
+      }
+    });
+  } catch (err) {
+    console.error('Get item status history error:', err);
+    res.status(500).json({ success: false, message: 'Failed to get item status history' });
+  }
+};
+
 exports.updateOrderStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, statusMessage } = req.body;
+    const { status, statusMessage, sendEmail } = req.body;
 
     const order = await Order.findById(id).populate('user', 'email fullname');
     if (!order) {
@@ -671,33 +793,47 @@ exports.updateOrderStatus = async (req, res) => {
         
         if (!restoreResult.success) {
           console.error('Stock restoration errors:', restoreResult.errors);
+          const errorMsg = 'Failed to restore stock: ' + restoreResult.errors.join(', ');
           if (req.xhr || req.headers.accept?.indexOf('json') > -1) {
-            return res.status(400).json({ 
-              success: false, 
-              message: 'Failed to restore stock during cancellation',
-              errors: restoreResult.errors
-            });
+            return res.status(400).json({ success: false, message: errorMsg });
           }
-          req.flash('error', 'Failed to restore stock during cancellation');
+          req.flash('error', errorMsg);
           return res.redirect(`/admin/v1/order/${id}`);
         }
       } catch (restockError) {
         console.error('Stock restoration failed:', restockError);
+        const errorMsg = 'Failed to restore stock during cancellation';
         if (req.xhr || req.headers.accept?.indexOf('json') > -1) {
-          return res.status(500).json({ success: false, message: 'Failed to restore stock during cancellation' });
+          return res.status(500).json({ success: false, message: errorMsg });
         }
-        req.flash('error', 'Failed to restore stock during cancellation');
+        req.flash('error', errorMsg);
         return res.redirect(`/admin/v1/order/${id}`);
       }
     }
     
     order.status = status;
 
+    // Update all items to match order status
+    if (order.items) {
+      order.items.forEach(item => {
+        if (!['delivered', 'cancelled'].includes(item.status || 'pending')) {
+          item.status = status;
+          if (!item.statusHistory) item.statusHistory = [];
+          item.statusHistory.push({
+            status: status,
+            message: `Auto-updated with order to ${status}`,
+            updatedBy: req.session?.admin?.id,
+            updatedAt: new Date()
+          });
+        }
+      });
+    }
+
     // Add to status history
     if (!order.statusHistory) order.statusHistory = [];
     order.statusHistory.push({
       status: status,
-      message: statusMessage || `Order status updated from ${oldStatus} to ${status}`,
+      message: statusMessage || `Order ${status}`,
       updatedBy: req.session?.admin?.id,
       updatedAt: new Date()
     });
@@ -709,8 +845,8 @@ exports.updateOrderStatus = async (req, res) => {
 
     await order.save();
 
-    // Send email notification (non-blocking)
-    if (order.user?.email) {
+    // Send email notification
+    if (sendEmail && order.user?.email) {
       try {
         await sendOrderStatusUpdate(order.user.email, order, status, statusMessage);
       } catch (emailError) {
@@ -721,7 +857,7 @@ exports.updateOrderStatus = async (req, res) => {
     if (req.xhr || req.headers.accept?.indexOf('json') > -1) {
       return res.json({ 
         success: true, 
-        message: 'Status updated successfully', 
+        message: 'Order updated successfully', 
         status,
         paid: order.paid
       });
@@ -786,6 +922,313 @@ exports.updatePaymentStatus = async (req, res) => {
     }
     req.flash('error', 'Failed to update payment status');
     res.redirect(`/admin/v1/order/${req.params.id}`);
+  }
+};
+
+// Calculate optimal order status based on item statuses
+const calculateOrderStatus = (items) => {
+  if (!items || items.length === 0) return 'pending';
+  
+  const statuses = items.map(item => item.status || 'pending');
+  const statusCounts = statuses.reduce((acc, status) => {
+    acc[status] = (acc[status] || 0) + 1;
+    return acc;
+  }, {});
+  
+  const total = items.length;
+  const delivered = statusCounts.delivered || 0;
+  const cancelled = statusCounts.cancelled || 0;
+  const shipped = statusCounts.shipped || 0;
+  const processing = statusCounts.processing || 0;
+  const pending = statusCounts.pending || 0;
+  
+  // All items cancelled = order cancelled
+  if (cancelled === total) return 'cancelled';
+  
+  // All non-cancelled items delivered = order delivered
+  if (delivered + cancelled === total && delivered > 0) return 'delivered';
+  
+  // Any item shipped (and none pending/processing) = order shipped
+  if (shipped > 0 && pending === 0 && processing === 0) return 'shipped';
+  
+  // Any item processing = order processing
+  if (processing > 0) return 'processing';
+  
+  // Mixed states with shipping = shipped
+  if (shipped > 0) return 'shipped';
+  
+  // Default to pending
+  return 'pending';
+};
+
+// Update individual order item
+exports.updateOrderItem = async (req, res) => {
+  try {
+    const { id, itemIndex } = req.params;
+    const { status, statusMessage, sendEmail } = req.body;
+
+    const order = await Order.findById(id).populate('user', 'email fullname');
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    const itemIdx = parseInt(itemIndex);
+    if (isNaN(itemIdx) || !order.items[itemIdx]) {
+      return res.status(400).json({ success: false, message: 'Invalid item index' });
+    }
+
+    const item = order.items[itemIdx];
+    const oldStatus = item.status || 'pending';
+
+    // Validate status
+    const allowed = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+    if (!allowed.includes(status)) {
+      return res.status(400).json({ success: false, message: 'Invalid status' });
+    }
+
+    // Prevent changing from final states
+    if (['delivered', 'cancelled'].includes(oldStatus) && oldStatus !== status) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Cannot change item status from ${oldStatus} to ${status}` 
+      });
+    }
+
+    // Handle stock restoration for cancellation
+    if (status === 'cancelled' && oldStatus !== 'cancelled') {
+      const StockManager = require('../utils/stockManager');
+      try {
+        const restoreResult = await StockManager.restoreStock([item], id, req.session?.admin?.id);
+        if (!restoreResult.success) {
+          return res.status(400).json({ 
+            success: false, 
+            message: 'Failed to restore stock: ' + restoreResult.errors.join(', ')
+          });
+        }
+      } catch (restockError) {
+        console.error('Stock restoration failed:', restockError);
+        return res.status(500).json({ 
+          success: false, 
+          message: 'Failed to restore stock during cancellation' 
+        });
+      }
+    }
+
+    // Update item status
+    item.status = status;
+    
+    // Add to item status history
+    if (!item.statusHistory) item.statusHistory = [];
+    item.statusHistory.push({
+      status: status,
+      message: statusMessage || `Item ${status}`,
+      updatedBy: req.session?.admin?.id,
+      updatedAt: new Date()
+    });
+    
+    // Handle sales recording for delivered items
+    if (status === 'delivered' && oldStatus !== 'delivered') {
+      try {
+        const SalesService = require('../services/salesService');
+        const salesResult = await SalesService.recordSalesForDeliveredItems(id, req.session?.admin?.id);
+        if (!salesResult.success) {
+          console.error('Sales recording failed:', salesResult.error);
+        }
+      } catch (salesError) {
+        console.error('Sales recording failed:', salesError);
+      }
+    }
+    
+    // Remove sales record if item is cancelled
+    if (status === 'cancelled' && oldStatus !== 'cancelled') {
+      try {
+        const SalesService = require('../services/salesService');
+        const removalResult = await SalesService.removeSalesForCancelledItems(id, item.productId, item.variantSku);
+        if (!removalResult.success) {
+          console.error('Sales removal failed:', removalResult.error);
+        }
+      } catch (salesError) {
+        console.error('Sales removal failed:', salesError);
+      }
+    }
+
+    // Calculate new order status based on all items
+    const newOrderStatus = calculateOrderStatus(order.items);
+    const oldOrderStatus = order.status;
+    
+    if (newOrderStatus !== oldOrderStatus && validateStatusTransition(oldOrderStatus, newOrderStatus)) {
+      order.status = newOrderStatus;
+      if (!order.statusHistory) order.statusHistory = [];
+      order.statusHistory.push({
+        status: newOrderStatus,
+        message: `Order auto-updated to ${newOrderStatus} based on item statuses`,
+        updatedBy: req.session?.admin?.id,
+        updatedAt: new Date()
+      });
+    }
+
+    await order.save();
+
+    // Send email notification if requested
+    if (sendEmail && order.user?.email) {
+      try {
+        const { sendItemStatusUpdate } = require('../utils/orderNotification');
+        await sendItemStatusUpdate(order.user.email, order, item, status, statusMessage);
+      } catch (emailError) {
+        console.error('Email notification failed:', emailError);
+      }
+    }
+
+    res.json({ 
+      success: true, 
+      message: 'Item updated successfully',
+      itemStatus: status,
+      orderStatus: order.status
+    });
+  } catch (err) {
+    console.error('Update item error:', err);
+    res.status(500).json({ success: false, message: 'Failed to update item status' });
+  }
+};
+
+// Bulk update multiple items
+exports.bulkUpdateItems = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { items, sendEmail } = req.body;
+
+    const order = await Order.findById(id).populate('user', 'email fullname');
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    const StockManager = require('../utils/stockManager');
+    const updatedItems = [];
+    const errors = [];
+    const oldOrderStatus = order.status;
+
+    for (const itemUpdate of items) {
+      try {
+        const { index, status, statusMessage } = itemUpdate;
+        const itemIdx = parseInt(index);
+        
+        if (isNaN(itemIdx) || !order.items[itemIdx]) {
+          errors.push(`Invalid item index: ${index}`);
+          continue;
+        }
+
+        const item = order.items[itemIdx];
+        const oldStatus = item.status || 'pending';
+
+        const allowed = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+        if (!allowed.includes(status)) {
+          errors.push(`Invalid status for item ${index}: ${status}`);
+          continue;
+        }
+
+        if (oldStatus === status) continue;
+
+        if (['delivered', 'cancelled'].includes(oldStatus)) {
+          errors.push(`Cannot change item ${index} from ${oldStatus}`);
+          continue;
+        }
+
+        if (status === 'cancelled' && oldStatus !== 'cancelled') {
+          try {
+            const restoreResult = await StockManager.restoreStock([item], id, req.session?.admin?.id);
+            if (!restoreResult.success) {
+              errors.push(`Failed to restore stock for item ${index}`);
+              continue;
+            }
+          } catch (restockError) {
+            errors.push(`Stock restoration failed for item ${index}`);
+            continue;
+          }
+        }
+
+        item.status = status;
+        
+        if (!item.statusHistory) item.statusHistory = [];
+        item.statusHistory.push({
+          status: status,
+          message: statusMessage || `Bulk updated to ${status}`,
+          updatedBy: req.session?.admin?.id,
+          updatedAt: new Date()
+        });
+
+        updatedItems.push({ index: itemIdx, oldStatus, newStatus: status, item });
+      } catch (itemError) {
+        errors.push(`Error updating item ${itemUpdate.index}`);
+      }
+    }
+
+    // Calculate new order status based on all items
+    const newOrderStatus = calculateOrderStatus(order.items);
+    
+    if (newOrderStatus !== oldOrderStatus && validateStatusTransition(oldOrderStatus, newOrderStatus)) {
+      order.status = newOrderStatus;
+      if (!order.statusHistory) order.statusHistory = [];
+      order.statusHistory.push({
+        status: newOrderStatus,
+        message: `Order auto-updated to ${newOrderStatus} after bulk item updates`,
+        updatedBy: req.session?.admin?.id,
+        updatedAt: new Date()
+      });
+    }
+
+    await order.save();
+
+    // Send bulk email notification
+    if (sendEmail && order.user?.email && updatedItems.length > 0) {
+      try {
+        const { sendBulkStatusUpdate } = require('../utils/orderNotification');
+        await sendBulkStatusUpdate(order.user.email, order, updatedItems);
+      } catch (emailError) {
+        console.error('Bulk email notification failed:', emailError);
+      }
+    }
+
+    res.json({ 
+      success: errors.length === 0,
+      message: `Updated ${updatedItems.length} items successfully`,
+      updatedItems,
+      errors,
+      orderStatus: order.status
+    });
+  } catch (err) {
+    console.error('Bulk update items error:', err);
+    res.status(500).json({ success: false, message: 'Failed to bulk update items' });
+  }
+};
+
+// API endpoint for recent orders (for notifications)
+exports.getRecentOrders = async (req, res) => {
+  try {
+    const { since } = req.query;
+    const sinceDate = since ? new Date(parseInt(since)) : new Date(Date.now() - 24 * 60 * 60 * 1000);
+    
+    const orders = await Order.find({
+      createdAt: { $gte: sinceDate },
+      status: { $ne: 'cancelled' }
+    })
+    .populate('user', 'fullname email')
+    .select('_id totalPrice totalItem items createdAt user')
+    .sort({ createdAt: -1 })
+    .limit(20)
+    .lean();
+
+    res.json({
+      success: true,
+      orders: orders || [],
+      count: orders?.length || 0
+    });
+  } catch (error) {
+    console.error('Get recent orders error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch recent orders',
+      orders: []
+    });
   }
 };
 

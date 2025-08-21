@@ -74,15 +74,50 @@ Admin endpoints require session-based authentication. Login through the admin pa
 ### 2. Bulk Product Upload
 **GET** `/admin/v1/products/bulk-upload` - Bulk upload page
 **POST** `/admin/v1/products/bulk-upload` - Process bulk upload
+**GET** `/admin/v1/products/bulk-upload/template` - Download CSV template
+**GET** `/admin/v1/products/bulk-upload/sample` - Download sample data
 
 **Request Body (multipart/form-data):**
 ```json
 {
   "csvFile": "file", // CSV file with product data
-  "category": "category_id",
-  "subcategory": "subcategory_id",
-  "type": "type_id",
-  "brand": "brand_id"
+  "uploadMode": "create", // create or update
+  "validateOnly": false // true to validate without importing
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Upload completed: 15 variants processed, 2 errors",
+  "stats": {
+    "total": 17,
+    "success": 15,
+    "errors": 2,
+    "products": 5,
+    "validateOnly": false
+  },
+  "results": [
+    {
+      "row": 1,
+      "success": true,
+      "product": {
+        "title": "iPhone 15 Pro",
+        "sku": "APPLE-IP15P-128-NT"
+      }
+    }
+  ],
+  "errors": [
+    {
+      "row": 3,
+      "error": "SKU already exists",
+      "data": {
+        "title": "Duplicate Product",
+        "sku": "EXISTING-SKU"
+      }
+    }
+  ]
 }
 ```
 
@@ -296,55 +331,154 @@ Admin endpoints require session-based authentication. Login through the admin pa
 
 ## 🔧 Admin API Endpoints (JSON)
 
-### 1. Get All Products (Admin)
-**GET** `/admin/tools/api/products`
+### 1. Order Management APIs
+
+#### Update Individual Order Item
+**PATCH** `/api/v1/orders/admin/:id/items/:itemIndex`
+**Requires:** Admin Authentication
+
+**Request Body:**
+```json
+{
+  "status": "shipped",
+  "statusMessage": "Item shipped via courier",
+  "sendEmail": true
+}
+```
 
 **Response:**
 ```json
 {
   "success": true,
-  "products": [
+  "message": "Item status updated successfully",
+  "item": {
+    "index": 0,
+    "status": "shipped",
+    "statusMessage": "Item shipped via courier",
+    "updatedAt": "2025-01-15T10:30:00.000Z"
+  }
+}
+```
+
+#### Bulk Update Order Items
+**PATCH** `/api/v1/orders/admin/:id/items`
+**Requires:** Admin Authentication
+
+**Request Body:**
+```json
+{
+  "items": [
     {
-      "productId": "product_id",
-      "title": "Product Name",
-      "brand": "Brand Name",
-      "price": 999,
-      "variants": [
-        {
-          "sku": "SKU123",
-          "color": "Black",
-          "stock": 10
-        }
-      ],
-      "thumbnail": "/uploads/product.jpg"
+      "index": 0,
+      "status": "shipped"
+    },
+    {
+      "index": 1,
+      "status": "processing"
+    }
+  ],
+  "sendEmail": true
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "2 items updated successfully",
+  "updatedItems": [
+    {
+      "index": 0,
+      "status": "shipped"
+    },
+    {
+      "index": 1,
+      "status": "processing"
     }
   ]
 }
 ```
 
-### 2. Get Product by ID (Admin)
-**GET** `/admin/tools/api/products/:id`
+### 2. Inventory Management APIs
+
+#### Get Low Stock Items
+**GET** `/api/v1/inventory/low-stock`
+**Requires:** Admin Authentication
 
 **Response:**
 ```json
 {
   "success": true,
-  "product": {
-    "productId": "product_id",
-    "title": "Product Name",
-    "description": "Product description",
-    "price": 999,
-    "variants": [
+  "lowStockItems": [
+    {
+      "productId": "product_id",
+      "title": "Product Name",
+      "sku": "SKU123",
+      "currentStock": 3,
+      "thresholdQty": 5,
+      "status": "low_stock"
+    }
+  ]
+}
+```
+
+#### Get Inventory Movements
+**GET** `/api/v1/inventory/movements`
+**Requires:** Admin Authentication
+
+**Response:**
+```json
+{
+  "success": true,
+  "movements": [
+    {
+      "_id": "movement_id",
+      "product": {
+        "title": "Product Name"
+      },
+      "variantSku": "SKU123",
+      "type": "sale",
+      "quantity": -2,
+      "previousStock": 10,
+      "newStock": 8,
+      "createdAt": "2025-01-15T10:30:00.000Z"
+    }
+  ]
+}
+```
+
+### 3. Reports & Analytics APIs
+
+#### Get Comprehensive Dashboard Data
+**GET** `/admin/api/reports/comprehensive`
+**Requires:** Admin Authentication
+
+**Response:**
+```json
+{
+  "success": true,
+  "dashboard": {
+    "summary": {
+      "totalRevenue": 125000,
+      "totalOrders": 450,
+      "totalCustomers": 120,
+      "totalProducts": 85
+    },
+    "salesTrend": [
       {
-        "sku": "SKU123",
-        "color": "Black",
-        "stock": 10
+        "date": "2025-01-01",
+        "revenue": 5000,
+        "orders": 25
       }
-    ],
-    "images": ["/uploads/product1.jpg", "/uploads/product2.jpg"]
+    ]
   }
 }
 ```
+
+#### Export Dashboard Data
+**GET** `/admin/reports/comprehensive/excel` - Excel export
+**GET** `/admin/reports/comprehensive/csv` - CSV export
+**Requires:** Admin Authentication
 
 ---
 
@@ -435,6 +569,94 @@ Admin endpoints require session-based authentication. Login through the admin pa
 ```
 
 ---
+
+## 📋 Complete Admin Endpoint Summary
+
+### **Admin Authentication**
+- `GET /admin/v1/staff/login` - Login page
+- `POST /admin/v1/staff/login` - Login submission
+- `GET /admin/v1/staff/register` - Registration page
+- `POST /admin/v1/staff/register` - Registration submission
+- `GET /admin/v1/staff/dashboard` - Main dashboard
+- `GET /admin/v1/staff/parameter-dashboard` - Parameters dashboard
+- `GET /admin/v1/staff/content` - Content dashboard
+- `POST /admin/v1/staff/forgot-password` - Password reset
+- `POST /admin/v1/staff/change-password` - Change password
+
+### **Product Management**
+- `GET /admin/v1/products/` - Products list
+- `GET /admin/v1/products/new` - Add product page
+- `POST /admin/v1/products/` - Create product
+- `GET /admin/v1/products/:id` - Product details
+- `GET /admin/v1/products/:id/edit` - Edit product page
+- `PUT /admin/v1/products/:id` - Update product
+- `DELETE /admin/v1/products/:id` - Delete product
+
+### **Bulk Upload**
+- `GET /admin/v1/products/bulk-upload` - Bulk upload page
+- `POST /admin/v1/products/bulk-upload` - Process upload
+- `GET /admin/v1/products/bulk-upload/template` - Download template
+- `GET /admin/v1/products/bulk-upload/sample` - Download sample
+
+### **Category Management**
+- `GET /admin/v1/parameters/categories/` - Categories list
+- `POST /admin/v1/parameters/categories/` - Create category
+- `PUT /admin/v1/parameters/categories/:id` - Update category
+- `DELETE /admin/v1/parameters/categories/:id` - Delete category
+- `GET /admin/v1/parameters/subcategories/` - Subcategories list
+- `POST /admin/v1/parameters/subcategories/` - Create subcategory
+- `GET /admin/v1/parameters/types/` - Types list
+- `POST /admin/v1/parameters/types/` - Create type
+- `GET /admin/v1/parameters/brands/` - Brands list
+- `POST /admin/v1/parameters/brands/` - Create brand
+
+### **Order Management**
+- `GET /admin/v1/order/` - Orders list
+- `GET /admin/v1/order/:id` - Order details
+- `GET /admin/v1/order/:id/edit` - Edit order page
+- `PUT /admin/v1/order/:id` - Update order
+- `PATCH /admin/v1/order/:id/status` - Update order status
+
+### **Advanced Order APIs**
+- `PATCH /api/v1/orders/admin/:id/items/:itemIndex` - Update item
+- `PATCH /api/v1/orders/admin/:id/items` - Bulk update items
+- `GET /api/v1/orders/admin/:id/items/:itemIndex/history` - Item history
+
+### **Customer Management**
+- `GET /admin/v1/customers/` - Customers list
+- `GET /admin/v1/customers/users/:id` - Customer profile
+- `GET /admin/v1/customers/users/:id/edit` - Edit customer
+- `POST /admin/v1/customers/users/:id/update` - Update customer
+- `POST /admin/v1/customers/users/:id/delete` - Delete customer
+
+### **Review Management**
+- `GET /admin/v1/reviews/` - Reviews list
+- `GET /admin/v1/reviews/:id` - Review details
+- `DELETE /admin/v1/reviews/:id` - Delete review
+
+### **Content Management**
+- `GET /admin/v1/parameters/hero-carousel/` - Carousel management
+- `POST /admin/v1/parameters/hero-carousel/` - Create carousel item
+- `GET /admin/v1/parameters/ads-panel/` - Ads management
+- `POST /admin/v1/parameters/ads-panel/` - Create ad
+- `GET /admin/v1/parameters/company-info/` - Company info
+- `POST /admin/v1/parameters/company-info/` - Update company info
+- `GET /admin/v1/parameters/spec-lists/` - Specifications
+- `POST /admin/v1/parameters/spec-lists/` - Create specification
+
+### **Inventory Management**
+- `GET /admin/inventory/dashboard` - Inventory dashboard
+- `GET /admin/inventory/low-stock` - Low stock page
+- `GET /admin/inventory/movements` - Inventory movements
+- `GET /api/v1/inventory/low-stock` - Low stock API
+- `GET /api/v1/inventory/movements` - Movements API
+- `POST /api/v1/inventory/update-global-threshold` - Update threshold
+
+### **Reports & Analytics**
+- `GET /admin/reports/comprehensive` - Main dashboard
+- `GET /admin/api/reports/comprehensive` - Dashboard API
+- `GET /admin/reports/comprehensive/excel` - Excel export
+- `GET /admin/reports/comprehensive/csv` - CSV export
 
 ## 🚀 Getting Started (Admin)
 

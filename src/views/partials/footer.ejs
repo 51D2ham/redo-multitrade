@@ -3,31 +3,31 @@
 
   <script nonce="<%= cspNonce %>">
     // Sidebar functionality with improved animations
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('overlay');
-    const openSidebar = document.getElementById('openSidebar');
-    const closeSidebar = document.getElementById('closeSidebar');
+    const sidebarEl = document.getElementById('sidebar');
+    const overlayEl = document.getElementById('overlay');
+    const openSidebarEl = document.getElementById('openSidebar');
+    const closeSidebarEl = document.getElementById('closeSidebar');
 
     function showSidebar() {
-      sidebar.classList.remove('-translate-x-full');
-      overlay.classList.remove('hidden');
+      sidebarEl.classList.remove('-translate-x-full');
+      overlayEl.classList.remove('hidden');
       document.body.classList.add('overflow-hidden', 'lg:overflow-auto');
       // Add animation class
-      setTimeout(() => overlay.classList.add('opacity-100'), 10);
+      setTimeout(() => overlayEl.classList.add('opacity-100'), 10);
     }
 
     function hideSidebar() {
-      sidebar.classList.add('-translate-x-full');
-      overlay.classList.remove('opacity-100');
+      sidebarEl.classList.add('-translate-x-full');
+      overlayEl.classList.remove('opacity-100');
       setTimeout(() => {
-        overlay.classList.add('hidden');
+        overlayEl.classList.add('hidden');
         document.body.classList.remove('overflow-hidden', 'lg:overflow-auto');
       }, 300);
     }
 
-    openSidebar?.addEventListener('click', showSidebar);
-    closeSidebar?.addEventListener('click', hideSidebar);
-    overlay?.addEventListener('click', hideSidebar);
+    openSidebarEl?.addEventListener('click', showSidebar);
+    closeSidebarEl?.addEventListener('click', hideSidebar);
+    overlayEl?.addEventListener('click', hideSidebar);
 
     // Enhanced time display
     function updateTime() {
@@ -35,17 +35,16 @@
       const timeString = now.toLocaleTimeString('en-US', { 
         hour12: true, 
         hour: '2-digit', 
-        minute: '2-digit',
-        second: '2-digit'
+        minute: '2-digit'
       });
       const timeElement = document.getElementById('currentTime');
-      if (timeElement) {
+      if (timeElement && timeElement.textContent !== timeString) {
         timeElement.textContent = timeString;
       }
     }
 
     updateTime();
-    setInterval(updateTime, 1000);
+    setInterval(updateTime, 30000);
 
     // Enhanced active link highlighting
     const currentPath = window.location.pathname;
@@ -94,10 +93,10 @@
       const diff = touchStartX - touchEndX;
       
       if (Math.abs(diff) > swipeThreshold) {
-        if (diff > 0 && !sidebar.classList.contains('-translate-x-full')) {
+        if (diff > 0 && !sidebarEl.classList.contains('-translate-x-full')) {
           // Swipe left - close sidebar
           hideSidebar();
-        } else if (diff < 0 && sidebar.classList.contains('-translate-x-full') && touchStartX < 50) {
+        } else if (diff < 0 && sidebarEl.classList.contains('-translate-x-full') && touchStartX < 50) {
           // Swipe right from edge - open sidebar
           showSidebar();
         }

@@ -179,6 +179,14 @@ const changePasswordRender = async (req, res) => {
     admin.password = hashedPassword;
     await admin.save();
 
+    // Send password changed notification
+    try {
+      const NotificationService = require('../services/notificationService');
+      await NotificationService.sendPasswordChangedEmail(admin.email, admin.fullname, true);
+    } catch (emailError) {
+      console.error('Password change email failed:', emailError);
+    }
+
     req.flash('success', 'Password changed successfully');
     res.redirect('/admin/v1/staff/profile');
   } catch (error) {
@@ -210,12 +218,8 @@ const forgotPasswordRender = async (req, res) => {
     admin.OTP_Expires = Date.now() + 5 * 60 * 1000;
     await admin.save();
 
-    const htmlContent = `
-      <p>Your OTP is: <strong>${otp}</strong></p>
-      <p>Valid for 5 minutes.</p>
-    `;
-
-    await sendMail(email, 'Password Reset OTP', htmlContent);
+    const NotificationService = require('../services/notificationService');
+    await NotificationService.sendPasswordResetEmail(email, admin.fullname, otp, true);
 
     req.flash('success', 'OTP sent to your email');
     res.redirect(`/admin/v1/staff/reset-password?email=${email}`);

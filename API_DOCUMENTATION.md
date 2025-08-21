@@ -352,7 +352,37 @@ Authorization: Bearer <jwt_token>
 
 ## 📦 Order Management APIs
 
-### 1. Checkout
+### 1. Get All Orders (Public)
+**GET** `/api/v1/orders/`
+
+**Query Parameters:**
+- `page` (number): Page number (default: 1)
+- `limit` (number): Items per page (default: 20)
+- `status` (string): Filter by order status
+
+**Response:**
+```json
+{
+  "success": true,
+  "orders": [
+    {
+      "_id": "order_id",
+      "totalPrice": 1998,
+      "totalItem": 1,
+      "status": "delivered",
+      "paymentMethod": "cod",
+      "createdAt": "2025-01-10T10:30:00.000Z"
+    }
+  ],
+  "pagination": {
+    "currentPage": 1,
+    "totalPages": 5,
+    "totalOrders": 100
+  }
+}
+```
+
+### 2. Checkout
 **POST** `/api/v1/orders/checkout`
 **Requires:** JWT Authentication
 
@@ -399,7 +429,7 @@ Authorization: Bearer <jwt_token>
 }
 ```
 
-### 2. Get Order History
+### 3. Get Order History
 **GET** `/api/v1/orders/order-history`
 **Requires:** JWT Authentication
 
@@ -425,7 +455,7 @@ Authorization: Bearer <jwt_token>
 }
 ```
 
-### 3. Get Order Details
+### 4. Get Order Details
 **GET** `/api/v1/orders/:orderId`
 **Requires:** JWT Authentication
 
@@ -457,9 +487,16 @@ Authorization: Bearer <jwt_token>
 }
 ```
 
-### 4. Cancel Order
+### 5. Cancel Order
 **POST** `/api/v1/orders/:orderId/cancel`
 **Requires:** JWT Authentication
+
+**Request Body:**
+```json
+{
+  "reason": "Changed my mind" // Optional
+}
+```
 
 **Response:**
 ```json
@@ -469,7 +506,7 @@ Authorization: Bearer <jwt_token>
 }
 ```
 
-### 5. Track Order (Public)
+### 6. Track Order (Public)
 **GET** `/api/v1/orders/track/:trackingNumber`
 
 **Response:**
@@ -636,7 +673,23 @@ Authorization: Bearer <jwt_token>
 }
 ```
 
-### 2. Get Categories with Hierarchy
+### 2. Get Category by ID
+**GET** `/api/v1/categories/:id`
+
+**Response:**
+```json
+{
+  "success": true,
+  "category": {
+    "_id": "category_id",
+    "name": "Electronics",
+    "productCount": 45,
+    "createdAt": "2025-01-01T00:00:00.000Z"
+  }
+}
+```
+
+### 3. Get Categories with Hierarchy
 **GET** `/api/v1/categories/hierarchy`
 
 **Response:**
@@ -666,9 +719,277 @@ Authorization: Bearer <jwt_token>
 
 ---
 
+## 📂 Subcategory APIs (Public)
+
+### 1. Get All Subcategories
+**GET** `/api/v1/subcategories/`
+
+**Response:**
+```json
+{
+  "success": true,
+  "subcategories": [
+    {
+      "_id": "subcategory_id",
+      "name": "Audio",
+      "category": {
+        "_id": "category_id",
+        "name": "Electronics"
+      },
+      "productCount": 25,
+      "createdAt": "2025-01-01T00:00:00.000Z"
+    }
+  ]
+}
+```
+
+### 2. Get Subcategories by Category
+**GET** `/api/v1/subcategories/categories/:categoryId`
+
+**Response:**
+```json
+{
+  "success": true,
+  "subcategories": [
+    {
+      "_id": "subcategory_id",
+      "name": "Audio",
+      "category": {
+        "_id": "category_id",
+        "name": "Electronics"
+      },
+      "productCount": 25
+    }
+  ]
+}
+```
+
+### 3. Get Products by Subcategory
+**GET** `/api/v1/subcategories/:subCategoryId/products`
+
+**Query Parameters:**
+- `page` (number): Page number (default: 1)
+- `limit` (number): Items per page (default: 20)
+
+**Response:**
+```json
+{
+  "success": true,
+  "products": [
+    {
+      "_id": "product_id",
+      "title": "Wireless Headphones",
+      "price": 999,
+      "images": ["/uploads/product1.jpg"]
+    }
+  ],
+  "pagination": {
+    "currentPage": 1,
+    "totalPages": 5,
+    "totalProducts": 100
+  }
+}
+```
+
+---
+
+## 📂 Product Types APIs (Public)
+
+### 1. Get All Types
+**GET** `/api/v1/types/`
+
+**Response:**
+```json
+{
+  "success": true,
+  "types": [
+    {
+      "_id": "type_id",
+      "name": "Headphones",
+      "category": {
+        "_id": "category_id",
+        "name": "Electronics"
+      },
+      "subCategory": {
+        "_id": "subcategory_id",
+        "name": "Audio"
+      },
+      "productCount": 12,
+      "createdAt": "2025-01-01T00:00:00.000Z"
+    }
+  ]
+}
+```
+
+### 2. Get Types by Subcategory
+**GET** `/api/v1/types/subcategories/:subCategoryId`
+
+**Response:**
+```json
+{
+  "success": true,
+  "types": [
+    {
+      "_id": "type_id",
+      "name": "Headphones",
+      "subCategory": {
+        "_id": "subcategory_id",
+        "name": "Audio"
+      },
+      "productCount": 12
+    }
+  ]
+}
+```
+
+### 3. Get Products by Type
+**GET** `/api/v1/types/:typeId/products`
+
+**Query Parameters:**
+- `page` (number): Page number (default: 1)
+- `limit` (number): Items per page (default: 20)
+
+**Response:**
+```json
+{
+  "success": true,
+  "products": [
+    {
+      "_id": "product_id",
+      "title": "Wireless Headphones",
+      "price": 999,
+      "images": ["/uploads/product1.jpg"]
+    }
+  ],
+  "pagination": {
+    "currentPage": 1,
+    "totalPages": 3,
+    "totalProducts": 50
+  }
+}
+```
+
+---
+
+## 🏷️ Brand APIs (Public)
+
+### 1. Get All Brands
+**GET** `/api/v1/brands/`
+
+**Response:**
+```json
+{
+  "success": true,
+  "brands": [
+    {
+      "_id": "brand_id",
+      "name": "Sony",
+      "productCount": 15,
+      "createdAt": "2025-01-01T00:00:00.000Z"
+    }
+  ]
+}
+```
+
+### 2. Get Products by Brand
+**GET** `/api/v1/brands/:brandId/products`
+
+**Query Parameters:**
+- `page` (number): Page number (default: 1)
+- `limit` (number): Items per page (default: 20)
+
+**Response:**
+```json
+{
+  "success": true,
+  "products": [
+    {
+      "_id": "product_id",
+      "title": "Sony Headphones",
+      "price": 999,
+      "brand": {
+        "_id": "brand_id",
+        "name": "Sony"
+      },
+      "images": ["/uploads/product1.jpg"]
+    }
+  ],
+  "pagination": {
+    "currentPage": 1,
+    "totalPages": 4,
+    "totalProducts": 75
+  }
+}
+```
+
+---
+
 ## 📝 Review APIs
 
-### 1. Submit Review
+### 1. Get Product Reviews
+**GET** `/api/v1/reviews/products/:productId`
+
+**Query Parameters:**
+- `page` (number): Page number (default: 1)
+- `limit` (number): Items per page (default: 20)
+- `rating` (number): Filter by rating (1-5)
+
+**Response:**
+```json
+{
+  "success": true,
+  "reviews": [
+    {
+      "_id": "review_id",
+      "rating": 5,
+      "title": "Great product!",
+      "review": "Excellent product! Highly recommended.",
+      "verified": true,
+      "helpful": 12,
+      "status": "approved",
+      "user": {
+        "fullname": "John Doe"
+      },
+      "product": {
+        "_id": "product_id",
+        "title": "Wireless Headphones"
+      },
+      "createdAt": "2025-01-15T10:30:00.000Z"
+    }
+  ],
+  "pagination": {
+    "currentPage": 1,
+    "totalPages": 3,
+    "totalReviews": 50
+  }
+}
+```
+
+### 1.1. Get User's Reviews
+**GET** `/api/v1/reviews/my-reviews`
+**Requires:** JWT Authentication
+
+**Response:**
+```json
+{
+  "success": true,
+  "reviews": [
+    {
+      "_id": "review_id",
+      "rating": 5,
+      "title": "Great product!",
+      "review": "Excellent product! Highly recommended.",
+      "product": {
+        "_id": "product_id",
+        "title": "Wireless Headphones"
+      },
+      "createdAt": "2025-01-15T10:30:00.000Z"
+    }
+  ]
+}
+```
+
+### 2. Submit Review
 **POST** `/api/v1/reviews/`
 **Requires:** JWT Authentication
 
@@ -677,6 +998,7 @@ Authorization: Bearer <jwt_token>
 {
   "productId": "product_object_id",
   "rating": 5,
+  "title": "Great product!",
   "review": "Excellent product! Highly recommended."
 }
 ```
@@ -689,9 +1011,93 @@ Authorization: Bearer <jwt_token>
   "review": {
     "_id": "review_id",
     "rating": 5,
+    "title": "Great product!",
     "review": "Excellent product! Highly recommended.",
+    "status": "pending",
     "createdAt": "2025-01-15T10:30:00.000Z"
   }
+}
+```
+
+### 3. Get Review by ID
+**GET** `/api/v1/reviews/:reviewId`
+**Requires:** JWT Authentication
+
+**Response:**
+```json
+{
+  "success": true,
+  "review": {
+    "_id": "review_id",
+    "rating": 5,
+    "title": "Great product!",
+    "review": "Excellent product! Highly recommended.",
+    "verified": true,
+    "helpful": 12,
+    "status": "approved",
+    "user": {
+      "fullname": "John Doe"
+    },
+    "product": {
+      "_id": "product_id",
+      "title": "Wireless Headphones",
+      "images": ["/uploads/product1.jpg"]
+    },
+    "createdAt": "2025-01-15T10:30:00.000Z"
+  }
+}
+```
+
+### 4. Update Review
+**PUT** `/api/v1/reviews/:reviewId`
+**Requires:** JWT Authentication (Own reviews only)
+
+**Request Body:**
+```json
+{
+  "rating": 4,
+  "title": "Updated title",
+  "review": "Updated review content"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Review updated successfully",
+  "review": {
+    "_id": "review_id",
+    "rating": 4,
+    "title": "Updated title",
+    "review": "Updated review content",
+    "updatedAt": "2025-01-15T11:30:00.000Z"
+  }
+}
+```
+
+### 5. Delete Review
+**DELETE** `/api/v1/reviews/:reviewId`
+**Requires:** JWT Authentication (Own reviews only)
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Review deleted successfully"
+}
+```
+
+### 6. Check Review Eligibility
+**GET** `/api/v1/reviews/can-review/:productId`
+**Requires:** JWT Authentication
+
+**Response:**
+```json
+{
+  "success": true,
+  "canReview": true,
+  "message": "You can review this product"
 }
 ```
 
@@ -1025,6 +1431,76 @@ X-RateLimit-Reset: 1642694400
 ```
 
 ---
+
+## 📋 Complete API Endpoint Summary
+
+### **Authentication APIs**
+- `POST /api/v1/customers/register` - Register new customer
+- `POST /api/v1/customers/login` - Customer login
+- `POST /api/v1/customers/logout` - Customer logout
+- `POST /api/v1/customers/forgot-password` - Send password reset OTP
+- `POST /api/v1/customers/reset-password` - Reset password with OTP
+- `PUT /api/v1/customers/change-password` - Change password
+
+### **Product APIs**
+- `GET /api/v1/products/` - Get all products with filters
+- `GET /api/v1/products/:id` - Get product by ID
+- `GET /api/v1/products/filters` - Get available filters
+
+### **Category APIs**
+- `GET /api/v1/categories/` - Get all categories
+- `GET /api/v1/categories/hierarchy` - Get category hierarchy
+- `GET /api/v1/subcategories/` - Get all subcategories
+- `GET /api/v1/subcategories/categories/:categoryId` - Get subcategories by category
+- `GET /api/v1/subcategories/:subCategoryId/products` - Get products by subcategory
+- `GET /api/v1/types/` - Get all product types
+- `GET /api/v1/types/subcategories/:subCategoryId` - Get types by subcategory
+- `GET /api/v1/types/:typeId/products` - Get products by type
+- `GET /api/v1/brands/` - Get all brands
+- `GET /api/v1/brands/:brandId/products` - Get products by brand
+
+### **Shopping APIs**
+- `GET /api/v1/cart/` - Get cart items
+- `POST /api/v1/cart/` - Add item to cart
+- `PUT /api/v1/cart/items/:itemId` - Update cart item
+- `DELETE /api/v1/cart/items/:itemId` - Remove cart item
+- `DELETE /api/v1/cart/` - Clear cart
+
+### **Wishlist APIs**
+- `GET /api/v1/wishlist/` - Get wishlist
+- `POST /api/v1/wishlist/items` - Add to wishlist
+- `DELETE /api/v1/wishlist/items/:itemId` - Remove from wishlist
+- `DELETE /api/v1/wishlist/` - Clear wishlist
+
+### **Order APIs**
+- `GET /api/v1/orders/` - Get all orders (public)
+- `POST /api/v1/orders/checkout` - Place order
+- `GET /api/v1/orders/order-history` - Get order history
+- `GET /api/v1/orders/:orderId` - Get order details
+- `POST /api/v1/orders/:orderId/cancel` - Cancel order
+- `GET /api/v1/orders/track/:trackingNumber` - Track order
+
+### **Review APIs**
+- `GET /api/v1/reviews/products/:productId` - Get product reviews
+- `POST /api/v1/reviews/` - Submit review
+- `GET /api/v1/reviews/my-reviews` - Get user's reviews
+- `GET /api/v1/reviews/:reviewId` - Get review by ID
+- `PUT /api/v1/reviews/:reviewId` - Update review
+- `DELETE /api/v1/reviews/:reviewId` - Delete review
+- `GET /api/v1/reviews/can-review/:productId` - Check if user can review
+
+### **Specification Search APIs**
+- `GET /api/v1/spec-lists/` - Get all specifications
+- `GET /api/v1/spec-lists/products` - Search products by spec
+- `GET /api/v1/spec-lists/search` - Search by spec query
+- `GET /api/v1/spec-lists/values` - Get spec values
+- `GET /api/v1/spec-lists/filters` - Get filterable specs
+- `GET /api/v1/spec-lists/filter` - Advanced multi-spec filtering
+
+### **Content APIs**
+- `GET /api/v1/hero-carousel/` - Get carousel items
+- `GET /api/v1/ads-panel/` - Get ads by location
+- `GET /api/v1/company-info/` - Get company information
 
 ## 🚀 Getting Started
 

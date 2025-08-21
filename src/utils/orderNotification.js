@@ -1,52 +1,18 @@
-const nodemailer = require('nodemailer');
-
-// Email configuration
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_PASS
-  }
-});
+const NotificationService = require('../services/notificationService');
 
 // Send order confirmation email
 const sendOrderConfirmation = async (userEmail, order, shippingAddress) => {
   try {
-    const mailOptions = {
-      from: process.env.GMAIL_USER,
-      to: userEmail,
-      subject: `Order Confirmation - Order #${order._id}`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #333;">Order Confirmation</h2>
-          <p>Thank you for your order! Here are the details:</p>
-          
-          <div style="background: #f5f5f5; padding: 20px; border-radius: 5px; margin: 20px 0;">
-            <h3>Order Details</h3>
-            <p><strong>Order ID:</strong> ${order._id}</p>
-            <p><strong>Total Amount:</strong> ₹${order.totalPrice}</p>
-            <p><strong>Payment Method:</strong> ${order.paymentMethod.toUpperCase()}</p>
-            <p><strong>Status:</strong> ${order.status}</p>
-            <p><strong>Order Date:</strong> ${new Date(order.createdAt).toLocaleDateString()}</p>
-          </div>
-
-          <div style="background: #f5f5f5; padding: 20px; border-radius: 5px; margin: 20px 0;">
-            <h3>Shipping Address</h3>
-            <p>${shippingAddress.fullname}</p>
-            <p>${shippingAddress.street}</p>
-            <p>${shippingAddress.city}, ${shippingAddress.state} ${shippingAddress.postalCode}</p>
-            <p>${shippingAddress.country}</p>
-            <p>Phone: ${shippingAddress.phone}</p>
-          </div>
-
-          <p>We'll send you updates as your order progresses.</p>
-          <p>Thank you for shopping with us!</p>
-        </div>
-      `
-    };
-
-    await transporter.sendMail(mailOptions);
-    console.log('Order confirmation email sent successfully');
+    await NotificationService.sendOrderConfirmation(userEmail, {
+      customerName: 'Customer',
+      orderId: order._id,
+      orderNumber: order._id.toString().slice(-8),
+      orderDate: new Date(order.createdAt).toLocaleDateString(),
+      totalPrice: order.totalPrice,
+      totalItem: order.totalItem,
+      paymentMethod: order.paymentMethod,
+      items: order.items
+    });
   } catch (error) {
     console.error('Failed to send order confirmation email:', error);
   }
@@ -55,35 +21,56 @@ const sendOrderConfirmation = async (userEmail, order, shippingAddress) => {
 // Send order status update
 const sendOrderStatusUpdate = async (userEmail, order, newStatus, message) => {
   try {
-    const mailOptions = {
-      from: process.env.GMAIL_USER,
-      to: userEmail,
-      subject: `Order Update - Order #${order._id}`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #333;">Order Status Update</h2>
-          <p>Your order status has been updated:</p>
-          
-          <div style="background: #f5f5f5; padding: 20px; border-radius: 5px; margin: 20px 0;">
-            <p><strong>Order ID:</strong> ${order._id}</p>
-            <p><strong>New Status:</strong> ${newStatus}</p>
-            <p><strong>Update Time:</strong> ${new Date().toLocaleString()}</p>
-            ${message ? `<p><strong>Message:</strong> ${message}</p>` : ''}
-          </div>
-
-          <p>Thank you for your patience!</p>
-        </div>
-      `
-    };
-
-    await transporter.sendMail(mailOptions);
-    console.log('Order status update email sent successfully');
+    await NotificationService.sendOrderStatusUpdate(userEmail, {
+      customerName: 'Customer',
+      orderId: order._id,
+      orderNumber: order._id.toString().slice(-8),
+      totalPrice: order.totalPrice,
+      paymentMethod: order.paymentMethod,
+      items: order.items,
+      trackingNumber: order.trackingNumber,
+      reason: message
+    }, newStatus);
   } catch (error) {
     console.error('Failed to send order status update email:', error);
   }
 };
 
+// Send individual item status update
+const sendItemStatusUpdate = async (userEmail, order, item, newStatus, message) => {
+  try {
+    await NotificationService.sendOrderStatusUpdate(userEmail, {
+      customerName: 'Customer',
+      orderId: order._id,
+      orderNumber: order._id.toString().slice(-8),
+      totalPrice: order.totalPrice,
+      items: [item],
+      reason: message
+    }, newStatus);
+  } catch (error) {
+    console.error('Failed to send item status update email:', error);
+  }
+};
+
+// Send bulk status update
+const sendBulkStatusUpdate = async (userEmail, order, updatedItems) => {
+  try {
+    const items = updatedItems.map(({ item }) => item);
+    await NotificationService.sendOrderStatusUpdate(userEmail, {
+      customerName: 'Customer',
+      orderId: order._id,
+      orderNumber: order._id.toString().slice(-8),
+      totalPrice: order.totalPrice,
+      items: items
+    }, 'processing');
+  } catch (error) {
+    console.error('Failed to send bulk status update email:', error);
+  }
+};
+
 module.exports = {
   sendOrderConfirmation,
-  sendOrderStatusUpdate
+  sendOrderStatusUpdate,
+  sendItemStatusUpdate,
+  sendBulkStatusUpdate
 };

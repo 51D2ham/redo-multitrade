@@ -82,32 +82,9 @@ exports.getDashboard = async (req, res) => {
 exports.getLowStock = async (req, res) => {
   try {
     const { status, category, brand, minStock, maxStock, search, page = 1 } = req.query;
-    let alerts;
     
-    try {
-      alerts = await InventoryService.getStockAlerts({
-        status,
-        category,
-        brand,
-        minStock: minStock ? parseInt(minStock) : undefined,
-        maxStock: maxStock ? parseInt(maxStock) : undefined,
-        search
-      });
-    } catch (error) {
-      console.log('No real data found, using sample data');
-      alerts = [];
-    }
-    
-    // If no real alerts found, use sample data
-    if (!alerts || alerts.length === 0) {
-      alerts = [
-        { title: 'Wireless Bluetooth Headphones', sku: 'WBH-001', currentStock: 1, threshold: 5, productId: '507f1f77bcf86cd799439011', status: 'low_stock' },
-        { title: 'Gaming Mouse Pro', sku: 'GMP-002', currentStock: 0, threshold: 10, productId: '507f1f77bcf86cd799439012', status: 'out_of_stock' },
-        { title: 'USB-C Cable Premium', sku: 'UCP-003', currentStock: 2, threshold: 15, productId: '507f1f77bcf86cd799439013', status: 'low_stock' },
-        { title: 'Mechanical Keyboard RGB', sku: 'MKR-004', currentStock: 4, threshold: 12, productId: '507f1f77bcf86cd799439014', status: 'low_stock' },
-        { title: 'Smartphone Case', sku: 'SC-005', currentStock: 0, threshold: 8, productId: '507f1f77bcf86cd799439015', status: 'out_of_stock' }
-      ];
-    }
+    // Get actual low stock alerts from database
+    const alerts = await InventoryService.getLowStockAlerts();
     
     // Pagination
     const itemsPerPage = 10;
@@ -131,28 +108,16 @@ exports.getLowStock = async (req, res) => {
     ]);
     
     // Calculate stats
-    const criticalStock = alerts.filter(a => a.currentStock === 0).length;
-    const lowStock = alerts.filter(a => a.currentStock > 0 && a.currentStock <= a.threshold).length;
+    const criticalStock = alerts.filter(a => (a.stock || a.currentStock || 0) === 0).length;
+    const lowStock = alerts.filter(a => (a.stock || a.currentStock || 0) > 0).length;
     
-    res.render('inventory/lowStock', {
-      title: 'Low Stock Alerts',
+    res.render('inventory/low-stock', {
+      title: 'Low Stock Products',
       alerts: paginatedAlerts,
-      allAlerts: alerts,
-      categories: categories || [],
-      brands: brands || [],
-      filters: req.query,
       stats: {
         criticalStock,
         lowStock,
         totalAlerts: alerts.length
-      },
-      pagination: {
-        currentPage,
-        totalPages,
-        totalItems,
-        itemsPerPage,
-        startIndex: startIndex + 1,
-        endIndex
       },
       success: req.flash('success'),
       error: req.flash('error')
@@ -161,21 +126,10 @@ exports.getLowStock = async (req, res) => {
     console.error('Low stock error:', error);
     req.flash('error', 'Failed to load low stock alerts');
     
-    // Use sample data for error case too
-    const sampleAlerts = [
-      { title: 'Wireless Bluetooth Headphones', sku: 'WBH-001', currentStock: 1, threshold: 5, productId: '507f1f77bcf86cd799439011' },
-      { title: 'Gaming Mouse Pro', sku: 'GMP-002', currentStock: 0, threshold: 10, productId: '507f1f77bcf86cd799439012' },
-      { title: 'USB-C Cable Premium', sku: 'UCP-003', currentStock: 2, threshold: 15, productId: '507f1f77bcf86cd799439013' }
-    ];
-    
-    res.render('inventory/lowStock', {
-      title: 'Low Stock Alerts',
-      alerts: sampleAlerts,
-      allAlerts: sampleAlerts,
-      categories: [],
-      brands: [],
-      filters: req.query,
-      pagination: { currentPage: 1, totalPages: 1, totalItems: 3, itemsPerPage: 10, startIndex: 1, endIndex: 3 },
+    res.render('inventory/low-stock', {
+      title: 'Low Stock Products',
+      alerts: [],
+      stats: { criticalStock: 0, lowStock: 0, totalAlerts: 0 },
       success: req.flash('success'),
       error: req.flash('error')
     });

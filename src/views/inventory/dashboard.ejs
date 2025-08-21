@@ -1,27 +1,29 @@
 <%- include('../partials/header.ejs', { title: 'Inventory Dashboard' }) %>
 
-<div class="min-h-screen bg-gray-50 py-6">
-  <div class="max-w-7xl mx-auto px-4">
+<div class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+  <div class="max-w-7xl mx-auto px-6 py-8">
     
     <!-- Header -->
-    <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
-      <div>
-        <h1 class="text-3xl font-bold text-gray-900">Inventory Dashboard</h1>
-        <p class="text-gray-600 mt-1">Monitor stock levels and inventory movements</p>
-      </div>
-      <div class="flex items-center gap-3">
-        <a href="/admin/v1/staff/dashboard" class="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-          <i class="fas fa-home mr-2"></i>Dashboard
-        </a>
-  <a href="/admin/inventory/movements" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-          <i class="fas fa-history mr-2"></i>View All Movements
-        </a>
+    <div class="mb-8">
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div>
+          <h1 class="text-2xl lg:text-3xl font-bold text-gray-900">Inventory Dashboard</h1>
+          <p class="text-gray-600 mt-2">Monitor stock levels and inventory movements</p>
+        </div>
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <a href="/admin/reports/comprehensive" class="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-center">
+            <i class="fas fa-chart-line mr-2"></i>Main Dashboard
+          </a>
+          <a href="/admin/inventory/movements" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-center">
+            <i class="fas fa-history mr-2"></i>View Movements
+          </a>
+        </div>
       </div>
     </div>
 
     <!-- Flash Messages -->
     <% if (success && success.length) { %>
-      <div class="mb-6 p-4 rounded-lg bg-green-50 border border-green-200 text-green-800">
+      <div class="mb-8 p-4 rounded-xl bg-green-50 border border-green-200 text-green-800">
         <% success.forEach(msg => { %>
           <div class="flex items-center gap-2">
             <i class="fas fa-check-circle"></i>
@@ -32,7 +34,7 @@
     <% } %>
 
     <% if (error && error.length) { %>
-      <div class="mb-6 p-4 rounded-lg bg-red-50 border border-red-200 text-red-800">
+      <div class="mb-8 p-4 rounded-xl bg-red-50 border border-red-200 text-red-800">
         <% error.forEach(msg => { %>
           <div class="flex items-center gap-2">
             <i class="fas fa-exclamation-circle"></i>
@@ -42,137 +44,134 @@
       </div>
     <% } %>
 
-    <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-      <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-all duration-300">
-        <div class="flex items-center justify-between mb-4">
-          <div class="p-3 bg-red-50 rounded-lg">
-            <i class="fas fa-exclamation-triangle text-xl text-red-600"></i>
+    <!-- KPI Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div class="bg-white rounded-xl p-6 shadow-sm border hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Critical Stock</p>
+            <p class="text-2xl font-bold text-red-600"><%= data.criticalStockCount || 0 %></p>
+            <p class="text-sm text-red-500 mt-1">
+              <i class="fas fa-times-circle mr-1"></i>Out of stock
+            </p>
           </div>
-          <div class="text-right">
-            <p class="text-sm text-gray-600 font-medium">Critical Stock</p>
-            <h3 class="text-2xl font-bold text-red-600"><%= data.criticalStockCount %></h3>
+          <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+            <i class="fas fa-exclamation-triangle text-red-600"></i>
           </div>
-        </div>
-        <div class="text-sm text-gray-500">
-          Items completely out of stock
         </div>
       </div>
       
-      <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-all duration-300">
-        <div class="flex items-center justify-between mb-4">
-          <div class="p-3 bg-yellow-50 rounded-lg">
-            <i class="fas fa-exclamation-circle text-xl text-yellow-600"></i>
+      <div class="bg-white rounded-xl p-6 shadow-sm border hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Low Stock</p>
+            <p class="text-2xl font-bold text-yellow-600"><%= data.lowStockCount || 0 %></p>
+            <p class="text-sm text-yellow-500 mt-1">
+              <i class="fas fa-exclamation-circle mr-1"></i>Below threshold
+            </p>
           </div>
-          <div class="text-right">
-            <p class="text-sm text-gray-600 font-medium">Low Stock</p>
-            <h3 class="text-2xl font-bold text-yellow-600"><%= data.lowStockCount %></h3>
+          <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+            <i class="fas fa-exclamation-circle text-yellow-600"></i>
           </div>
-        </div>
-        <div class="text-sm text-gray-500">
-          Items below threshold level
         </div>
       </div>
       
-      <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-all duration-300">
-        <div class="flex items-center justify-between mb-4">
-          <div class="p-3 bg-blue-50 rounded-lg">
-            <i class="fas fa-exchange-alt text-xl text-blue-600"></i>
+      <div class="bg-white rounded-xl p-6 shadow-sm border hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Total Products</p>
+            <p class="text-2xl font-bold text-blue-600"><%= data.totalProducts || 0 %></p>
+            <p class="text-sm text-blue-500 mt-1">
+              <i class="fas fa-box mr-1"></i><%= data.activeProducts || 0 %> active
+            </p>
           </div>
-          <div class="text-right">
-            <p class="text-sm text-gray-600 font-medium">Recent Movements</p>
-            <h3 class="text-2xl font-bold text-blue-600"><%= data.recentMovements.length %></h3>
+          <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+            <i class="fas fa-box text-blue-600"></i>
           </div>
         </div>
-        <div class="text-sm text-gray-500">
-          Stock changes in last 10 entries
+      </div>
+      
+      <div class="bg-white rounded-xl p-6 shadow-sm border hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Stock Value</p>
+            <p class="text-2xl font-bold text-green-600">₹<%= (data.stockValue || 0).toLocaleString('en-IN') %></p>
+            <p class="text-sm text-green-500 mt-1">
+              <i class="fas fa-rupee-sign mr-1"></i>Total inventory
+            </p>
+          </div>
+          <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+            <i class="fas fa-rupee-sign text-green-600"></i>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Quick Actions -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Content Sections -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
       
       <!-- Low Stock Alerts -->
-      <div class="bg-white rounded-xl shadow-sm border">
-        <div class="px-6 py-4 border-b bg-gray-50 rounded-t-xl">
-          <div class="flex items-center justify-between">
-            <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
-              <i class="fas fa-exclamation-triangle text-red-500"></i>
-              Low Stock Alerts
-            </h2>
-            <a href="/admin/inventory/low-stock" class="text-blue-600 hover:text-blue-800 text-sm font-medium">View All →</a>
-          </div>
+      <div class="bg-white rounded-xl p-4 lg:p-6 shadow-sm border">
+        <div class="flex items-center justify-between mb-6">
+          <h3 class="text-lg font-semibold text-gray-900">Low Stock Alerts</h3>
+          <a href="/admin/inventory/low-stock" class="text-sm text-blue-600 hover:text-blue-700">View all →</a>
         </div>
-        <div class="p-6">
-          <% if (data.lowStockAlerts.length > 0) { %>
-            <div class="space-y-4">
-              <% data.lowStockAlerts.forEach(alert => { %>
-                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <p class="font-medium text-gray-900"><%= alert.title %></p>
-                    <p class="text-sm text-gray-600">SKU: <%= alert.sku %></p>
-                    <p class="text-sm text-gray-600"><%= alert.brand %> • <%= alert.category %></p>
-                  </div>
-                  <div class="text-right">
-                    <p class="text-sm font-medium <%= alert.status === 'out_of_stock' ? 'text-red-600' : 'text-yellow-600' %>">
-                      <%= alert.currentStock %> / <%= alert.threshold %>
-                    </p>
-                    <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full <%= alert.status === 'out_of_stock' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800' %>">
-                      <%= alert.status.replace('_', ' ') %>
-                    </span>
-                  </div>
+        <div class="space-y-4">
+          <% if (data.lowStockAlerts && data.lowStockAlerts.length > 0) { %>
+            <% data.lowStockAlerts.slice(0, 5).forEach(alert => { %>
+              <div class="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
+                <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                  <i class="fas fa-exclamation-triangle text-red-600"></i>
                 </div>
-              <% }) %>
-            </div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-medium text-gray-900 truncate"><%= alert.title || 'Unknown Product' %></p>
+                  <p class="text-xs text-gray-500">SKU: <%= alert.sku || 'N/A' %></p>
+                </div>
+                <div class="text-right">
+                  <p class="text-sm font-bold text-red-600"><%= alert.stock || alert.currentStock || 0 %></p>
+                  <p class="text-xs text-gray-500">units left</p>
+                </div>
+              </div>
+            <% }) %>
           <% } else { %>
-            <p class="text-gray-500 text-center py-8">No low stock alerts</p>
+            <div class="text-center py-8">
+              <i class="fas fa-check-circle text-4xl text-green-500 mb-4"></i>
+              <p class="text-gray-500">All products are well stocked</p>
+            </div>
           <% } %>
         </div>
       </div>
 
       <!-- Recent Movements -->
-      <div class="bg-white rounded-xl shadow-sm border">
-        <div class="px-6 py-4 border-b bg-gray-50 rounded-t-xl">
-          <div class="flex items-center justify-between">
-            <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
-              <i class="fas fa-history text-blue-500"></i>
-              Recent Movements
-            </h2>
-            <a href="/admin/inventory/movements" class="text-blue-600 hover:text-blue-800 text-sm font-medium">View All →</a>
-          </div>
+      <div class="bg-white rounded-xl p-4 lg:p-6 shadow-sm border">
+        <div class="flex items-center justify-between mb-6">
+          <h3 class="text-lg font-semibold text-gray-900">Recent Movements</h3>
+          <a href="/admin/inventory/movements" class="text-sm text-blue-600 hover:text-blue-700">View all →</a>
         </div>
-        <div class="p-6">
-          <% if (data.recentMovements.length > 0) { %>
-            <div class="space-y-4">
-              <% data.recentMovements.forEach(movement => { %>
-                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div class="flex items-center">
-                    <div class="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center mr-3">
-                      <% if (movement.product?.thumbnail) { %>
-                        <img src="<%= movement.product.thumbnail %>" alt="" class="w-8 h-8 object-cover rounded">
-                      <% } else { %>
-                        <i class="fas fa-cube text-gray-400"></i>
-                      <% } %>
-                    </div>
-                    <div>
-                      <p class="font-medium text-gray-900"><%= movement.product?.title || 'Unknown Product' %></p>
-                      <p class="text-sm text-gray-600">SKU: <%= movement.variantSku %></p>
-                    </div>
-                  </div>
-                  <div class="text-right">
-                    <p class="text-sm font-medium">
-                      <span class="<%= movement.type === 'sale' ? 'text-red-600' : 'text-green-600' %>">
-                        <%= movement.type === 'sale' ? '-' : '+' %><%= movement.quantity %>
-                      </span>
-                    </p>
-                    <p class="text-xs text-gray-500"><%= new Date(movement.createdAt).toLocaleDateString() %></p>
-                  </div>
+        <div class="space-y-4">
+          <% if (data.recentMovements && data.recentMovements.length > 0) { %>
+            <% data.recentMovements.slice(0, 5).forEach(movement => { %>
+              <div class="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
+                <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <i class="fas fa-<%= movement.type === 'sale' ? 'minus' : 'plus' %> text-<%= movement.type === 'sale' ? 'red' : 'green' %>-600"></i>
                 </div>
-              <% }) %>
-            </div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-medium text-gray-900 truncate"><%= movement.productTitle || movement.product?.title || 'Unknown Product' %></p>
+                  <p class="text-xs text-gray-500">SKU: <%= movement.variantSku || 'N/A' %></p>
+                </div>
+                <div class="text-right">
+                  <p class="text-sm font-medium text-<%= movement.type === 'sale' ? 'red' : 'green' %>-600">
+                    <%= movement.type === 'sale' ? '-' : '+' %><%= movement.quantity %>
+                  </p>
+                  <p class="text-xs text-gray-500"><%= new Date(movement.createdAt).toLocaleDateString() %></p>
+                </div>
+              </div>
+            <% }) %>
           <% } else { %>
-            <p class="text-gray-500 text-center py-8">No recent movements</p>
+            <div class="text-center py-8">
+              <i class="fas fa-history text-4xl text-gray-300 mb-4"></i>
+              <p class="text-gray-500">No recent movements</p>
+            </div>
           <% } %>
         </div>
       </div>

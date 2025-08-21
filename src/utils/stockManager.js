@@ -12,8 +12,23 @@ class StockManager {
     const restoredItems = [];
     const errors = [];
 
+    if (!orderItems || !Array.isArray(orderItems) || orderItems.length === 0) {
+      return {
+        success: true,
+        restoredItems: [],
+        errors: [],
+        message: 'No items to restore'
+      };
+    }
+
     for (const item of orderItems) {
       try {
+        // Validate item data
+        if (!item.productId || !item.qty || item.qty <= 0) {
+          errors.push(`Invalid item data for: ${item.productTitle || 'Unknown'}`);
+          continue;
+        }
+
         const product = await Product.findById(item.productId);
         if (!product) {
           errors.push(`Product not found: ${item.productId}`);
@@ -41,7 +56,9 @@ class StockManager {
         }
 
         // Store previous stock for logging
-        const previousStock = targetVariant.qty;
+        const previousStock = Number(targetVariant.qty) || 0;
+        const restoreQty = Number(item.qty) || 0;
+        const newStock = previousStock + restoreQty;
         
         // Restore stock atomically
         const result = await Product.updateOne(
@@ -50,7 +67,7 @@ class StockManager {
             'variants._id': targetVariant._id 
           },
           { 
-            $inc: { 'variants.$.qty': item.qty }
+            $inc: { 'variants.$.qty': restoreQty }
           }
         );
 
@@ -63,15 +80,19 @@ class StockManager {
         const updatedProduct = await Product.findById(item.productId);
         const updatedVariant = updatedProduct.variants.id(targetVariant._id);
         
-        if (updatedVariant.qty === 0) {
-          updatedVariant.status = 'out_of_stock';
-        } else if (updatedVariant.qty <= updatedVariant.thresholdQty) {
-          updatedVariant.status = 'low_stock';
-        } else {
-          updatedVariant.status = 'in_stock';
+        if (updatedVariant) {
+          const thresholdQty = Number(updatedVariant.thresholdQty) || 5;
+          
+          if (updatedVariant.qty === 0) {
+            updatedVariant.status = 'out_of_stock';
+          } else if (updatedVariant.qty <= thresholdQty) {
+            updatedVariant.status = 'low_stock';
+          } else {
+            updatedVariant.status = 'in_stock';
+          }
+          
+          await updatedProduct.save();
         }
-        
-        await updatedProduct.save();
 
         // Log the restoration
         try {
@@ -79,9 +100,9 @@ class StockManager {
             item.productId,
             targetVariant.sku,
             'restock',
-            item.qty,
+            restoreQty,
             previousStock,
-            previousStock + item.qty,
+            newStock,
             adminId,
             orderId,
             `Stock restored due to order cancellation (Order: ${orderId})`
@@ -95,8 +116,8 @@ class StockManager {
           productId: item.productId,
           productTitle: item.productTitle,
           variantSku: targetVariant.sku,
-          quantityRestored: item.qty,
-          newStock: previousStock + item.qty
+          quantityRestored: restoreQty,
+          newStock: newStock
         });
 
       } catch (error) {

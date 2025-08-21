@@ -20,7 +20,7 @@ A comprehensive e-commerce backend and admin dashboard built with Node.js, Expre
 - **Customer Management**: User accounts and profile management
 - **Inventory Control**: Stock management with low-stock alerts
 - **Content Management**: Hero carousel, ads panel, company information
-- **Reports & Analytics**: Sales reports, revenue tracking, export capabilities
+- **Reports & Analytics**: Comprehensive reports with Excel/CSV export, revenue tracking, price change analytics
 - **Role-Based Access**: Multi-level admin permissions
 
 ---
@@ -67,8 +67,10 @@ npm start
 ```
 
 **Access Points:**
-- **Admin Dashboard**: `http://localhost:9001/admin/reports/comprehensive`
+- **Main Dashboard**: `http://localhost:9001/admin/reports/comprehensive`
 - **Admin Login**: `http://localhost:9001/admin/v1/staff/login`
+- **Export Excel**: `http://localhost:9001/admin/reports/comprehensive/excel`
+- **Export CSV**: `http://localhost:9001/admin/reports/comprehensive/csv`
 - **API Base**: `http://localhost:9001/api/v1/`
 
 ---
@@ -301,10 +303,11 @@ DEVELOPER_PASSWORD=SecureAdminPass123
 - **Order Tracking**: Real-time order status updates
 
 ### 🎛️ Admin Dashboard
-- **Analytics Dashboard**: Comprehensive business insights
+- **Analytics Dashboard**: Real-time business insights with mixed order analytics
+- **Export Reports**: Comprehensive Excel/CSV exports with price change tracking
 - **Content Management**: Hero carousel, ads, company info
 - **User Management**: Customer and admin account management
-- **Reporting**: Sales reports with export capabilities
+- **Smart Reporting**: Revenue efficiency, fulfillment rates, inventory analytics
 - **Role-Based Access**: Multi-level admin permissions
 
 ---
@@ -354,19 +357,7 @@ This project is licensed under the ISC License - see the package.json file for d
 
 **Multitrade Development Team**
 - Made with ❤️ by 51D2ham
-- Email: dev@multitrade.com
-- GitHub: [Project Repository]
-
+---
 ---
 
-## 🆘 Support
-
-- **Documentation**: Check the comprehensive docs in this repository
-- **Issues**: Report bugs and feature requests via GitHub Issues
-- **Email**: Contact dev@multitrade.com for technical support
-- **Admin Support**: Use the admin panel help section
-
----
-
-*Last Updated: January 2025*
-*Version: 1.0.0*
+*Last Updated: Aug 2025

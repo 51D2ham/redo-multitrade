@@ -15,7 +15,7 @@ const inventoryLogSchema = new Schema({
   
   // Reference
   orderId: { type: Schema.Types.ObjectId, ref: 'Order' }, // For sales
-  admin: { type: Schema.Types.ObjectId, ref: 'Admin', required: true },
+  admin: { type: Schema.Types.ObjectId, ref: 'Admin' }, // Optional for customer sales
   notes: { type: String, trim: true }
 }, { timestamps: true });
 

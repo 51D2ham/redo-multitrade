@@ -109,13 +109,8 @@ const forgetPassword = async (req, res) => {
     user.OTP_Expires = expiry;
     await user.save();
 
-    const htmlContent = `
-      <p><strong>Your OTP is:</strong> ${otpCode}</p>
-      <p>This OTP is valid for 5 minutes.</p>
-      <p>Do not share with someone.</p>
-    `;
-
-    await sendMail(email, 'Password Reset OTP', htmlContent);
+    const NotificationService = require('../services/notificationService');
+    await NotificationService.sendPasswordResetEmail(email, user.fullname, otpCode);
     res.status(StatusCodes.OK).json({ success: true, message: "Password reset OTP sent to email." });
   } catch (error) {
     console.error('Mail error:', error);
@@ -210,6 +205,15 @@ const changePassword = async (req, res) => {
 
     user.password = await bcrypt.hash(newPassword, 10);
     await user.save();
+
+    // Send password changed notification
+    try {
+      const NotificationService = require('../services/notificationService');
+      await NotificationService.sendPasswordChangedEmail(user.email, user.fullname);
+    } catch (emailError) {
+      console.error('Password change email failed:', emailError);
+    }
+
     res.status(200).json({ success: true, message: 'Password changed successfully!' });
   } catch (error) {
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ success: false, message: 'Server error. Please try again later.' });

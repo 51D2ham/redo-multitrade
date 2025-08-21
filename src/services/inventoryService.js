@@ -5,36 +5,51 @@ const mongoose = require('mongoose');
 class InventoryService {
   // Log stock movement with enhanced validation
   static async logMovement(productId, variantSku, type, quantity, previousStock, newStock, adminId, orderId = null, notes = '') {
-    // Validate inputs
-    if (!mongoose.Types.ObjectId.isValid(productId)) {
-      throw new Error('Invalid product ID');
+    try {
+      // Validate inputs
+      if (!mongoose.Types.ObjectId.isValid(productId)) {
+        throw new Error('Invalid product ID');
+      }
+      if (!variantSku || typeof variantSku !== 'string') {
+        throw new Error('Valid variant SKU is required');
+      }
+      if (!['sale', 'restock', 'adjustment'].includes(type)) {
+        throw new Error('Invalid movement type');
+      }
+      if (typeof quantity !== 'number' || quantity <= 0) {
+        throw new Error('Quantity must be a positive number');
+      }
+      if (type === 'sale' && !orderId) {
+        throw new Error('Sales movement must have a valid orderId');
+      }
+      
+      const logData = {
+        product: productId,
+        variantSku,
+        type,
+        quantity,
+        previousStock: Number(previousStock) || 0,
+        newStock: Number(newStock) || 0,
+        notes: notes || `${type} operation: ${quantity} units`
+      };
+      
+      // Add orderId if provided
+      if (orderId && mongoose.Types.ObjectId.isValid(orderId)) {
+        logData.orderId = orderId;
+      }
+      
+      // Only add admin if provided and valid (for customer sales, admin can be null)
+      if (adminId && mongoose.Types.ObjectId.isValid(adminId)) {
+        logData.admin = adminId;
+      }
+      
+      const log = new InventoryLog(logData);
+      await log.save();
+      return log;
+    } catch (error) {
+      console.error('Inventory log movement error:', error);
+      throw error;
     }
-    if (!variantSku || typeof variantSku !== 'string') {
-      throw new Error('Valid variant SKU is required');
-    }
-    if (!['sale', 'restock', 'adjustment'].includes(type)) {
-      throw new Error('Invalid movement type');
-    }
-    if (typeof quantity !== 'number' || quantity <= 0) {
-      throw new Error('Quantity must be a positive number');
-    }
-    if (type === 'sale' && !orderId) {
-      throw new Error('Sales movement must have a valid orderId');
-    }
-    // For adjustment/restock, allow both increase and decrease, but log reason
-    const log = new InventoryLog({
-      product: productId,
-      variantSku,
-      type,
-      quantity,
-      previousStock,
-      newStock,
-      orderId,
-      admin: adminId,
-      notes: notes || `${type} operation: ${quantity} units`
-    });
-    await log.save();
-    return log;
   }
 
   // Log sale movements for order items
@@ -210,19 +225,64 @@ class InventoryService {
   
   // Get low stock alerts
   static async getLowStockAlerts() {
-    return await InventoryLog.getLowStockProducts();
+    try {
+      const { Product } = require('../models/productModel');
+      const products = await Product.find({ status: 'active' }).lean();
+      const alerts = [];
+      
+      products.forEach(product => {
+        if (product.variants) {
+          product.variants.forEach(variant => {
+            const stock = variant.qty || 0;
+            const threshold = variant.thresholdQty || 5;
+            if (stock <= threshold) {
+              alerts.push({
+                productId: product._id,
+                title: product.title,
+                sku: variant.sku,
+                stock: stock,
+                threshold: threshold
+              });
+            }
+          });
+        }
+      });
+      
+      return alerts;
+    } catch (error) {
+      console.error('Low stock alerts error:', error);
+      return [];
+    }
   }
   
   // Get movement report
-  static async getMovementReport(filters) {
-    const { skip = 0, ...otherFilters } = filters;
-    return await InventoryLog.getMovementReport({ ...otherFilters, skip });
+  static async getMovementReport(filters = {}) {
+    try {
+      const { skip = 0, limit = 10 } = filters;
+      const movements = await InventoryLog.find({})
+        .populate('product', 'title')
+        .populate('admin', 'fullname')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean();
+      
+      return movements.map(movement => ({
+        ...movement,
+        productTitle: movement.product?.title || 'Product Not Found'
+      }));
+    } catch (error) {
+      console.error('Movement report error:', error);
+      return [];
+    }
   }
   
   // Enhanced dashboard data with more metrics
   static async getDashboardData() {
     try {
-      const [lowStockAlerts, recentMovements, totalProducts, totalVariants, stockStats] = await Promise.all([
+      const { Product } = require('../models/productModel');
+      
+      const results = await Promise.all([
         InventoryService.getLowStockAlerts(),
         InventoryService.getMovementReport({ limit: 10 }),
         Product.countDocuments({}),
@@ -245,7 +305,14 @@ class InventoryService {
           }
         ]).then(result => result[0] || {})
       ]);
-      
+
+      // assign results to named variables (make recentMovements mutable for fallback)
+      const lowStockAlerts = results[0] || [];
+      let recentMovements = results[1] || [];
+      const totalProducts = results[2] || 0;
+      const totalVariants = results[3] || 0;
+      const stockStats = results[4] || {};
+
       // Calculate stock value
       const stockValue = await Product.aggregate([
         { $match: { status: 'active' } },
@@ -264,6 +331,74 @@ class InventoryService {
           }
         }
       ]).then(result => result[0]?.totalValue || 0).catch(() => 0);
+
+      // If there are no inventory log movements, try to derive recent movements from sales
+      try {
+        if ((!recentMovements || recentMovements.length === 0)) {
+          const Sale = require('../models/saleModel');
+          const recentSales = await Sale.find({}).sort({ soldAt: -1 }).limit(10).lean();
+          if (recentSales && recentSales.length > 0) {
+            // Map sales to movement-like objects expected by the UI
+            const productIds = [...new Set(recentSales.map(s => s.product).filter(Boolean))];
+            const products = await Product.find({ _id: { $in: productIds } }).select('title').lean();
+            const productMap = products.reduce((map, p) => ({ ...map, [p._id]: p.title }), {});
+            
+            recentMovements = recentSales.map(s => ({
+              _id: s._id,
+              productTitle: productMap[s.product] || 'Product Not Available',
+              product: { _id: s.product, title: productMap[s.product] || 'Product Not Available' },
+              variantSku: s.variantSku,
+              type: 'sale',
+              quantity: s.quantity,
+              previousStock: null,
+              newStock: null,
+              orderId: s.orderId,
+              admin: null,
+              notes: 'From sales data',
+              createdAt: s.soldAt
+            }));
+          }
+        }
+      } catch (e) {
+        // Non-fatal - if this fails, recentMovements just remains empty
+        console.error('Failed deriving recent movements from Sales:', e && e.message ? e.message : e);
+      }
+
+      // If still empty, try deriving recent movements from Orders (useful if Sales aren't recorded)
+      try {
+        if ((!recentMovements || recentMovements.length === 0)) {
+          const { Order } = require('../models/orderModel');
+          const recentOrders = await Order.find({}).sort({ createdAt: -1 }).limit(20).populate('items.productId', 'title').lean();
+          if (recentOrders && recentOrders.length > 0) {
+            const derived = [];
+            for (const ord of recentOrders) {
+              if (!ord.items || ord.items.length === 0) continue;
+              for (const it of ord.items) {
+                if (derived.length >= 10) break;
+                const productTitle = it.productId?.title || it.productTitle || 'Product Unavailable';
+                derived.push({
+                  _id: `${ord._id.toString()}_${it.productId || 'unknown'}`,
+                  productTitle: productTitle,
+                  product: { _id: it.productId?._id || it.productId, title: productTitle },
+                  variantSku: it.variantSku || null,
+                  type: it.status === 'delivered' ? 'sale' : 'order',
+                  quantity: it.qty || 0,
+                  previousStock: null,
+                  newStock: null,
+                  orderId: ord._id,
+                  admin: null,
+                  notes: 'From order data',
+                  createdAt: ord.createdAt
+                });
+              }
+              if (derived.length >= 10) break;
+            }
+            if (derived.length > 0) recentMovements = derived;
+          }
+        }
+      } catch (e) {
+        console.error('Failed deriving recent movements from Orders:', e && e.message ? e.message : e);
+      }
       
       return {
         // Stock alerts
@@ -286,12 +421,28 @@ class InventoryService {
         // Financial
         stockValue: Math.round(stockValue),
         
-        // Recent activity
-        recentMovements: recentMovements || []
+        // Recent activity - prioritize actual inventory logs
+        recentMovements: (await this.getMovementReport({ limit: 10 })) || recentMovements || []
       };
     } catch (error) {
       console.error('Dashboard data error:', error);
-      throw error; // Let the controller handle the error
+      console.error('Dashboard error stack:', error.stack);
+      // Return safe defaults instead of throwing
+      return {
+        lowStockCount: 0,
+        criticalStockCount: 0,
+        lowStockAlerts: [],
+        totalProducts: 0,
+        totalVariants: 0,
+        activeProducts: 0,
+        draftProducts: 0,
+        inactiveProducts: 0,
+        inStockVariants: 0,
+        lowStockVariants: 0,
+        outOfStockVariants: 0,
+        stockValue: 0,
+        recentMovements: []
+      };
     }
   }
   

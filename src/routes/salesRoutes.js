@@ -1,58 +1,41 @@
-// routes/adminRoutes.js
 const express = require('express');
 const router = express.Router();
-const reportCtrl = require('../controllers/reportController');
+const dashboardCtrl = require('../controllers/dashboardController');
 const authMiddleware = require('../middlewares/auth');
-const rbac = require('../middlewares/roleAccess');
 
+// Dashboard view route
 router.get(
   '/reports/comprehensive',
   authMiddleware,
-  reportCtrl.getComprehensiveReport
+  dashboardCtrl.getMainDashboard
 );
-router.get(
-  '/reports/comprehensive/csv',
-  authMiddleware,rbac('developer', 'superAdmin'),
-  reportCtrl.downloadComprehensiveCSV
-);
+
+// Export routes
 router.get(
   '/reports/comprehensive/excel',
-  authMiddleware,rbac('developer', 'superAdmin'),
-  reportCtrl.downloadComprehensiveExcel
-);
-
-// --- Per-section CSV export endpoints ONLY (PDF removed) ---
-router.get(
-  '/reports/comprehensive/monthly-trend/csv',
-  authMiddleware,rbac('developer', 'superAdmin'),
-  reportCtrl.downloadMonthlyTrendCSV
+  authMiddleware,
+  dashboardCtrl.exportDashboardExcel
 );
 
 router.get(
-  '/reports/comprehensive/category-sales/csv',
-  authMiddleware,rbac('developer', 'superAdmin'),
-  reportCtrl.downloadCategorySalesCSV
+  '/reports/comprehensive/csv',
+  authMiddleware,
+  dashboardCtrl.exportDashboardCSV
 );
+
+// API route for JSON data (using dashboard controller)
 router.get(
-  '/reports/comprehensive/top-products/csv',
-  authMiddleware,rbac('developer', 'superAdmin'),
-  reportCtrl.downloadTopProductsCSV
+  '/api/reports/comprehensive',
+  authMiddleware,
+  (req, res) => {
+    // Return JSON version of dashboard data
+    dashboardCtrl.getMainDashboard(req, { ...res, render: (template, data) => res.json(data) });
+  }
 );
-router.get(
-  '/reports/comprehensive/low-stock/csv',
-  authMiddleware,rbac('developer', 'superAdmin'),
-  reportCtrl.downloadLowStockCSV
-);
-router.get(
-  '/reports/comprehensive/inventory-log/csv',
-  authMiddleware,rbac('developer', 'superAdmin'),
-  reportCtrl.downloadInventoryLogCSV
-);
-router.get(
-  '/reports/comprehensive/price-changes/csv',
-  authMiddleware,rbac('developer', 'superAdmin'),
-  reportCtrl.downloadPriceChangesCSV
-);
+
+router.get('/test', (req, res) => {
+  res.json({ success: true, message: 'Test endpoint working' });
+});
 
 // (If you still want each sub-report individually, uncomment below:)
 /*

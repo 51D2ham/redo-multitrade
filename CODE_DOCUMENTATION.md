@@ -26,6 +26,7 @@ multitrade_backend-master/
 ├── API_DOCUMENTATION.md           # Customer API docs
 ├── ADMIN_API_DOCUMENTATION.md     # Admin API docs
 ├── CODE_DOCUMENTATION.md          # This file
+├── EXPORT_FEATURES.md             # Export functionality documentation
 ├── POSTMAN_API_COLLECTION.json    # Postman collection
 ├── public/uploads/                # Public upload directory
 ├── sample_data/                   # CSV templates and samples
@@ -141,7 +142,13 @@ const orderSchema = new Schema({
 
 ## 🎛️ Controllers Architecture
 
-### 1. Customer Controller (`src/controllers/customerRegister.js`)
+### 1. Dashboard Controller (`src/controllers/dashboardController.js`)
+**Key Functions:**
+- `getMainDashboard()` - Comprehensive dashboard with mixed order analytics
+- `exportDashboardExcel()` - Multi-sheet Excel export with price tracking
+- `exportDashboardCSV()` - Structured CSV export with detailed metrics
+
+### 2. Customer Controller (`src/controllers/customerRegister.js`)
 **Key Functions:**
 - `registerUser()` - User registration with validation
 - `loginUser()` - JWT-based authentication
@@ -151,7 +158,7 @@ const orderSchema = new Schema({
 - `updateUser()` - Profile updates with file handling
 - `logoutUser()` - Token invalidation
 
-### 2. Product Controller (`src/controllers/productController.js`)
+### 3. Product Controller (`src/controllers/productController.js`)
 **Key Functions:**
 - `getAllProducts()` - Paginated product listing with filters
 - `getProductById()` - Single product with reviews and specs
@@ -160,7 +167,7 @@ const orderSchema = new Schema({
 - `updateProduct()` - Admin product updates
 - `deleteProduct()` - Admin product deletion
 
-### 3. Cart Controller (`src/controllers/cartController.js`)
+### 4. Cart Controller (`src/controllers/cartController.js`)
 **Key Functions:**
 - `getCart()` - User's cart with populated product data
 - `addToCart()` - Add items with duplicate handling
@@ -168,14 +175,14 @@ const orderSchema = new Schema({
 - `removeCartItem()` - Single item removal
 - `clearCart()` - Complete cart clearing
 
-### 4. Order Controller (`src/controllers/checkoutController.js`)
+### 5. Order Controller (`src/controllers/checkoutController.js`)
 **Key Functions:**
 - `checkout()` - Order creation with stock management
 - `getOrderHistory()` - User's order history
 - `getOrderDetails()` - Single order with status tracking
 - `cancelOrder()` - Order cancellation with stock restoration
 
-### 5. SpecList Controller (`src/controllers/specListController.js`)
+### 6. SpecList Controller (`src/controllers/specListController.js`)
 **Key Functions:**
 - `getAllPublicSpecLists()` - Get all active specifications
 - `getProductsBySpec()` - Find products by specification value
@@ -274,27 +281,31 @@ const upload = multer({
 
 ## 🛠️ Services Layer
 
-### 1. Inventory Service (`src/services/inventoryService.js`)
+### 1. Sales Service (`src/services/salesService.js`)
 **Key Functions:**
-- `getDashboardData()` - Comprehensive inventory analytics
-- `getLowStockProducts()` - Products below threshold
-- `getInventoryMovements()` - Stock movement history
-- `logSale()` - Record sales transactions
-- `updateStockStatus()` - Auto-update stock status
+- `getComprehensiveReport()` - Advanced sales analytics with mixed order support
+- `recordSalesForDeliveredItems()` - Track sales only for delivered items
+- `removeSalesForCancelledItems()` - Clean up cancelled item sales
 
-### 2. Sales Service (`src/services/salesService.js`)
+### 2. Inventory Service (`src/services/inventoryService.js`)
 **Key Functions:**
-- `getSalesData()` - Sales analytics and reports
-- `getRevenueData()` - Revenue calculations
-- `getTopProducts()` - Best-selling products
-- `getOrderStatistics()` - Order status analytics
+- `getDashboardData()` - Comprehensive inventory analytics with fallbacks
+- `getLowStockAlerts()` - Products below threshold with priorities
+- `getMovementReport()` - Stock movement history with product names
+- `logMovement()` - Enhanced movement logging with validation
+- `restoreStockForCancelledOrder()` - Automatic stock restoration
 
-### 3. Dashboard Service (`src/services/dashboardService.js`)
+### 3. Mixed Order Reporting Service (`src/services/mixedOrderReportingService.js`)
 **Key Functions:**
-- `getComprehensiveData()` - Complete dashboard metrics
-- `getKPIData()` - Key performance indicators
-- `getChartData()` - Chart and graph data
-- `getRecentActivity()` - Recent system activity
+- `getOrderAnalytics()` - Advanced order fulfillment analytics
+- `calculateMixedOrderMetrics()` - Revenue efficiency and fulfillment rates
+- `getOrderTypeBreakdown()` - Categorize orders by fulfillment status
+
+### 4. Order Management Service (`src/services/orderManagementService.js`)
+**Key Functions:**
+- `calculateOptimalOrderStatus()` - Smart order status determination
+- `validateStatusTransition()` - Prevent invalid status changes
+- `handleMixedOrderScenarios()` - Manage complex order states
 
 ---
 
@@ -518,6 +529,34 @@ const isValid = await bcrypt.compare(plainPassword, hashedPassword);
 ```javascript
 // Token generation with expiration
 const token = jwt.sign(
+  // ...
+
+
+---
+
+## 🧾 Recent Updates
+
+### Export System Enhancement (January 2025)
+- **Comprehensive Export Features**: Added multi-sheet Excel and structured CSV exports
+- **Price Change Tracking**: 30-day price modification history with percentage calculations
+- **Mixed Order Analytics**: Advanced order fulfillment analysis with revenue efficiency
+- **Inventory Intelligence**: Enhanced stock movement tracking with product name resolution
+- **Error Handling**: Robust fallbacks and graceful error handling for export operations
+
+### Code Cleanup (January 2025)
+- **Removed Redundant Files**: 
+  - `src/controllers/downloadComprehensiveExcel.js` (functionality moved to dashboardController)
+  - `src/controllers/reportController.js` (consolidated into dashboardController)
+  - `src/services/dashboardService.js` (functionality distributed to specialized services)
+- **Updated Routes**: Fixed salesRoutes.js to use dashboardController for all report endpoints
+- **Documentation**: Added EXPORT_FEATURES.md for comprehensive export documentation
+
+### Dashboard Improvements (August 2025)
+- **Mixed Order Support**: Enhanced analytics for orders with mixed item statuses
+- **Chart Data Fixes**: Proper numeric data formatting for Chart.js compatibility
+- **Inventory Fallbacks**: Smart fallback mechanisms when inventory logs are empty
+- **Sales Backfill**: Added script to populate Sale documents from existing orders
+
   { userId, email, tokenVersion },
   process.env.JWT_SECRET_KEY,
   { expiresIn: '5d' }
@@ -647,7 +686,8 @@ const salesData = await Order.aggregate([
     "start": "node --no-deprecation --no-warnings app.js",
     "dev": "nodemon --exec \"node --no-deprecation --no-warnings\" app.js",
     "seed:dev": "node src/seed/devSeed.js",
-    "seed:cleanDb": "node src/seed/cleanDatabase.js"
+    "seed:cleanDb": "node src/seed/cleanDatabase.js",
+    "backfill:sales": "node src/seed/backfillSalesFromOrders.js"
   }
 }
 ```

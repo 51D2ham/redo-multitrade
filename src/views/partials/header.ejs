@@ -6,6 +6,7 @@
   <title><%= title %> - Admin Dashboard</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" nonce="<%= cspNonce %>"></script>
   <style nonce="<%= cspNonce %>">
     .sidebar-transition { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
     .overlay { backdrop-filter: blur(8px); }
@@ -103,6 +104,33 @@
           </div>
         </div>
         <div class="flex items-center gap-2 sm:gap-4">
+          <!-- Order Notifications -->
+          <div class="relative">
+            <button id="notificationBtn" class="relative p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+              <i class="fas fa-bell text-lg"></i>
+              <span id="notificationBadge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
+            </button>
+            
+            <!-- Notification Dropdown -->
+            <div id="notificationDropdown" class="absolute right-0 top-12 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50 hidden">
+              <div class="p-4 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                  <h3 class="font-semibold text-gray-800">Recent Orders</h3>
+                  <button id="markAllRead" class="text-xs text-blue-600 hover:text-blue-800">Mark all read</button>
+                </div>
+              </div>
+              <div id="notificationList" class="max-h-80 overflow-y-auto">
+                <div class="p-4 text-center text-gray-500">
+                  <i class="fas fa-inbox text-2xl mb-2"></i>
+                  <p>No new orders</p>
+                </div>
+              </div>
+              <div class="p-3 border-t border-gray-200">
+                <a href="/admin/v1/order" class="block text-center text-sm text-blue-600 hover:text-blue-800 font-medium">View All Orders</a>
+              </div>
+            </div>
+          </div>
+          
           <div class="hidden sm:flex items-center gap-2 text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-lg">
             <i class="fas fa-clock text-blue-500"></i>
             <span id="currentTime" class="font-medium"></span>
@@ -116,3 +144,218 @@
 
     <!-- Page Content -->
     <main class="p-4 sm:p-6 min-h-screen">
+
+<script nonce="<%= cspNonce %>">
+// Real-time Order Notifications
+class OrderNotifications {
+  constructor() {
+    this.lastCheck = localStorage.getItem('lastOrderCheck') || (Date.now() - 24 * 60 * 60 * 1000);
+    this.notifications = JSON.parse(localStorage.getItem('orderNotifications') || '[]');
+    this.init();
+  }
+
+  init() {
+    this.setupEventListeners();
+    this.updateUI();
+    this.startPolling();
+  }
+
+  setupEventListeners() {
+    const notificationBtn = document.getElementById('notificationBtn');
+    const dropdown = document.getElementById('notificationDropdown');
+    const markAllRead = document.getElementById('markAllRead');
+
+    notificationBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      dropdown.classList.toggle('hidden');
+    });
+
+    markAllRead?.addEventListener('click', () => {
+      this.markAllAsRead();
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!notificationBtn?.contains(e.target) && !dropdown?.contains(e.target)) {
+        dropdown?.classList.add('hidden');
+      }
+    });
+  }
+
+  async checkForNewOrders() {
+    try {
+      const response = await fetch(`/admin/v1/order/api/recent?since=${this.lastCheck}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.orders?.length > 0) {
+          this.addNewOrders(data.orders);
+        }
+      }
+    } catch (error) {
+      if (window.location.hostname === 'localhost') {
+        console.error('Failed to check for new orders:', error);
+      }
+    }
+  }
+
+  addNewOrders(orders) {
+    const newOrders = orders.map(order => ({
+      id: order._id,
+      customerName: order.user?.fullname || 'Guest Customer',
+      totalPrice: order.totalPrice,
+      itemCount: order.totalItem || order.items?.length || 0,
+      createdAt: order.createdAt,
+      read: false,
+      timestamp: Date.now()
+    }));
+
+    this.notifications = [...newOrders, ...this.notifications].slice(0, 10);
+    this.lastCheck = Date.now();
+    this.saveToStorage();
+    this.updateUI();
+    this.showToast(newOrders.length);
+  }
+
+  updateUI() {
+    const badge = document.getElementById('notificationBadge');
+    const list = document.getElementById('notificationList');
+    
+    const unreadCount = this.notifications.filter(n => !n.read).length;
+    
+    if (unreadCount > 0) {
+      badge.textContent = unreadCount;
+      badge.classList.remove('hidden');
+    } else {
+      badge.classList.add('hidden');
+    }
+
+    if (this.notifications.length === 0) {
+      list.innerHTML = `
+        <div class="p-4 text-center text-gray-500">
+          <i class="fas fa-inbox text-2xl mb-2"></i>
+          <p>No new orders</p>
+        </div>
+      `;
+    } else {
+      list.innerHTML = this.notifications.map(notification => `
+        <div class="p-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${notification.read ? 'opacity-60' : ''}" 
+             onclick="window.location.href='/admin/v1/order/${notification.id}'">
+          <div class="flex items-start gap-3">
+            <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+              <i class="fas fa-shopping-cart text-green-600 text-sm"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium text-gray-900 truncate">
+                New order from ${notification.customerName}
+              </p>
+              <p class="text-xs text-gray-500">
+                ₹${notification.totalPrice?.toLocaleString()} • ${notification.itemCount} items
+              </p>
+              <p class="text-xs text-gray-400">
+                ${this.formatTime(notification.createdAt)}
+              </p>
+            </div>
+            ${!notification.read ? '<div class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>' : ''}
+          </div>
+        </div>
+      `).join('');
+    }
+  }
+
+  formatTime(dateString) {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+  }
+
+  markAllAsRead() {
+    this.notifications = this.notifications.map(n => ({ ...n, read: true }));
+    this.saveToStorage();
+    this.updateUI();
+  }
+
+  showToast(count) {
+    const toast = document.createElement('div');
+    toast.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 transform translate-x-full transition-transform duration-300';
+    toast.innerHTML = `
+      <div class="flex items-center gap-2">
+        <i class="fas fa-shopping-cart"></i>
+        <span>${count} new order${count > 1 ? 's' : ''} received!</span>
+      </div>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => toast.classList.remove('translate-x-full'), 100);
+    setTimeout(() => {
+      toast.classList.add('translate-x-full');
+      setTimeout(() => document.body.removeChild(toast), 300);
+    }, 4000);
+  }
+
+  saveToStorage() {
+    localStorage.setItem('orderNotifications', JSON.stringify(this.notifications));
+    localStorage.setItem('lastOrderCheck', this.lastCheck.toString());
+  }
+
+  startPolling() {
+    this.checkForNewOrders();
+    setInterval(() => this.checkForNewOrders(), 60000); // Check every 1 minute instead of 30 seconds
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  new OrderNotifications();
+});
+
+function updateTime() {
+  const timeElement = document.getElementById('currentTime');
+  if (timeElement) {
+    const now = new Date();
+    const newTime = now.toLocaleTimeString('en-US', { 
+      hour12: true, 
+      hour: 'numeric', 
+      minute: '2-digit' 
+    });
+    if (timeElement.textContent !== newTime) {
+      timeElement.textContent = newTime;
+    }
+  }
+}
+
+setInterval(updateTime, 30000);
+updateTime();
+
+const openSidebar = document.getElementById('openSidebar');
+const closeSidebar = document.getElementById('closeSidebar');
+const sidebar = document.getElementById('sidebar');
+const overlay = document.getElementById('overlay');
+
+function showSidebar() {
+  sidebar.classList.remove('-translate-x-full');
+  overlay.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function hideSidebar() {
+  sidebar.classList.add('-translate-x-full');
+  overlay.classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+openSidebar?.addEventListener('click', showSidebar);
+closeSidebar?.addEventListener('click', hideSidebar);
+overlay?.addEventListener('click', hideSidebar);
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') hideSidebar();
+});
+</script>

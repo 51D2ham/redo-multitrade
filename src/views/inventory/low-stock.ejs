@@ -1,73 +1,185 @@
-<%- include('../partials/header.ejs', { title: 'Low Stock Alerts' }) %>
+<%- include('../partials/header.ejs', { title: 'Low Stock Products' }) %>
 
-<div class="min-h-screen bg-gray-50 py-6">
-  <div class="max-w-7xl mx-auto px-4">
+<div class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+  <div class="max-w-7xl mx-auto px-6 py-8">
     
     <!-- Header -->
-    <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
-      <div>
-        <h1 class="text-3xl font-bold text-gray-900">Low Stock Alerts</h1>
-        <p class="text-gray-600 mt-1">Products requiring immediate attention</p>
-      </div>
-      <div class="flex items-center gap-3">
-  <a href="/admin/v1/inventory" class="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-          <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
-        </a>
-  <a href="/admin/inventory/movements" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-          <i class="fas fa-history mr-2"></i>View Movements
-        </a>
+    <div class="mb-8">
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div>
+          <h1 class="text-2xl lg:text-3xl font-bold text-gray-900">Low Stock Products</h1>
+          <p class="text-gray-600 mt-2">Products that need immediate attention</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <a href="/admin/reports/comprehensive" class="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+            <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+          </a>
+        </div>
       </div>
     </div>
 
-    <!-- Alerts List -->
-    <div class="bg-white rounded-xl shadow-sm border">
-      <div class="px-6 py-4 border-b flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <h2 class="text-lg font-semibold text-gray-900">Stock Alerts</h2>
-        <form method="get" action="" class="flex flex-wrap gap-3 items-center">
-          <input type="text" name="search" value="<%= filters?.search || '' %>" placeholder="Search by name or SKU" class="px-3 py-2 border rounded-lg text-sm" />
-          <label class="text-sm">From: <input type="date" name="from" value="<%= filters?.from || '' %>" class="px-2 py-1 border rounded" /></label>
-          <label class="text-sm">To: <input type="date" name="to" value="<%= filters?.to || '' %>" class="px-2 py-1 border rounded" /></label>
-          <select name="sort" class="px-2 py-1 border rounded text-sm">
-            <option value="desc" <%= filters?.sort === 'desc' ? 'selected' : '' %>>Newest First</option>
-            <option value="asc" <%= filters?.sort === 'asc' ? 'selected' : '' %>>Oldest First</option>
+    <!-- KPI Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+      <div class="bg-white rounded-xl p-6 shadow-sm border hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Critical Stock</p>
+            <p class="text-2xl font-bold text-red-600"><%= stats?.criticalStock || 0 %></p>
+            <p class="text-sm text-red-500 mt-1">
+              <i class="fas fa-times-circle mr-1"></i>Out of stock
+            </p>
+          </div>
+          <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+            <i class="fas fa-exclamation-triangle text-red-600"></i>
+          </div>
+        </div>
+      </div>
+      
+      <div class="bg-white rounded-xl p-6 shadow-sm border hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Low Stock</p>
+            <p class="text-2xl font-bold text-yellow-600"><%= stats?.lowStock || 0 %></p>
+            <p class="text-sm text-yellow-500 mt-1">
+              <i class="fas fa-exclamation-circle mr-1"></i>Below threshold
+            </p>
+          </div>
+          <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+            <i class="fas fa-exclamation-circle text-yellow-600"></i>
+          </div>
+        </div>
+      </div>
+      
+      <div class="bg-white rounded-xl p-6 shadow-sm border hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Total Alerts</p>
+            <p class="text-2xl font-bold text-blue-600"><%= stats?.totalAlerts || 0 %></p>
+            <p class="text-sm text-blue-500 mt-1">
+              <i class="fas fa-clipboard-list mr-1"></i>Need attention
+            </p>
+          </div>
+          <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+            <i class="fas fa-clipboard-list text-blue-600"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white rounded-xl p-6 shadow-sm border mb-8">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold text-gray-900">Filter Products</h3>
+      </div>
+      <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Category</label>
+          <select name="category" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            <option value="">All Categories</option>
           </select>
-          <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">Filter</button>
-        </form>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Stock Level</label>
+          <select name="stockLevel" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            <option value="">All Levels</option>
+            <option value="critical">Out of Stock</option>
+            <option value="low">Low Stock</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Search</label>
+          <input type="text" name="search" placeholder="Product name or SKU..." class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+        </div>
+        <div class="flex items-end">
+          <button type="submit" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+            <i class="fas fa-search mr-2"></i>Apply Filters
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Products Table -->
+    <div class="bg-white rounded-xl shadow-sm border">
+      <div class="px-6 py-4 border-b">
+        <h3 class="text-lg font-semibold text-gray-900">Products Requiring Attention</h3>
       </div>
-      <div class="p-6">
-        <% if (alerts.length > 0) { %>
-          <div class="space-y-4">
-            <% alerts.forEach(alert => { %>
-              <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg border-l-4 <%= alert.status === 'out_of_stock' ? 'border-red-500' : 'border-yellow-500' %>">
-                <div class="flex items-center gap-4">
-                  <div class="p-3 rounded-lg <%= alert.status === 'out_of_stock' ? 'bg-red-100' : 'bg-yellow-100' %>">
-                    <i class="fas fa-exclamation-triangle <%= alert.status === 'out_of_stock' ? 'text-red-600' : 'text-yellow-600' %> text-xl"></i>
+      <div class="overflow-x-auto">
+        <table class="min-w-full">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="text-left py-3 px-6 font-medium text-gray-600 text-sm">Product</th>
+              <th class="text-left py-3 px-6 font-medium text-gray-600 text-sm">Current Stock</th>
+              <th class="text-left py-3 px-6 font-medium text-gray-600 text-sm">Threshold</th>
+              <th class="text-left py-3 px-6 font-medium text-gray-600 text-sm hidden md:table-cell">Status</th>
+              <th class="text-left py-3 px-6 font-medium text-gray-600 text-sm">Action</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200">
+            <% if (alerts && alerts.length > 0) { %>
+              <% alerts.forEach(alert => { 
+                const currentStock = alert.stock || alert.currentStock || 0;
+                const isOutOfStock = currentStock === 0;
+                const isCritical = currentStock <= 2 && currentStock > 0;
+              %>
+                <tr class="hover:bg-gray-50 transition-colors">
+                  <td class="py-4 px-6">
+                    <div class="font-medium text-gray-900"><%= alert.title || alert.productTitle || 'Unknown Product' %></div>
+                    <div class="text-sm text-gray-500">SKU: <%= alert.sku || alert.variantSku || 'N/A' %></div>
+                  </td>
+                  <td class="py-4 px-6">
+                    <span class="text-lg font-bold <%= isOutOfStock ? 'text-red-600' : isCritical ? 'text-orange-600' : 'text-yellow-600' %>">
+                      <%= currentStock %>
+                    </span>
+                    <span class="text-sm text-gray-500 ml-1">units</span>
+                  </td>
+                  <td class="py-4 px-6 text-gray-600"><%= alert.threshold || alert.thresholdQty || 5 %> units</td>
+                  <td class="py-4 px-6 hidden md:table-cell">
+                    <% if (isOutOfStock) { %>
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                        <i class="fas fa-times-circle mr-1"></i>Out of Stock
+                      </span>
+                    <% } else if (isCritical) { %>
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                        <i class="fas fa-exclamation-triangle mr-1"></i>Critical
+                      </span>
+                    <% } else { %>
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                        <i class="fas fa-exclamation-circle mr-1"></i>Low Stock
+                      </span>
+                    <% } %>
+                  </td>
+                  <td class="py-4 px-6">
+                    <% if (isOutOfStock) { %>
+                      <button class="px-3 py-1 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors">
+                        <i class="fas fa-plus mr-1"></i>Restock Now
+                      </button>
+                    <% } else { %>
+                      <button class="px-3 py-1 bg-yellow-600 text-white text-sm rounded-lg hover:bg-yellow-700 transition-colors">
+                        <i class="fas fa-plus mr-1"></i>Restock
+                      </button>
+                    <% } %>
+                  </td>
+                </tr>
+              <% }) %>
+            <% } else { %>
+              <tr>
+                <td colspan="5" class="py-12 text-center">
+                  <div class="flex flex-col items-center">
+                    <i class="fas fa-check-circle text-4xl text-green-500 mb-4"></i>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">All Good!</h3>
+                    <p class="text-gray-500">All products are well stocked</p>
                   </div>
-                  <div>
-                    <h3 class="font-semibold text-gray-900"><%= alert.title %></h3>
-                    <p class="text-sm text-gray-600">SKU: <%= alert.sku %></p>
-                    <p class="text-sm text-gray-600"><%= alert.brand %> • <%= alert.category %></p>
-                  </div>
-                </div>
-                <div class="text-right">
-                  <p class="text-lg font-bold <%= alert.status === 'out_of_stock' ? 'text-red-600' : 'text-yellow-600' %>">
-                    <%= alert.currentStock %> / <%= alert.threshold %>
-                  </p>
-                  <span class="inline-flex px-3 py-1 text-sm font-medium rounded-full <%= alert.status === 'out_of_stock' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800' %>">
-                    <%= alert.status.replace('_', ' ') %>
-                  </span>
-                </div>
-              </div>
-            <% }) %>
-          </div>
-        <% } else { %>
-          <div class="text-center py-12">
-            <i class="fas fa-check-circle text-4xl text-green-400 mb-4"></i>
-            <h3 class="text-lg font-medium text-gray-900 mb-2">All Good!</h3>
-            <p class="text-gray-600">No low stock alerts at the moment.</p>
-          </div>
-        <% } %>
+                </td>
+              </tr>
+            <% } %>
+          </tbody>
+        </table>
       </div>
+      <% if (alerts && alerts.length > 0) { %>
+        <div class="px-6 py-4 border-t bg-gray-50">
+          <p class="text-sm text-gray-600">Showing <%= alerts.length %> product<%= alerts.length !== 1 ? 's' : '' %> requiring attention</p>
+        </div>
+      <% } %>
     </div>
   </div>
 </div>
