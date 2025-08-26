@@ -531,8 +531,8 @@ const reviewController = {
     }
   },
 
-  // Product-specific reviews page
-  getProductReviews: async (req, res) => {
+  // Product-specific reviews page (Admin)
+  getProductReviewsAdmin: async (req, res) => {
     try {
       const { id: productId } = req.params;
       const page = parseInt(req.query.page) || 1;
