@@ -28,9 +28,9 @@ module.exports = {
   },
 
   async createCarouselItem(req, res) {
-    const { title, subtitle, link } = req.body;
+    const { title, subtitle, link, status } = req.body;
     const image = req.file ? req.file.filename : null;
-    await HeroCarousel.create({ title, subtitle, link, image, type: 'custom', admin: req.user._id });
+    await HeroCarousel.create({ title, subtitle, link, image, status: status || 'active', type: 'custom', admin: req.user._id });
     req.flash('success', 'Carousel item added!');
     res.redirect(req.baseUrl);
   },
@@ -69,8 +69,8 @@ module.exports = {
       req.flash('error', 'Item not found');
       return res.redirect(req.baseUrl);
     }
-    const { title, subtitle, link } = req.body;
-    const data = { title, subtitle, link };
+    const { title, subtitle, link, status } = req.body;
+    const data = { title, subtitle, link, status: status || 'active' };
     if (req.file) {
       deleteImage(item.image);
       data.image = req.file.filename;
@@ -94,7 +94,7 @@ module.exports = {
 
   // Public API
   async apiListCarouselItems(req, res) {
-    const items = await HeroCarousel.find();
+    const items = await HeroCarousel.find({ status: 'active' });
     res.json(items);
   },
 

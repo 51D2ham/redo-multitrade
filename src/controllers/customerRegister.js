@@ -351,7 +351,7 @@ const deleteUserRender = async (req, res) => {
     }
 
     await User.findByIdAndDelete(userId);
-    res.redirect('/users');
+    res.redirect('/admin/v1/customers/users');
   } catch (error) {
     console.error(error);
     res.render('error', { message: 'Failed to delete user', error });
