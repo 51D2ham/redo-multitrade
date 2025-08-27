@@ -526,9 +526,6 @@ module.exports = {
       const skip = (page - 1) * limit;
       
       const filter = {};
-      if (req.user && req.user._id) {
-        filter.admin = req.user._id;
-      }
       
       if (filters.status) filter.status = filters.status;
       if (filters.category) filter.category = filters.category;
@@ -672,10 +669,8 @@ module.exports = {
         return res.redirect('/admin/v1/parameters/spec-lists');
       }
 
-      const specList = await SpecList.findOne({
-        _id: specListId,
-        admin: req.user._id
-      }).populate('admin', 'username email fullname')
+      const specList = await SpecList.findById(specListId)
+        .populate('admin', 'username email fullname')
         .populate('category', 'name')
         .populate('subCategory', 'name')
         .populate('type', 'name')
@@ -709,10 +704,7 @@ module.exports = {
         return res.redirect('/admin/v1/parameters/spec-lists');
       }
 
-      const specList = await SpecList.findOne({
-        _id: specListId,
-        admin: req.user._id
-      });
+      const specList = await SpecList.findById(specListId);
 
       if (!specList) {
         req.flash('error', 'Spec list not found');

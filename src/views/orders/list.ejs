@@ -1,4 +1,4 @@
-<%- include('../partials/header.ejs', { title: 'Order Management' }) %>
+﻿<%- include('../partials/header.ejs', { title: 'Order Management' }) %>
 
 <div class="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
@@ -198,7 +198,7 @@
                   <!-- Items & Total -->
                   <td class="px-6 py-4">
                     <div class="flex flex-col gap-1">
-                      <span class="font-semibold text-lg text-gray-900">₹<%= order.totalPrice.toLocaleString() %></span>
+                      <span class="font-semibold text-lg text-gray-900">Rs <%= order.totalPrice.toLocaleString() %></span>
                       <span class="text-sm text-gray-500"><%= order.totalItem %> items (<%= order.totalQty %> qty)</span>
                       <span class="text-xs text-gray-400 capitalize"><%= order.paymentMethod %></span>
                       <% if (order.items && order.items.length > 0) { %>
@@ -310,7 +310,7 @@
               <div class="grid grid-cols-2 gap-4 mb-4">
                 <div class="p-3 bg-blue-50 rounded-xl">
                   <p class="text-sm text-blue-600 font-medium">Total Amount</p>
-                  <p class="text-xl font-bold text-blue-800">₹<%= order.totalPrice.toLocaleString() %></p>
+                  <p class="text-xl font-bold text-blue-800">Rs <%= order.totalPrice.toLocaleString() %></p>
                   <p class="text-xs text-blue-600"><%= order.totalItem %> items (<%= order.totalQty %> qty)</p>
                   <% if (order.items && order.items.length > 0) { %>
                     <% const variantItems = order.items.filter(item => item.variantSku); %>
@@ -422,3 +422,4 @@
 
 
 <%- include('../partials/footer.ejs') %>
+

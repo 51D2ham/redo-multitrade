@@ -10,7 +10,7 @@ function deleteImage(filename) {
 
 module.exports = {
   async listCompanyInfo(req, res) {
-    const items = await CompanyInfo.find({ admin: req.user._id });
+    const items = await CompanyInfo.find().populate('admin', 'username email');
     res.render('companyInfo/index', {
       baseUrl: req.baseUrl,
       items,
@@ -42,7 +42,7 @@ module.exports = {
   },
 
   async showCompanyInfo(req, res) {
-    const item = await CompanyInfo.findOne({ _id: req.params.id, admin: req.user._id });
+    const item = await CompanyInfo.findById(req.params.id).populate('admin', 'username email');
     if (!item) {
       req.flash('error', 'Company information not found');
       return res.redirect(req.baseUrl);
@@ -56,7 +56,7 @@ module.exports = {
   },
 
   async editCompanyInfoForm(req, res) {
-    const item = await CompanyInfo.findOne({ _id: req.params.id, admin: req.user._id });
+    const item = await CompanyInfo.findById(req.params.id);
     if (!item) {
       req.flash('error', 'Company information not found');
       return res.redirect(req.baseUrl);
@@ -70,7 +70,7 @@ module.exports = {
   },
 
   async updateCompanyInfo(req, res) {
-    const item = await CompanyInfo.findOne({ _id: req.params.id, admin: req.user._id });
+    const item = await CompanyInfo.findById(req.params.id);
     if (!item) {
       req.flash('error', 'Company information not found');
       return res.redirect(req.baseUrl);
@@ -91,7 +91,7 @@ module.exports = {
   },
 
   async deleteCompanyInfo(req, res) {
-    const item = await CompanyInfo.findOne({ _id: req.params.id, admin: req.user._id });
+    const item = await CompanyInfo.findById(req.params.id);
     if (!item) {
       req.flash('error', 'Company information not found');
       return res.redirect(req.baseUrl);

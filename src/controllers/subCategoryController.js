@@ -10,9 +10,6 @@ const subCategoryController = {
       const skip = (page - 1) * limit;
       
       const filter = {};
-      if (req.user && req.user._id) {
-        filter.admin = req.user._id;
-      }
       
       if (filters.search) {
         const searchRegex = new RegExp(filters.search, 'i');
@@ -40,7 +37,7 @@ const subCategoryController = {
           .skip(skip)
           .limit(limit),
         SubCategory.countDocuments(filter),
-        Category.find({ admin: req.user._id }).sort({ name: 1 })
+        Category.find().sort({ name: 1 })
       ]);
       
       const totalPages = Math.ceil(total / limit);
@@ -78,7 +75,7 @@ const subCategoryController = {
   // Show form for new subcategory
   newSubCategory: async (req, res) => {
     try {
-      const categories = await Category.find({ admin: req.user._id }).sort({ name: 1 });
+      const categories = await Category.find().sort({ name: 1 });
       res.render('subcategories/new', {
         categories,
         success: req.flash('success'),
@@ -148,7 +145,7 @@ const subCategoryController = {
         return res.redirect('/admin/v1/parameters/subcategories');
       }
 
-      const categories = await Category.find({ admin: req.user._id }).sort({ name: 1 });
+      const categories = await Category.find().sort({ name: 1 });
       
       res.render('subcategories/edit', {
         subcategory,
@@ -177,18 +174,17 @@ const subCategoryController = {
         return res.redirect(`/admin/v1/parameters/subcategories/${req.params.id}/edit`);
       }
 
-      // Check if category exists and belongs to current admin
-      const categoryExists = await Category.findOne({ _id: category, admin: req.user._id });
+      // Check if category exists
+      const categoryExists = await Category.findById(category);
       if (!categoryExists) {
-        req.flash('error', 'Selected category does not exist or access denied');
+        req.flash('error', 'Selected category does not exist');
         return res.redirect(`/admin/v1/parameters/subcategories/${req.params.id}/edit`);
       }
 
-      // Case-insensitive unique validation within category and admin (excluding current)
+      // Case-insensitive unique validation within category (excluding current)
       const existing = await SubCategory.findOne({ 
         name: { $regex: new RegExp(`^${name}$`, 'i') },
         category,
-        admin: req.user._id,
         _id: { $ne: req.params.id }
       });
       
@@ -202,8 +198,7 @@ const subCategoryController = {
       await SubCategory.findByIdAndUpdate(req.params.id, {
         name,
         slug,
-        category,
-        admin: req.user._id
+        category
       });
 
       req.flash('success', 'Subcategory updated successfully');
@@ -219,15 +214,15 @@ const subCategoryController = {
     try {
       const subcategoryId = req.params.id;
       
-      // Check if subcategory exists and belongs to current admin
-      const subcategory = await SubCategory.findOne({ _id: subcategoryId, admin: req.user._id });
+      // Check if subcategory exists
+      const subcategory = await SubCategory.findById(subcategoryId);
       if (!subcategory) {
-        req.flash('error', 'Subcategory not found or access denied');
+        req.flash('error', 'Subcategory not found');
         return res.redirect('/admin/v1/parameters/subcategories');
       }
 
-      // Check for associated types belonging to current admin
-      const typesCount = await Type.countDocuments({ subCategory: subcategoryId, admin: req.user._id });
+      // Check for associated types
+      const typesCount = await Type.countDocuments({ subCategory: subcategoryId });
       if (typesCount > 0) {
         req.flash('error', `Cannot delete subcategory with ${typesCount} associated types`);
         return res.redirect('/admin/v1/parameters/subcategories');

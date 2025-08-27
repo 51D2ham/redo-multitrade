@@ -33,7 +33,7 @@ router.post('/logout', adminController.logoutAdmin);
 
 
 // Password Management Routes
-router.get('/change-password',authMiddleware,rbac('developer', 'superAdmin'),(req, res) => res.render('admin/change-password'));
+router.get('/change-password',authMiddleware,(req, res) => res.render('admin/change-password'));
 router.post('/change-password', adminController.changePasswordRender);
 
 router.get('/forgot-password', (req, res) => res.render('admin/forgot-password'));
@@ -57,10 +57,10 @@ const renderContentDashboard = async (req, res) => {
     const CompanyInfo = require('../../../models/companyInfoModel');
     
     const [heroContentCount, adsPanelCount, companyInfoCount, heroCarousel] = await Promise.all([
-      HeroContent.countDocuments({ admin: req.session.admin.id }),
-      AdsPanel.countDocuments({ admin: req.session.admin.id }),
-      CompanyInfo.countDocuments({ admin: req.session.admin.id }),
-      HeroContent.find({ admin: req.session.admin.id }).sort({ order: 1, createdAt: -1 }).limit(10)
+      HeroContent.countDocuments(),
+      AdsPanel.countDocuments(),
+      CompanyInfo.countDocuments(),
+      HeroContent.find().sort({ order: 1, createdAt: -1 }).limit(10)
     ]);
     
     res.render('admin/content_dashboard', {

@@ -1,4 +1,4 @@
-<%
+﻿<%
 /* Chart data setup */
 const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 let chartLabels = monthNames;
@@ -85,7 +85,7 @@ if (typeof report !== 'undefined' && report && report.monthlyTrend && Array.isAr
         <div class="flex items-center justify-between">
           <div>
             <p class="text-sm font-medium text-gray-600">Delivered Revenue</p>
-            <p class="text-2xl font-bold text-gray-900">₹<%= (report.revenueSummary?.totalRevenue || 0).toLocaleString('en-IN') %></p>
+            <p class="text-2xl font-bold text-gray-900">Rs <%= (report.revenueSummary?.totalRevenue || 0).toLocaleString('en-IN') %></p>
             <div class="flex items-center gap-2 mt-1">
               <p class="text-sm text-green-600">
                 <i class="fas fa-check-circle"></i> 
@@ -93,7 +93,7 @@ if (typeof report !== 'undefined' && report && report.monthlyTrend && Array.isAr
               </p>
               <% if (report.revenueSummary?.cancelledValue > 0) { %>
                 <p class="text-xs text-red-500">
-                  ₹<%= report.revenueSummary.cancelledValue.toLocaleString('en-IN') %> cancelled
+                  Rs <%= report.revenueSummary.cancelledValue.toLocaleString('en-IN') %> cancelled
                 </p>
               <% } %>
             </div>
@@ -200,7 +200,7 @@ if (typeof report !== 'undefined' && report && report.monthlyTrend && Array.isAr
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm text-green-600 font-medium">Delivered Revenue</p>
-              <p class="text-xl font-bold text-green-800">₹<%= (report.mixedOrderAnalytics?.summary?.totalDeliveredValue || report.revenueSummary?.totalRevenue || 0).toLocaleString('en-IN') %></p>
+              <p class="text-xl font-bold text-green-800">Rs <%= (report.mixedOrderAnalytics?.summary?.totalDeliveredValue || report.revenueSummary?.totalRevenue || 0).toLocaleString('en-IN') %></p>
             </div>
             <i class="fas fa-check-circle text-green-500 text-2xl"></i>
           </div>
@@ -210,7 +210,7 @@ if (typeof report !== 'undefined' && report && report.monthlyTrend && Array.isAr
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm text-red-600 font-medium">Cancelled Value</p>
-              <p class="text-xl font-bold text-red-800">₹<%= (report.mixedOrderAnalytics?.summary?.totalCancelledValue || report.revenueSummary?.cancelledValue || 0).toLocaleString('en-IN') %></p>
+              <p class="text-xl font-bold text-red-800">Rs <%= (report.mixedOrderAnalytics?.summary?.totalCancelledValue || report.revenueSummary?.cancelledValue || 0).toLocaleString('en-IN') %></p>
             </div>
             <i class="fas fa-times-circle text-red-500 text-2xl"></i>
           </div>
@@ -220,7 +220,7 @@ if (typeof report !== 'undefined' && report && report.monthlyTrend && Array.isAr
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm text-blue-600 font-medium">Total Order Value</p>
-              <p class="text-xl font-bold text-blue-800">₹<%= (report.mixedOrderAnalytics?.summary?.totalOrderValue || (report.revenueSummary?.totalRevenue || 0) + (report.revenueSummary?.cancelledValue || 0)).toLocaleString('en-IN') %></p>
+              <p class="text-xl font-bold text-blue-800">Rs <%= (report.mixedOrderAnalytics?.summary?.totalOrderValue || (report.revenueSummary?.totalRevenue || 0) + (report.revenueSummary?.cancelledValue || 0)).toLocaleString('en-IN') %></p>
             </div>
             <i class="fas fa-shopping-cart text-blue-500 text-2xl"></i>
           </div>
@@ -263,7 +263,7 @@ if (typeof report !== 'undefined' && report && report.monthlyTrend && Array.isAr
                 <p class="text-xs text-gray-500"><%= product.totalQuantity %> units sold</p>
               </div>
               <div class="text-right">
-                <p class="text-sm font-medium text-gray-900">₹<%= (product.totalRevenue || 0).toLocaleString('en-IN') %></p>
+                <p class="text-sm font-medium text-gray-900">Rs <%= (product.totalRevenue || 0).toLocaleString('en-IN') %></p>
               </div>
             </div>
           <% }) %>
@@ -292,7 +292,7 @@ if (typeof report !== 'undefined' && report && report.monthlyTrend && Array.isAr
                 </div>
                 <div class="text-right">
                   <p class="text-sm font-medium text-gray-900"><%= v.totalQuantity || 0 %> units</p>
-                  <p class="text-xs text-gray-500">₹<%= (v.totalRevenue || 0).toLocaleString('en-IN') %></p>
+                  <p class="text-xs text-gray-500">Rs <%= (v.totalRevenue || 0).toLocaleString('en-IN') %></p>
                   <% if (lastPriceEvent) { %>
                     <p class="text-xs mt-1 <%= lastPriceEvent.delta > 0 ? 'text-green-600' : 'text-red-600' %>">Price change: <%= lastPriceEvent.delta > 0 ? '+' : '' %><%= lastPriceEvent.delta.toLocaleString('en-IN') %> (<%= lastPriceEvent.percent ? lastPriceEvent.percent.toFixed(1) + '%' : '—' %>)</p>
                   <% } %>
@@ -332,7 +332,7 @@ if (typeof report !== 'undefined' && report && report.monthlyTrend && Array.isAr
                   <p class="text-xs text-gray-400 sm:hidden"><%= new Date(order.createdAt).toLocaleDateString() %></p>
                 </div>
                 <div class="text-right flex-shrink-0">
-                  <p class="text-sm font-medium text-green-600">₹<%= (order.totalAmount || order.totalPrice || 0).toLocaleString('en-IN') %></p>
+                  <p class="text-sm font-medium text-green-600">Rs <%= (order.totalAmount || order.totalPrice || 0).toLocaleString('en-IN') %></p>
                   <p class="text-xs text-gray-500"><%= order.items?.length || order.totalItem || 0 %> items</p>
                   <p class="text-xs text-gray-400 hidden sm:block"><%= new Date(order.createdAt).toLocaleDateString() %></p>
                 </div>
@@ -414,7 +414,7 @@ if (typeof report !== 'undefined' && report && report.monthlyTrend && Array.isAr
         <div class="mt-4 p-4 bg-purple-50 rounded-lg">
           <div class="flex justify-between items-center">
             <span class="text-sm text-purple-600">Stock Value</span>
-            <span class="text-base lg:text-lg font-bold text-purple-800">₹<%= (report.stockValue || 0).toLocaleString('en-IN') %></span>
+            <span class="text-base lg:text-lg font-bold text-purple-800">Rs <%= (report.stockValue || 0).toLocaleString('en-IN') %></span>
           </div>
         </div>
       </div>
@@ -558,16 +558,10 @@ if (typeof report !== 'undefined' && report && report.monthlyTrend && Array.isAr
                       <% } %>
                     </td>
                     <td class="py-3 px-2 lg:px-4">
-                      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-1 sm:gap-2">
-                        <a href="/admin/products/<%= alert.productId || alert._id %>/edit" 
-                           class="px-2 lg:px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 text-center">
-                          <i class="fas fa-edit mr-1"></i><span class="hidden sm:inline"> Edit</span>
-                        </a>
-                        <a href="/admin/inventory/restock/<%= alert.productId || alert._id %>" 
-                           class="px-2 lg:px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 text-center">
-                          <i class="fas fa-plus mr-1"></i><span class="hidden sm:inline"> Restock</span>
-                        </a>
-                      </div>
+                      <a href="/admin/v1/products/<%= alert.productId || alert._id %>/edit" 
+                         class="inline-block px-2 lg:px-3 py-1 bg-yellow-600 text-white text-xs rounded hover:bg-yellow-700 text-center">
+                        <i class="fas fa-edit mr-1"></i>Restock
+                      </a>
                     </td>
                   </tr>
                 <% }) %>
@@ -736,7 +730,7 @@ if (typeof report !== 'undefined' && report && report.monthlyTrend && Array.isAr
       data: {
         labels: chartLabels,
         datasets: [{
-          label: 'Revenue (₹)',
+          label: 'Revenue (Rs )',
           data: revenueData,
           borderColor: '#3b82f6',
           backgroundColor: 'rgba(59, 130, 246, 0.1)',
@@ -768,8 +762,8 @@ if (typeof report !== 'undefined' && report && report.monthlyTrend && Array.isAr
             callbacks: {
               label: function(context) {
                 return context.datasetIndex === 0 
-                  ? `Revenue: ₹${context.parsed.y.toLocaleString('en-IN')}`
-                  : `Orders: ${context.parsed.y}`;
+                  ? `Revenue: Rs ${context.parsed.y.toLocaleString('en-IN')}`
+                  : `Orders: ${context.parsed.y} orders`;
               }
             }
           }
@@ -781,7 +775,7 @@ if (typeof report !== 'undefined' && report && report.monthlyTrend && Array.isAr
             grid: { color: '#f3f4f6' },
             ticks: {
               callback: function(value) {
-                return '₹' + value.toLocaleString('en-IN');
+                return 'Rs ' + value.toLocaleString('en-IN');
               }
             }
           }
@@ -794,6 +788,18 @@ if (typeof report !== 'undefined' && report && report.monthlyTrend && Array.isAr
       const showRevenue = e.target.value === 'revenue';
       salesChart.data.datasets[0].hidden = !showRevenue;
       salesChart.data.datasets[1].hidden = showRevenue;
+      
+      // Update Y-axis formatting
+      if (showRevenue) {
+        salesChart.options.scales.y.ticks.callback = function(value) {
+          return 'Rs ' + value.toLocaleString('en-IN');
+        };
+      } else {
+        salesChart.options.scales.y.ticks.callback = function(value) {
+          return value.toString();
+        };
+      }
+      
       salesChart.update();
     });
   }
@@ -835,7 +841,7 @@ if (typeof report !== 'undefined' && report && report.monthlyTrend && Array.isAr
               <p class="text-xs text-gray-500">${product.totalQuantity} units sold</p>
             </div>
             <div class="text-right">
-              <p class="text-sm font-medium text-gray-900">₹${(product.totalRevenue || 0).toLocaleString('en-IN')}</p>
+              <p class="text-sm font-medium text-gray-900">Rs ${(product.totalRevenue || 0).toLocaleString('en-IN')}</p>
             </div>
           </div>`;
       });
@@ -866,7 +872,7 @@ if (typeof report !== 'undefined' && report && report.monthlyTrend && Array.isAr
               <p class="text-xs text-gray-500">${order.customerName || 'Customer'} • ${date}</p>
             </div>
             <div class="text-right">
-              <p class="text-sm font-medium text-green-600">₹${(order.totalAmount || 0).toLocaleString('en-IN')}</p>
+              <p class="text-sm font-medium text-green-600">Rs ${(order.totalAmount || 0).toLocaleString('en-IN')}</p>
               <p class="text-xs text-gray-500">${order.items?.length || 0} items</p>
             </div>
           </div>`;
@@ -928,7 +934,7 @@ if (typeof report !== 'undefined' && report && report.monthlyTrend && Array.isAr
           </div>
           <div class="text-right">
             <p class="text-sm font-medium text-gray-900">${v.totalQuantity || 0} units</p>
-            <p class="text-xs text-gray-500">₹${(v.totalRevenue || 0).toLocaleString('en-IN')}</p>
+            <p class="text-xs text-gray-500">Rs ${(v.totalRevenue || 0).toLocaleString('en-IN')}</p>
           </div>
         </div>`;
     });
@@ -986,3 +992,4 @@ if (typeof report !== 'undefined' && report && report.monthlyTrend && Array.isAr
 </script>
 
 <%- include('../partials/footer.ejs') %>
+

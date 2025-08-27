@@ -10,7 +10,7 @@ function deleteImage(filename) {
 
 module.exports = {
   async listAdsPanels(req, res) {
-    const items = await AdsPanel.find({ admin: req.user._id });
+    const items = await AdsPanel.find().populate('admin', 'username email');
     res.render('adsPanel/index', {
       baseUrl: req.baseUrl,
       items,
@@ -36,7 +36,7 @@ module.exports = {
   },
 
   async showAdsPanel(req, res) {
-    const item = await AdsPanel.findOne({ _id: req.params.id, admin: req.user._id });
+    const item = await AdsPanel.findById(req.params.id).populate('admin', 'username email');
     if (!item) {
       req.flash('error', 'Ads panel not found');
       return res.redirect(req.baseUrl);
@@ -50,7 +50,7 @@ module.exports = {
   },
 
   async editAdsPanelForm(req, res) {
-    const item = await AdsPanel.findOne({ _id: req.params.id, admin: req.user._id });
+    const item = await AdsPanel.findById(req.params.id);
     if (!item) {
       req.flash('error', 'Ads panel not found');
       return res.redirect(req.baseUrl);
@@ -64,7 +64,7 @@ module.exports = {
   },
 
   async updateAdsPanel(req, res) {
-    const item = await AdsPanel.findOne({ _id: req.params.id, admin: req.user._id });
+    const item = await AdsPanel.findById(req.params.id);
     if (!item) {
       req.flash('error', 'Ads panel not found');
       return res.redirect(req.baseUrl);
@@ -81,7 +81,7 @@ module.exports = {
   },
 
   async deleteAdsPanel(req, res) {
-    const item = await AdsPanel.findOne({ _id: req.params.id, admin: req.user._id });
+    const item = await AdsPanel.findById(req.params.id);
     if (!item) {
       req.flash('error', 'Ads panel not found');
       return res.redirect(req.baseUrl);

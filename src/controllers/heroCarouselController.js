@@ -10,7 +10,7 @@ function deleteImage(filename) {
 
 module.exports = {
   async listCarouselItems(req, res) {
-    const items = await HeroCarousel.find({ admin: req.user._id });
+    const items = await HeroCarousel.find().populate('admin', 'username email');
     res.render('heroCarousel/index', {
       baseUrl: req.baseUrl,
       items,
@@ -36,7 +36,7 @@ module.exports = {
   },
 
   async showCarouselItem(req, res) {
-    const item = await HeroCarousel.findOne({ _id: req.params.id, admin: req.user._id });
+    const item = await HeroCarousel.findById(req.params.id).populate('admin', 'username email');
     if (!item) {
       req.flash('error', 'Item not found');
       return res.redirect(req.baseUrl);
@@ -50,7 +50,7 @@ module.exports = {
   },
 
   async editCarouselItemForm(req, res) {
-    const item = await HeroCarousel.findOne({ _id: req.params.id, admin: req.user._id });
+    const item = await HeroCarousel.findById(req.params.id);
     if (!item) {
       req.flash('error', 'Item not found');
       return res.redirect(req.baseUrl);
@@ -64,7 +64,7 @@ module.exports = {
   },
 
   async updateCarouselItem(req, res) {
-    const item = await HeroCarousel.findOne({ _id: req.params.id, admin: req.user._id });
+    const item = await HeroCarousel.findById(req.params.id);
     if (!item) {
       req.flash('error', 'Item not found');
       return res.redirect(req.baseUrl);
@@ -81,7 +81,7 @@ module.exports = {
   },
 
   async deleteCarouselItem(req, res) {
-    const item = await HeroCarousel.findOne({ _id: req.params.id, admin: req.user._id });
+    const item = await HeroCarousel.findById(req.params.id);
     if (!item) {
       req.flash('error', 'Item not found');
       return res.redirect(req.baseUrl);

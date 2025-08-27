@@ -1,23 +1,23 @@
-<%- include('../partials/header.ejs', { title: 'Order Details' }) %>
+﻿<%- include('../partials/header.ejs', { title: 'Order Details' }) %>
 
-<div class="min-h-screen bg-gray-50 py-6">
-  <div class="max-w-6xl mx-auto px-4">
+<div class="min-h-screen bg-gray-50 py-3 sm:py-6">
+  <div class="max-w-6xl mx-auto px-3 sm:px-4">
     
     <!-- Header -->
-    <div class="flex items-center justify-between mb-6">
-      <div class="flex items-center gap-4">
-        <a href="/admin/v1/order" class="flex items-center gap-2 px-3 py-2 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 sm:mb-6">
+      <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+        <a href="/admin/v1/order" class="flex items-center gap-2 px-3 py-2 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow w-fit">
           <i class="fas fa-arrow-left text-gray-600"></i>
-          <span class="text-gray-700">Back to Orders</span>
+          <span class="text-gray-700 text-sm sm:text-base">Back to Orders</span>
         </a>
         <div>
-          <h1 class="text-2xl font-bold text-gray-900">Order #<%= order._id.toString().slice(-8).toUpperCase() %></h1>
-          <p class="text-gray-500 text-sm">Placed on <%= new Date(order.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) %></p>
+          <h1 class="text-xl sm:text-2xl font-bold text-gray-900">Order #<%= order._id.toString().slice(-8).toUpperCase() %></h1>
+          <p class="text-gray-500 text-xs sm:text-sm">Placed on <%= new Date(order.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) %></p>
         </div>
       </div>
       
-      <div class="flex items-center gap-3">
-        <span class="px-4 py-2 rounded-full text-sm font-medium <%= 
+      <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+        <span class="px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-medium <%= 
           order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
           order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
           order.status === 'shipped' ? 'bg-purple-100 text-purple-800' :
@@ -47,17 +47,17 @@
             </span>
           <% }) %>
         </div>
-        <a href="/admin/v1/order/<%= order._id %>/edit" class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
-          <i class="fas fa-edit mr-1"></i>Edit Order
+        <a href="/admin/v1/order/<%= order._id %>/edit" class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-xs sm:text-sm">
+          <i class="fas fa-edit mr-1"></i><span class="hidden sm:inline">Edit Order</span><span class="sm:hidden">Edit</span>
         </a>
       </div>
     </div>
 
     <!-- Main Content Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
       
       <!-- Left Column - Order Items -->
-      <div class="lg:col-span-2 space-y-6">
+      <div class="lg:col-span-2 space-y-4 sm:space-y-6">
         
         <!-- Order Items Card -->
         <div class="bg-white rounded-xl shadow-sm border">
@@ -68,15 +68,15 @@
             </h2>
           </div>
           
-          <div class="p-6">
+          <div class="p-4 sm:p-6">
             <% if (order.items && order.items.length > 0) { %>
-              <div class="space-y-6">
+              <div class="space-y-4 sm:space-y-6">
                 <% order.items.forEach((item, index) => { %>
-                  <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
-                    <div class="flex items-start gap-6">
+                  <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 sm:p-6">
+                    <div class="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
                       
                       <!-- Product Image -->
-                      <div class="w-24 h-24 bg-white rounded-lg flex-shrink-0 overflow-hidden border">
+                      <div class="w-20 h-20 sm:w-24 sm:h-24 bg-white rounded-lg flex-shrink-0 overflow-hidden border mx-auto sm:mx-0">
                         <% if (item.productImage) { %>
                           <img src="<%= item.productImage %>" alt="<%= item.productTitle %>" class="w-full h-full object-cover">
                         <% } else { %>
@@ -88,10 +88,10 @@
                       
                       <!-- Product Details -->
                       <div class="flex-1">
-                        <div class="flex justify-between items-start mb-4">
-                          <div>
-                            <h3 class="text-xl font-bold text-gray-900 mb-2"><%= item.productTitle || 'Product Name Not Available' %></h3>
-                            <div class="flex items-center gap-4 text-sm text-gray-600 mb-3">
+                        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-4 text-center sm:text-left">
+                          <div class="mb-3 sm:mb-0">
+                            <h3 class="text-lg sm:text-xl font-bold text-gray-900 mb-2"><%= item.productTitle || 'Product Name Not Available' %></h3>
+                            <div class="flex flex-wrap justify-center sm:justify-start items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600 mb-3">
                               <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
                                 <i class="fas fa-tag mr-1"></i><%= item.brand || (item.productId?.brand?.name || 'Unknown Brand') %>
                               </span>
@@ -106,7 +106,7 @@
                             </div>
                           </div>
                           <div class="text-right">
-                            <div class="text-2xl font-bold text-gray-900">₹<%= (item.totalPrice || 0).toLocaleString() %></div>
+                            <div class="text-2xl font-bold text-gray-900">Rs <%= (item.totalPrice || 0).toLocaleString() %></div>
                             <div class="text-sm text-gray-500 mb-2">Line Total</div>
                             <span class="px-3 py-1 rounded-full text-xs font-medium <%= 
                               (item.status === 'pending') ? 'bg-yellow-100 text-yellow-800' :
@@ -221,7 +221,7 @@
                           </div>
                           <div class="bg-white p-3 rounded-lg border">
                             <div class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Unit Price</div>
-                            <div class="font-semibold text-green-600">₹<%= (item.productPrice || 0).toLocaleString() %></div>
+                            <div class="font-semibold text-green-600">Rs <%= (item.productPrice || 0).toLocaleString() %></div>
                           </div>
                           <div class="bg-white p-3 rounded-lg border">
                             <div class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Quantity</div>
@@ -374,7 +374,7 @@
                                         <% if (variant.dimensions.height) { %>×<%= variant.dimensions.height %>cm<% } %>
                                       </div>
                                     <% } %>
-                                    <div>• Price: ₹<%= (variant.discountPrice || variant.price).toLocaleString() %></div>
+                                    <div>• Price: Rs <%= (variant.discountPrice || variant.price).toLocaleString() %></div>
                                     <div class="font-medium <%= variant.qty > 10 ? 'text-green-600' : variant.qty > 0 ? 'text-orange-600' : 'text-red-600' %>">
                                       • Stock: <%= variant.qty %> units (<%= variant.status.replace('_', ' ') %>)
                                     </div>
@@ -403,13 +403,13 @@
           <div class="px-6 py-4 bg-slate-50 border-t rounded-b-xl">
             <div class="flex justify-between items-center">
               <div class="text-sm text-gray-600">
-                <div>Subtotal: ₹<%= (order.totalPrice - (order.discountAmt || 0)).toLocaleString() %></div>
+                <div>Subtotal: Rs <%= (order.totalPrice - (order.discountAmt || 0)).toLocaleString() %></div>
                 <% if (order.discountAmt && order.discountAmt > 0) { %>
-                  <div class="text-green-600">Discount: -₹<%= order.discountAmt.toLocaleString() %></div>
+                  <div class="text-green-600">Discount: -Rs <%= order.discountAmt.toLocaleString() %></div>
                 <% } %>
               </div>
               <div class="text-right">
-                <div class="text-3xl font-bold text-gray-900">₹<%= order.totalPrice.toLocaleString() %></div>
+                <div class="text-3xl font-bold text-gray-900">Rs <%= order.totalPrice.toLocaleString() %></div>
                 <div class="text-sm text-gray-500"><%= order.totalQty %> items total</div>
               </div>
             </div>
@@ -534,7 +534,7 @@
                 <!-- Order Total -->
                 <tr class="bg-slate-50 border-t-2 border-slate-200">
                   <td class="py-4 text-base font-semibold text-gray-900">Order Total</td>
-                  <td class="py-4 text-xl font-bold text-gray-900">₹<%= order.totalPrice.toLocaleString() %></td>
+                  <td class="py-4 text-xl font-bold text-gray-900">Rs <%= order.totalPrice.toLocaleString() %></td>
                 </tr>
               </tbody>
             </table>
@@ -548,3 +548,4 @@
 
 
 <%- include('../partials/footer.ejs') %>
+

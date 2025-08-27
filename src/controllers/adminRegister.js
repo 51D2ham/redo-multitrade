@@ -559,10 +559,10 @@ const renderDashboard = async (req, res) => {
         Admin.countDocuments({ status: 'active' }),
         User.countDocuments({ status: 'active' }),
         Order.countDocuments({ createdAt: { $gte: todayStart, $lte: todayEnd } }),
-        Category.countDocuments({ admin: req.session.admin.id }),
-        SubCategory.countDocuments({ admin: req.session.admin.id }),
-        Type.countDocuments({ admin: req.session.admin.id }),
-        Brand.countDocuments({ admin: req.session.admin.id }),
+        Category.countDocuments(),
+        SubCategory.countDocuments(),
+        Type.countDocuments(),
+        Brand.countDocuments(),
         Product.countDocuments({ status: 'active' }),
         Order.aggregate([
           { $match: { createdAt: { $gte: todayStart, $lte: todayEnd } } },
@@ -609,12 +609,12 @@ const renderParameterDashboard = async (req, res) => {
     const SpecList = require('../models/specListModel');
     
     const [categoriesCount, subCategoriesCount, typesCount, brandsCount, productsCount, specListsCount] = await Promise.all([
-      Category.countDocuments({ admin: req.session.admin.id }),
-      SubCategory.countDocuments({ admin: req.session.admin.id }),
-      Type.countDocuments({ admin: req.session.admin.id }),
-      Brand.countDocuments({ admin: req.session.admin.id }),
-      Product.countDocuments({ admin: req.session.admin.id }),
-      SpecList.countDocuments({ admin: req.session.admin.id })
+      Category.countDocuments(),
+      SubCategory.countDocuments(),
+      Type.countDocuments(),
+      Brand.countDocuments(),
+      Product.countDocuments(),
+      SpecList.countDocuments()
     ]);
 
     res.render('admin/parameter_dashboard', {

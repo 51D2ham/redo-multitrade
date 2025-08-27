@@ -1,4 +1,4 @@
-<%- include('../partials/header.ejs', { title: 'View Ads Panel' }) %>
+﻿<%- include('../partials/header.ejs', { title: 'View Ads Panel' }) %>
 
 <!-- Navigation Bar -->
 <nav class="flex flex-wrap gap-3 mb-8 p-4 bg-white rounded-xl shadow-sm border border-gray-100 items-center">
@@ -78,9 +78,9 @@
         <div class="bg-gray-50 p-4 rounded-lg">
           <label class="block text-sm font-semibold text-gray-600 mb-2">Link URL</label>
           <% if (item.link) { %>
-            <a href="<%= item.link %>" target="_blank" class="text-blue-600 hover:underline flex items-center gap-2">
-              <i class="fa fa-external-link-alt"></i>
-              <%= item.link %>
+            <a href="<%= item.link %>" target="_blank" class="text-blue-600 hover:underline flex items-start gap-2 break-all">
+              <i class="fa fa-external-link-alt flex-shrink-0 mt-1"></i>
+              <span class="break-all"><%= item.link %></span>
             </a>
           <% } else { %>
             <p class="text-gray-500">No link specified</p>
@@ -118,3 +118,4 @@
 </main>
 
 <%- include('../partials/footer.ejs') %>
+

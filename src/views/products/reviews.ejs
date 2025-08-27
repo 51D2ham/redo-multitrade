@@ -1,4 +1,4 @@
-<%- include('../partials/header.ejs', { title: `Reviews - ${product.title}` }) %>
+﻿<%- include('../partials/header.ejs', { title: `Reviews - ${product.title}` }) %>
 
 <!-- Navigation -->
 <nav class="flex flex-wrap gap-3 mb-8 p-4 bg-white rounded-xl shadow-sm border border-gray-100 items-center">
@@ -56,7 +56,7 @@
             <span class="px-3 py-1 text-sm font-medium rounded-full <%= product.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' %>">
               <%= product.status.charAt(0).toUpperCase() + product.status.slice(1) %>
             </span>
-            <span class="text-sm text-gray-500">₹<%= product.price %></span>
+            <span class="text-sm text-gray-500">Rs <%= product.price %></span>
           </div>
         </div>
       </div>
@@ -268,3 +268,4 @@
 </script>
 
 <%- include('../partials/footer.ejs') %>
+

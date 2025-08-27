@@ -10,9 +10,6 @@ const brandController = {
       const skip = (page - 1) * limit;
       
       const filter = {};
-      if (req.user && req.user._id) {
-        filter.admin = req.user._id;
-      }
       
       if (filters.search) {
         const searchRegex = new RegExp(filters.search, 'i');
@@ -156,7 +153,6 @@ const brandController = {
       await Brand.findByIdAndUpdate(req.params.id, {
         name,
         slug,
-        admin: req.user._id,
         updatedAt: Date.now()
       });
 

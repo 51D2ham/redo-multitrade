@@ -10,9 +10,6 @@ const typeController = {
       const skip = (page - 1) * limit;
       
       const filter = {};
-      if (req.user && req.user._id) {
-        filter.admin = req.user._id;
-      }
       
       if (filters.search) {
         const searchRegex = new RegExp(filters.search, 'i');
@@ -45,8 +42,8 @@ const typeController = {
           .skip(skip)
           .limit(limit),
         Type.countDocuments(filter),
-        Category.find({ admin: req.user._id }).sort({ name: 1 }),
-        SubCategory.find({ admin: req.user._id }).sort({ name: 1 })
+        Category.find().sort({ name: 1 }),
+        SubCategory.find().sort({ name: 1 })
       ]);
       
       const totalPages = Math.ceil(total / limit);
@@ -86,7 +83,7 @@ const typeController = {
   // Show form for new type
   newType: async (req, res) => {
     try {
-      const categories = await Category.find({ admin: req.user._id }).sort({ name: 1 });
+      const categories = await Category.find().sort({ name: 1 });
       res.render('typesCategories/new', {
         categories,
         success: req.flash('success'),
@@ -135,7 +132,7 @@ const typeController = {
   // Show single type
   showType: async (req, res) => {
     try {
-      const type = await Type.findOne({ _id: req.params.id, admin: req.user._id })
+      const type = await Type.findById(req.params.id)
         .populate('category', 'name')
         .populate('subCategory', 'name')
         .populate('admin', 'username email');
@@ -159,7 +156,7 @@ const typeController = {
   // Show edit form
   editType: async (req, res) => {
     try {
-      const type = await Type.findOne({ _id: req.params.id, admin: req.user._id })
+      const type = await Type.findById(req.params.id)
         .populate('category', 'name')
         .populate('subCategory', 'name')
         .populate('admin', 'username email');
@@ -169,7 +166,7 @@ const typeController = {
         return res.redirect('/admin/v1/parameters/types');
       }
 
-      const categories = await Category.find({ admin: req.user._id }).sort({ name: 1 });
+      const categories = await Category.find().sort({ name: 1 });
       
       res.render('typesCategories/edit', {
         type,
@@ -194,8 +191,7 @@ const typeController = {
         name,
         slug,
         category,
-        subCategory,
-        admin: req.user._id
+        subCategory
       });
 
       req.flash('success', 'Type updated successfully');
@@ -349,8 +345,7 @@ const typeController = {
       const { categoryId } = req.params;
       
       const subcategories = await SubCategory.find({ 
-        category: categoryId, 
-        admin: req.user._id 
+        category: categoryId
       }, 'name')
         .sort({ name: 1 });
       

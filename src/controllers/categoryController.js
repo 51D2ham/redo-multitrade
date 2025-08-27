@@ -97,9 +97,6 @@ module.exports = {
       const skip = (page - 1) * limit;
       
       const filter = {};
-      if (req.user && req.user._id) {
-        filter.admin = req.user._id;
-      }
       
       if (filters.search) {
         const searchRegex = new RegExp(filters.search, 'i');
@@ -209,10 +206,8 @@ module.exports = {
    */
   showCategory: async (req, res) => {
     try {
-      const category = await Category.findOne({
-        _id: req.params.id,
-        admin: req.user._id
-      }).populate('admin', 'username email fullname');
+      const category = await Category.findById(req.params.id)
+        .populate('admin', 'username email fullname');
 
       if (!category) {
         req.flash('error', 'Category not found');
@@ -221,9 +216,8 @@ module.exports = {
 
       // Get related subcategories
       const subCategories = await SubCategory.find({
-        category: category._id,
-        admin: req.user._id
-      });
+        category: category._id
+      }).populate('admin', 'username email fullname');
 
       res.render('categories/show', {
         title: 'Category Details',
@@ -245,10 +239,7 @@ module.exports = {
    */
   editCategory: async (req, res) => {
     try {
-      const category = await Category.findOne({
-        _id: req.params.id,
-        admin: req.user._id
-      });
+      const category = await Category.findById(req.params.id);
 
       if (!category) {
         req.flash('error', 'Category not found');
@@ -280,8 +271,7 @@ module.exports = {
 
       await Category.findByIdAndUpdate(req.params.id, {
         name,
-        slug,
-        admin: req.user._id
+        slug
       });
 
       req.flash('success', 'Category updated successfully');
@@ -307,9 +297,9 @@ module.exports = {
         const adminId = req.user._id;
 
         // Delete category and its dependencies
-        await Category.deleteOne({ _id: categoryId, admin: adminId }).session(session);
-        await SubCategory.deleteMany({ category: categoryId, admin: adminId }).session(session);
-        await Type.deleteMany({ category: categoryId, admin: adminId }).session(session);
+        await Category.deleteOne({ _id: categoryId }).session(session);
+        await SubCategory.deleteMany({ category: categoryId }).session(session);
+        await Type.deleteMany({ category: categoryId }).session(session);
 
         await session.commitTransaction();
         req.flash('success', 'Category and all related data deleted');

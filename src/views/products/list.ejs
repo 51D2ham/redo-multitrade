@@ -1,4 +1,4 @@
-<%- include('../partials/header.ejs', { title: 'Products Management' }) %>
+﻿<%- include('../partials/header.ejs', { title: 'Products Management' }) %>
 
 <!-- Modern Navigation Bar -->
 <nav class="flex flex-wrap gap-3 mb-8 p-4 bg-white rounded-xl shadow-sm border border-gray-100 items-center">
@@ -204,9 +204,9 @@
               <div>
                 <div class="text-xs text-gray-500 mb-1">Price</div>
                 <% if (product.minPrice && product.maxPrice && product.minPrice !== product.maxPrice) { %>
-                  <div class="text-sm font-semibold text-gray-800">₹<%= product.minPrice %> - ₹<%= product.maxPrice %></div>
+                  <div class="text-sm font-semibold text-gray-800">Rs <%= product.minPrice %> - Rs <%= product.maxPrice %></div>
                 <% } else { %>
-                  <div class="text-sm font-semibold text-gray-800">₹<%= product.price %></div>
+                  <div class="text-sm font-semibold text-gray-800">Rs <%= product.price %></div>
                 <% } %>
               </div>
               <div>
@@ -346,11 +346,11 @@
                 </td>
                 <td class="py-4 px-4">
                   <% if (product.minPrice && product.maxPrice && product.minPrice !== product.maxPrice) { %>
-                    <div class="font-semibold text-gray-800">₹<%= product.minPrice %> - ₹<%= product.maxPrice %></div>
+                    <div class="font-semibold text-gray-800">Rs <%= product.minPrice %> - Rs <%= product.maxPrice %></div>
                   <% } else { %>
-                    <div class="font-semibold text-gray-800">₹<%= product.price %></div>
+                    <div class="font-semibold text-gray-800">Rs <%= product.price %></div>
                     <% if (product.variants && product.variants[0] && product.variants[0].discountPrice) { %>
-                      <div class="text-xs text-green-600">₹<%= product.variants[0].discountPrice %> (Sale)</div>
+                      <div class="text-xs text-green-600">Rs <%= product.variants[0].discountPrice %> (Sale)</div>
                     <% } %>
                   <% } %>
                 </td>
@@ -522,3 +522,4 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <%- include('../partials/footer.ejs') %>
+

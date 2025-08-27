@@ -1,4 +1,4 @@
-<%
+﻿<%
 // Safe variable initialization
 const safeUsers = users || [];
 const safePagination = pagination || { total: 0, currentPage: 1, totalPages: 1, hasPrev: false, hasNext: false };
@@ -363,3 +363,4 @@ safePagination.total = safePagination.total || safeUsers.length;
 </main>
 
 <%- include('../partials/footer.ejs') %>
+

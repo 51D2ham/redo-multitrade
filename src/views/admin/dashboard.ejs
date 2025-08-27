@@ -1,4 +1,4 @@
-<%- include('../partials/header.ejs', { title: 'Admin Dashboard' }) %>
+﻿<%- include('../partials/header.ejs', { title: 'Admin Dashboard' }) %>
 
 <!-- Flash Messages -->
 <% if (success && success.length) { %>
@@ -222,39 +222,46 @@
       <i class="fas fa-plus-circle text-emerald-500"></i>
       Quick Add
     </h3>
-    <div class="space-y-4">
-      <a href="/admin/v1/products/new" class="flex items-center gap-4 p-4 rounded-lg bg-gray-50 hover:bg-emerald-50 transition-colors group">
-        <div class="p-3 bg-emerald-100 rounded-lg group-hover:bg-emerald-200 transition-colors">
-          <i class="fas fa-box text-emerald-600"></i>
+    <div class="space-y-3">
+      <a href="/admin/v1/products/new" class="flex items-center gap-3 p-3 rounded-lg bg-gray-50 hover:bg-emerald-50 transition-colors group">
+        <div class="p-2 bg-emerald-100 rounded-lg group-hover:bg-emerald-200 transition-colors">
+          <i class="fas fa-box text-emerald-600 text-sm"></i>
         </div>
         <div>
-          <span class="font-semibold text-gray-800 group-hover:text-emerald-700 block">New Product</span>
-          <span class="text-sm text-gray-500">Add to inventory</span>
+          <span class="font-medium text-gray-800 group-hover:text-emerald-700 block text-sm">New Product</span>
+          <span class="text-xs text-gray-500">Add to inventory</span>
         </div>
       </a>
-      <a href="/admin/v1/staff" class="flex items-center gap-4 p-4 rounded-lg bg-gray-50 hover:bg-blue-50 transition-colors group">
-        <div class="p-3 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
-          <i class="fas fa-users-cog text-blue-600"></i>
+      <a href="/admin/v1/parameters/categories/new" class="flex items-center gap-3 p-3 rounded-lg bg-gray-50 hover:bg-purple-50 transition-colors group">
+        <div class="p-2 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors">
+          <i class="fas fa-folder-plus text-purple-600 text-sm"></i>
         </div>
         <div>
-          <span class="font-semibold text-gray-800 group-hover:text-blue-700 block">Manage Admins</span>
-          <span class="text-sm text-gray-500">View & manage staff</span>
+          <span class="font-medium text-gray-800 group-hover:text-purple-700 block text-sm">New Category</span>
+          <span class="text-xs text-gray-500">Add classification</span>
+        </div>
+      </a>
+      <a href="/admin/v1/parameters/brands/new" class="flex items-center gap-3 p-3 rounded-lg bg-gray-50 hover:bg-orange-50 transition-colors group">
+        <div class="p-2 bg-orange-100 rounded-lg group-hover:bg-orange-200 transition-colors">
+          <i class="fas fa-star text-orange-600 text-sm"></i>
+        </div>
+        <div>
+          <span class="font-medium text-gray-800 group-hover:text-orange-700 block text-sm">New Brand</span>
+          <span class="text-xs text-gray-500">Add brand name</span>
+        </div>
+      </a>
+      <a href="/admin/v1/staff" class="flex items-center gap-3 p-3 rounded-lg bg-gray-50 hover:bg-blue-50 transition-colors group">
+        <div class="p-2 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
+          <i class="fas fa-users-cog text-blue-600 text-sm"></i>
+        </div>
+        <div>
+          <span class="font-medium text-gray-800 group-hover:text-blue-700 block text-sm">Manage Admins</span>
+          <span class="text-xs text-gray-500">View & manage staff</span>
         </div>
       </a>
     </div>
     
-    <!-- Account Settings Corner -->
-    <div class="mt-6 pt-4 border-t border-gray-200">
-      <a href="/admin/v1/staff/change-password" class="flex items-center gap-3 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors group">
-        <div class="p-2 bg-slate-100 rounded-lg group-hover:bg-slate-200 transition-colors">
-          <i class="fas fa-cog text-slate-600 text-sm"></i>
-        </div>
-        <div>
-          <span class="font-medium text-gray-800 text-sm block">Account Settings</span>
-          <span class="text-xs text-gray-500">Manage security</span>
-        </div>
-      </a>
-    </div>
+
   </div>
 </div>
 
@@ -348,3 +355,4 @@
 
 
 <%- include('../partials/footer.ejs') %>
+

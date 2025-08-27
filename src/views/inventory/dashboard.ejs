@@ -1,4 +1,4 @@
-<%- include('../partials/header.ejs', { title: 'Inventory Dashboard' }) %>
+﻿<%- include('../partials/header.ejs', { title: 'Inventory Dashboard' }) %>
 
 <div class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
   <div class="max-w-7xl mx-auto px-6 py-8">
@@ -95,7 +95,7 @@
         <div class="flex items-center justify-between">
           <div>
             <p class="text-sm font-medium text-gray-600">Stock Value</p>
-            <p class="text-2xl font-bold text-green-600">₹<%= (data.stockValue || 0).toLocaleString('en-IN') %></p>
+            <p class="text-2xl font-bold text-green-600">Rs <%= (data.stockValue || 0).toLocaleString('en-IN') %></p>
             <p class="text-sm text-green-500 mt-1">
               <i class="fas fa-rupee-sign mr-1"></i>Total inventory
             </p>
@@ -180,3 +180,4 @@
 </div>
 
 <%- include('../partials/footer.ejs') %>
+

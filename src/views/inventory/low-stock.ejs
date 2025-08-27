@@ -1,4 +1,4 @@
-<%- include('../partials/header.ejs', { title: 'Low Stock Products' }) %>
+﻿<%- include('../partials/header.ejs', { title: 'Low Stock Products' }) %>
 
 <div class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
   <div class="max-w-7xl mx-auto px-6 py-8">
@@ -150,13 +150,13 @@
                   </td>
                   <td class="py-4 px-6">
                     <% if (isOutOfStock) { %>
-                      <button class="px-3 py-1 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors">
-                        <i class="fas fa-plus mr-1"></i>Restock Now
-                      </button>
+                      <a href="/admin/v1/products/<%= alert.productId || alert._id %>/edit" class="inline-block px-3 py-1 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors">
+                        <i class="fas fa-edit mr-1"></i>Restock
+                      </a>
                     <% } else { %>
-                      <button class="px-3 py-1 bg-yellow-600 text-white text-sm rounded-lg hover:bg-yellow-700 transition-colors">
-                        <i class="fas fa-plus mr-1"></i>Restock
-                      </button>
+                      <a href="/admin/v1/products/<%= alert.productId || alert._id %>/edit" class="inline-block px-3 py-1 bg-yellow-600 text-white text-sm rounded-lg hover:bg-yellow-700 transition-colors">
+                        <i class="fas fa-edit mr-1"></i>Restock
+                      </a>
                     <% } %>
                   </td>
                 </tr>
@@ -185,3 +185,4 @@
 </div>
 
 <%- include('../partials/footer.ejs') %>
+
