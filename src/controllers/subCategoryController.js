@@ -42,7 +42,7 @@ const subCategoryController = {
       
       const totalPages = Math.ceil(total / limit);
       
-      res.render('subcategories/list', {
+      res.render('subCategories/list', {
         subcategories: subcategories || [],
         categories: categories || [],
         pagination: {
@@ -61,7 +61,7 @@ const subCategoryController = {
     } catch (error) {
       req.flash('error', 'Error fetching subcategories: ' + error.message);
       
-      res.render('subcategories/list', {
+      res.render('subCategories/list', {
         subcategories: [],
         categories: [],
         pagination: { current: 1, total: 1, hasNext: false, hasPrev: false, next: 1, prev: 1, totalSubCategories: 0 },
@@ -76,7 +76,7 @@ const subCategoryController = {
   newSubCategory: async (req, res) => {
     try {
       const categories = await Category.find().sort({ name: 1 });
-      res.render('subcategories/new', {
+      res.render('subCategories/new', {
         categories,
         success: req.flash('success'),
         error: req.flash('error')
@@ -122,7 +122,7 @@ const subCategoryController = {
         return res.redirect('/admin/v1/parameters/subcategories');
       }
 
-      res.render('subcategories/show', {
+      res.render('subCategories/show', {
         subcategory,
         success: req.flash('success'),
         error: req.flash('error')
@@ -147,7 +147,7 @@ const subCategoryController = {
 
       const categories = await Category.find().sort({ name: 1 });
       
-      res.render('subcategories/edit', {
+      res.render('subCategories/edit', {
         subcategory,
         categories,
         success: req.flash('success'),
