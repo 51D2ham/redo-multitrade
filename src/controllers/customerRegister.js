@@ -7,21 +7,159 @@ const path = require('path');
 const { StatusCodes } = require('http-status-codes');
 require('dotenv').config();
 
-// Register User
-const registerUser = async (req, res) => {
+// Step 1: Send Registration OTP
+const sendRegistrationOTP = async (req, res) => {
   try {
-    const {
+    const { username, email, phone } = req.body;
+
+    // Validate required fields
+    if (!username || !email || !phone) {
+      return res.status(StatusCodes.BAD_REQUEST).json({ 
+        success: false, 
+        message: 'Username, email, and phone are required' 
+      });
+    }
+
+    // Check if user already exists
+    const existingUsername = await User.findOne({ username });
+    const existingEmail = await User.findOne({ email });
+    const existingPhone = await User.findOne({ phone });
+
+    let errors = [];
+    if (existingUsername) errors.push('Username already registered');
+    if (existingEmail) errors.push('Email already registered');
+    if (existingPhone) errors.push('Phone already registered');
+
+    if (errors.length > 0) {
+      return res.status(StatusCodes.CONFLICT).json({ success: false, message: errors.join(', ') });
+    }
+
+    // Generate OTP
+    const otpCode = generateOtp();
+    const expiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+    // Store OTP temporarily (you might want to use Redis for this in production)
+    // For now, we'll store it in a temporary collection or session
+    req.session.registrationData = {
       username,
       email,
-      fullname,
       phone,
-      password,
-      gender,
-      dob,
-      permanentAddress,
-      tempAddress,
-    } = req.body;
+      otp: otpCode,
+      otpExpires: expiry
+    };
 
+    // Send OTP email
+    const NotificationService = require('../services/notificationService');
+    const emailResult = await NotificationService.sendEmailVerification(email, username, otpCode);
+    
+    if (!emailResult.success) {
+      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ 
+        success: false, 
+        message: 'Failed to send verification email. Please try again.' 
+      });
+    }
+
+    return res.status(StatusCodes.OK).json({ 
+      success: true, 
+      message: 'Verification code sent to your email. Please check your inbox.',
+      email: email.replace(/(.{2})(.*)(@.*)/, '$1***$3') // Mask email for security
+    });
+  } catch (error) {
+    console.error('Send registration OTP error:', error);
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ 
+      success: false, 
+      message: 'Server error. Please try again later.' 
+    });
+  }
+};
+
+// Check Registration Session Status
+const checkRegistrationStatus = async (req, res) => {
+  try {
+    const registrationData = req.session.registrationData;
+    
+    if (!registrationData) {
+      return res.status(StatusCodes.OK).json({ 
+        success: true, 
+        hasActiveSession: false,
+        message: 'No active registration session found.' 
+      });
+    }
+
+    const now = new Date();
+    const isOTPExpired = !registrationData.otpExpires || registrationData.otpExpires < now;
+
+    return res.status(StatusCodes.OK).json({ 
+      success: true, 
+      hasActiveSession: true,
+      isOTPExpired,
+      email: registrationData.email.replace(/(.{2})(.*)(@.*)/, '$1***$3'),
+      username: registrationData.username,
+      expiresAt: registrationData.otpExpires
+    });
+  } catch (error) {
+    console.error('Check registration status error:', error);
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ 
+      success: false, 
+      message: 'Server error. Please try again later.' 
+    });
+  }
+};
+
+// Resend Registration OTP
+const resendRegistrationOTP = async (req, res) => {
+  try {
+    const registrationData = req.session.registrationData;
+    if (!registrationData) {
+      return res.status(StatusCodes.BAD_REQUEST).json({ 
+        success: false, 
+        message: 'No active registration session found. Please start registration again.' 
+      });
+    }
+
+    // Generate new OTP
+    const otpCode = generateOtp();
+    const expiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+    // Update session with new OTP
+    req.session.registrationData.otp = otpCode;
+    req.session.registrationData.otpExpires = expiry;
+
+    // Send new OTP email
+    const NotificationService = require('../services/notificationService');
+    const emailResult = await NotificationService.sendEmailVerification(
+      registrationData.email, 
+      registrationData.username, 
+      otpCode
+    );
+    
+    if (!emailResult.success) {
+      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ 
+        success: false, 
+        message: 'Failed to resend verification email. Please try again.' 
+      });
+    }
+
+    return res.status(StatusCodes.OK).json({ 
+      success: true, 
+      message: 'New verification code sent to your email.',
+      email: registrationData.email.replace(/(.{2})(.*)(@.*)/, '$1***$3')
+    });
+  } catch (error) {
+    console.error('Resend registration OTP error:', error);
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ 
+      success: false, 
+      message: 'Server error. Please try again later.' 
+    });
+  }
+};
+
+// Step 1: Register and Send OTP (all data at once)
+const registerAndSendOTP = async (req, res) => {
+  try {
+    const { username, email, phone, fullname } = req.body;
+
+    // Check if user already exists
     const existingUsername = await User.findOne({ username });
     const existingEmail = await User.findOne({ email });
     const existingPhone = await User.findOne({ phone });
@@ -36,29 +174,203 @@ const registerUser = async (req, res) => {
       return res.status(StatusCodes.CONFLICT).json({ success: false, message: errors.join(', ') });
     }
 
+    // Generate OTP
+    const otpCode = generateOtp();
+    const expiry = new Date(Date.now() + 5 * 60 * 1000);
+
+    // Store ALL registration data in session
+    req.session.registrationData = {
+      ...req.body, // Store all form data
+      otp: otpCode,
+      otpExpires: expiry,
+      ...(req.file && { profileImagePath: req.file.path, profileImageFilename: req.file.filename })
+    };
+
+    // Send OTP email
+    const NotificationService = require('../services/notificationService');
+    const emailResult = await NotificationService.sendEmailVerification(email, fullname, otpCode);
+    
+    if (!emailResult.success) {
+      if (req.file) fs.unlink(req.file.path, () => {});
+      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ 
+        success: false, 
+        message: 'Failed to send verification email. Please try again.' 
+      });
+    }
+
+    return res.status(StatusCodes.OK).json({ 
+      success: true, 
+      message: `OTP sent to ${email}. Please verify to complete registration.`,
+      email: email.replace(/(.{2})(.*)(@.*)/, '$1***$3')
+    });
+  } catch (error) {
+    if (req.file) fs.unlink(req.file.path, () => {});
+    console.error('Register and send OTP error:', error);
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ 
+      success: false, 
+      message: 'Server error. Please try again later.' 
+    });
+  }
+};
+
+// Step 2: Verify OTP and Complete Registration
+const verifyOTPAndRegister = async (req, res) => {
+  try {
+    const { otp } = req.body;
+
+    // Get registration data from session
+    const registrationData = req.session.registrationData;
+    if (!registrationData) {
+      return res.status(StatusCodes.BAD_REQUEST).json({ 
+        success: false, 
+        message: 'Registration session expired. Please start registration again.' 
+      });
+    }
+
+    // Verify OTP
+    const now = new Date();
+    if (!otp || registrationData.otp !== otp || registrationData.otpExpires < now) {
+      return res.status(StatusCodes.BAD_REQUEST).json({ 
+        success: false, 
+        message: 'Invalid or expired verification code.' 
+      });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(registrationData.password, 10);
+
+    // Create user with all stored data
+    const userData = {
+      username: registrationData.username,
+      email: registrationData.email,
+      phone: registrationData.phone,
+      fullname: registrationData.fullname,
+      password: hashedPassword,
+      gender: registrationData.gender,
+      dob: new Date(registrationData.dob),
+      permanentAddress: registrationData.permanentAddress,
+      tempAddress: registrationData.tempAddress,
+      isEmailVerified: true,
+      ...(registrationData.profileImageFilename && { profileImage: `/uploads/${registrationData.profileImageFilename}` }),
+    };
+
+    const newUser = new User(userData);
+    await newUser.save();
+
+    // Clear session
+    delete req.session.registrationData;
+
+    // Send welcome email
+    try {
+      const NotificationService = require('../services/notificationService');
+      await NotificationService.sendWelcomeEmail(newUser.email, newUser.fullname);
+    } catch (emailError) {
+      console.error('Welcome email failed:', emailError);
+    }
+
+    return res.status(StatusCodes.CREATED).json({ 
+      success: true, 
+      message: 'Registration completed successfully! Welcome to Multitrade!' 
+    });
+  } catch (error) {
+    console.error('Verify OTP error:', error);
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ 
+      success: false, 
+      message: 'Server error. Please try again later.' 
+    });
+  }
+};
+
+// Step 2: Verify OTP and Complete Registration (old method)
+const registerUser = async (req, res) => {
+  try {
+    const {
+      otp,
+      fullname,
+      password,
+      gender,
+      dob,
+      permanentAddress,
+      tempAddress,
+    } = req.body;
+
+    // Get registration data from session
+    const registrationData = req.session.registrationData;
+    if (!registrationData) {
+      if (req.file) fs.unlink(req.file.path, () => {});
+      return res.status(StatusCodes.BAD_REQUEST).json({ 
+        success: false, 
+        message: 'Registration session expired. Please start registration again.' 
+      });
+    }
+
+    // Verify OTP
+    const now = new Date();
+    if (!otp || registrationData.otp !== otp || registrationData.otpExpires < now) {
+      if (req.file) fs.unlink(req.file.path, () => {});
+      return res.status(StatusCodes.BAD_REQUEST).json({ 
+        success: false, 
+        message: 'Invalid or expired verification code.' 
+      });
+    }
+
+    // Double-check if user still doesn't exist (race condition protection)
+    const existingUsername = await User.findOne({ username: registrationData.username });
+    const existingEmail = await User.findOne({ email: registrationData.email });
+    const existingPhone = await User.findOne({ phone: registrationData.phone });
+
+    let errors = [];
+    if (existingUsername) errors.push('Username already registered');
+    if (existingEmail) errors.push('Email already registered');
+    if (existingPhone) errors.push('Phone already registered');
+
+    if (errors.length > 0) {
+      if (req.file) fs.unlink(req.file.path, () => {});
+      return res.status(StatusCodes.CONFLICT).json({ success: false, message: errors.join(', ') });
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const userData = {
-      username,
-      email,
+      username: registrationData.username,
+      email: registrationData.email,
+      phone: registrationData.phone,
       fullname,
-      phone,
       password: hashedPassword,
       gender,
       dob: new Date(dob),
       permanentAddress,
       tempAddress,
+      isEmailVerified: true, // Email is verified through OTP
       ...(req.file && { profileImage: `/uploads/${req.file.filename}` }),
     };
 
     const newUser = new User(userData);
     await newUser.save();
 
-    return res.status(StatusCodes.CREATED).json({ success: true, message: 'User registered successfully!' });
+    // Clear registration session data
+    delete req.session.registrationData;
+
+    // Send welcome email
+    try {
+      const NotificationService = require('../services/notificationService');
+      await NotificationService.sendWelcomeEmail(newUser.email, newUser.fullname);
+    } catch (emailError) {
+      console.error('Welcome email failed:', emailError);
+      // Don't fail registration if welcome email fails
+    }
+
+    return res.status(StatusCodes.CREATED).json({ 
+      success: true, 
+      message: 'Registration completed successfully! Welcome to Multitrade!' 
+    });
   } catch (error) {
     if (req.file) fs.unlink(req.file.path, () => {});
-    console.error(error);
-    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ success: false, message: 'Server error. Please try again later.' });
+    console.error('Registration error:', error);
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ 
+      success: false, 
+      message: 'Server error. Please try again later.' 
+    });
   }
 };
 
@@ -358,6 +670,64 @@ const deleteUserRender = async (req, res) => {
   }
 };
 
+// Verify Token and Get User Info
+const verifyToken = async (req, res) => {
+  try {
+    const user = await User.findById(req.userInfo.userId).select('-password -resOTP -OTP_Expires -registrationOTP -registrationOTPExpires');
+    
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Check if token version matches (for logout invalidation)
+    if (user.tokenVersion !== req.userInfo.tokenVersion) {
+      return res.status(401).json({ success: false, message: 'Token has been invalidated. Please login again.' });
+    }
+
+    res.status(200).json({ 
+      success: true, 
+      message: 'Token is valid',
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        fullname: user.fullname,
+        phone: user.phone,
+        gender: user.gender,
+        dob: user.dob,
+        profileImage: user.profileImage,
+        permanentAddress: user.permanentAddress,
+        tempAddress: user.tempAddress,
+        isEmailVerified: user.isEmailVerified,
+        status: user.status,
+        createdAt: user.createdAt
+      }
+    });
+  } catch (error) {
+    console.error('Token verification error:', error);
+    res.status(500).json({ success: false, message: 'Token verification failed' });
+  }
+};
+
+// Get Current User Profile
+const getCurrentUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.userInfo.userId).select('-password -resOTP -OTP_Expires -registrationOTP -registrationOTPExpires -tokenVersion');
+    
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    res.status(200).json({ 
+      success: true, 
+      user
+    });
+  } catch (error) {
+    console.error('Get current user error:', error);
+    res.status(500).json({ success: false, message: 'Failed to get user profile' });
+  }
+};
+
 // Logout User
 const logoutUser = async (req, res) => {
   try {
@@ -374,8 +744,15 @@ const logoutUser = async (req, res) => {
 };
 
 module.exports = {
+  registerAndSendOTP,
+  verifyOTPAndRegister,
+  sendRegistrationOTP,
+  checkRegistrationStatus,
+  resendRegistrationOTP,
   registerUser,
   loginUser,
+  verifyToken,
+  getCurrentUser,
   updateUser,
   deleteUser,
   changePassword,

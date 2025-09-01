@@ -21,6 +21,9 @@ const userSchema = new Schema({
   tempAddress: { type: String, trim: true },
   resOTP: { type: String },
   OTP_Expires: { type: Date },
+  registrationOTP: { type: String },
+  registrationOTPExpires: { type: Date },
+  isEmailVerified: { type: Boolean, default: false },
   tokenVersion: { type: Number, default: 0 },
   status: { type: String, enum: ['active', 'inactive', 'blocked'], default: 'active' }
 }, { timestamps: true });
