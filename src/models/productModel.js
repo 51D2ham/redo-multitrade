@@ -1,34 +1,22 @@
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
-// Product Variant Schema
+// Product Variant Schema - Complete & Clear
 const variantSchema = new Schema({
   sku: { type: String, required: true, trim: true },
   color: { type: String, trim: true },
   size: { type: String, trim: true },
   material: { type: String, trim: true },
-  weight: { type: Number, min: 0 },
-  dimensions: {
-    length: { type: Number, min: 0 },
-    width: { type: Number, min: 0 },
-    height: { type: Number, min: 0 }
-  },
-  images: [{ type: String, trim: true }],
-  price: { type: Number, required: true, min: 0 },
-  oldPrice: { type: Number, min: 0 },
-  discountPrice: { type: Number, min: 0 },
-  qty: { type: Number, required: true, min: 0, default: 0 },
-  thresholdQty: { type: Number, min: 0, default: 5 },
-  status: { 
-    type: String, 
-    enum: ['in_stock', 'out_of_stock', 'low_stock', 'discontinued'], 
-    default: 'in_stock' 
-  },
-  shipping: { type: Boolean, default: true },
+  weight: { type: Number, min: 0 }, // in grams
+  dimensions: { type: String, trim: true }, // "L x W x H cm"
+  price: { type: Number, required: true, min: 0 }, // Current selling price
+  originalPrice: { type: Number, min: 0 }, // Previous price for discount display
+  stock: { type: Number, required: true, min: 0, default: 0 },
+  lowStockAlert: { type: Number, min: 0, default: 5 },
   isDefault: { type: Boolean, default: false }
 }, { _id: true });
 
-// Product Schema
+// Product Schema - Minimal & Effective
 const productSchema = new Schema({
   slug: { 
     type: String, 
@@ -41,20 +29,15 @@ const productSchema = new Schema({
     type: String, 
     required: true, 
     trim: true,
-    maxlength: 200,
-    index: 'text'
+    maxlength: 120
   },
   description: { 
     type: String, 
     required: true,
-    maxlength: 5000
+    maxlength: 1500
   },
-  shortDescription: { type: String, maxlength: 500 },
-  images: [{ type: String, trim: true }],
-  thumbnail: { type: String, trim: true },
-  
-  // Base pricing
-  price: { type: Number, required: true, min: 0 },
+  shortDescription: { type: String, maxlength: 200 },
+  images: [{ type: String, trim: true, required: true }], // Main product gallery
   
   // Categories
   category: { type: Schema.Types.ObjectId, ref: 'Category', required: true },
@@ -65,119 +48,138 @@ const productSchema = new Schema({
   // Variants
   variants: [variantSchema],
   
-  // Calculated fields
+  // Metrics
   rating: { type: Number, default: 0, min: 0, max: 5 },
   reviewCount: { type: Number, default: 0, min: 0 },
   totalStock: { type: Number, default: 0, min: 0 },
-  minPrice: { type: Number, default: 0, min: 0 },
-  maxPrice: { type: Number, default: 0, min: 0 },
+  totalSales: { type: Number, default: 0, min: 0 },
+  viewCount: { type: Number, default: 0, min: 0 },
   
   // Status
   status: { 
     type: String, 
-    enum: ['draft', 'active', 'inactive', 'discontinued'], 
+    enum: ['draft', 'active', 'inactive'], 
     default: 'draft' 
   },
   featured: { type: Boolean, default: false },
-  isDiscounted: { type: Boolean, default: false },
   
-  // Admin
+  // Admin & Business
   admin: { type: Schema.Types.ObjectId, ref: 'Admin', required: true },
-  
-  // Business
   warranty: { type: String, trim: true },
   returnPolicy: { type: String, trim: true },
   shippingInfo: { type: String, trim: true },
-  tags: [{ type: String, trim: true }],
-  totalSales: { type: Number, default: 0, min: 0 },
-  viewCount: { type: Number, default: 0, min: 0 }
+  tags: [{ type: String, trim: true, lowercase: true }]
 }, { 
   timestamps: true,
   toJSON: { virtuals: true },
   toObject: { virtuals: true }
 });
 
-// Indexes
+// Smart Indexes - Optimized for Performance
 productSchema.index({ category: 1, subCategory: 1, type: 1 });
-productSchema.index({ brand: 1 });
-productSchema.index({ status: 1 });
-productSchema.index({ featured: 1 });
-productSchema.index({ price: 1 });
-productSchema.index({ rating: -1 });
-productSchema.index({ createdAt: -1 });
-productSchema.index({ title: 'text', description: 'text' });
-productSchema.index({ 'variants.sku': 1 }, { unique: true });
-productSchema.index({ tags: 1 });
+productSchema.index({ brand: 1, status: 1 });
+productSchema.index({ featured: 1, status: 1 });
+productSchema.index({ rating: -1, reviewCount: -1 });
 productSchema.index({ totalSales: -1 });
-productSchema.index({ viewCount: -1 });
+productSchema.index({ createdAt: -1 });
+productSchema.index({ slug: 1 });
+productSchema.index({ title: 'text', description: 'text', tags: 'text' });
+productSchema.index({ 'variants.sku': 1 }, { sparse: true });
 
-// Virtuals
+// Essential Virtuals - Clean & Fast
 productSchema.virtual('defaultVariant').get(function() {
-  if (!this.variants || this.variants.length === 0) return null;
+  if (!this.variants?.length) return null;
   return this.variants.find(v => v.isDefault) || this.variants[0];
 });
 
-productSchema.virtual('inStockVariants').get(function() {
-  if (!this.variants || this.variants.length === 0) return [];
-  return this.variants.filter(v => v.qty > 0 && v.status === 'in_stock');
+productSchema.virtual('price').get(function() {
+  return this.defaultVariant?.price || 0;
 });
 
-productSchema.virtual('lowStockVariants').get(function() {
-  if (!this.variants || this.variants.length === 0) return [];
-  return this.variants.filter(v => v.qty <= v.thresholdQty && v.qty > 0);
+productSchema.virtual('originalPrice').get(function() {
+  return this.defaultVariant?.originalPrice || null;
 });
 
 productSchema.virtual('isOnSale').get(function() {
-  if (!this.variants || this.variants.length === 0) return false;
-  return this.variants.some(v => v.discountPrice && v.discountPrice < v.price);
+  const variant = this.defaultVariant;
+  return !!(variant?.originalPrice && variant.originalPrice > variant.price);
 });
 
-// Pre-save middleware
+productSchema.virtual('discountPercent').get(function() {
+  const variant = this.defaultVariant;
+  if (!variant?.originalPrice || variant.originalPrice <= variant.price) return 0;
+  return Math.round(((variant.originalPrice - variant.price) / variant.originalPrice) * 100);
+});
+
+productSchema.virtual('discountAmount').get(function() {
+  const variant = this.defaultVariant;
+  if (!variant?.originalPrice || variant.originalPrice <= variant.price) return 0;
+  return variant.originalPrice - variant.price;
+});
+
+productSchema.virtual('priceStatus').get(function() {
+  const variant = this.defaultVariant;
+  if (!variant?.originalPrice) return 'regular';
+  if (variant.originalPrice > variant.price) return 'discounted';
+  if (variant.originalPrice < variant.price) return 'increased';
+  return 'same';
+});
+
+productSchema.virtual('thumbnail').get(function() {
+  return this.images?.[0] || null;
+});
+
+productSchema.virtual('inStock').get(function() {
+  return this.totalStock > 0;
+});
+
+productSchema.virtual('lowStock').get(function() {
+  if (!this.variants?.length) return false;
+  return this.variants.some(v => v.stock > 0 && v.stock <= v.lowStockAlert);
+});
+
+productSchema.virtual('availableVariants').get(function() {
+  if (!this.variants?.length) return [];
+  return this.variants.filter(v => v.stock > 0);
+});
+
+// Pre-save Middleware - Essential Only
 productSchema.pre('save', function(next) {
-  if (this.variants && this.variants.length > 0) {
-    this.totalStock = this.variants.reduce((sum, variant) => sum + variant.qty, 0);
+  if (this.variants?.length) {
+    // Calculate total stock
+    this.totalStock = this.variants.reduce((sum, v) => sum + v.stock, 0);
     
-    const activePrices = this.variants
-      .filter(v => v.status === 'in_stock')
-      .map(v => v.discountPrice || v.price);
-    
-    if (activePrices.length > 0) {
-      this.minPrice = Math.min(...activePrices);
-      this.maxPrice = Math.max(...activePrices);
-    }
-    
-    const defaultVariant = this.variants.find(v => v.isDefault) || this.variants[0];
-    if (defaultVariant) {
-      this.price = defaultVariant.discountPrice || defaultVariant.price;
-    }
-    
-    if (!this.thumbnail && this.images.length > 0) {
-      this.thumbnail = this.images[0];
-    }
-    
-    const hasDefault = this.variants.some(v => v.isDefault);
-    if (!hasDefault && this.variants.length > 0) {
+    // Ensure one default variant
+    if (!this.variants.some(v => v.isDefault)) {
       this.variants[0].isDefault = true;
     }
     
-    this.variants.forEach(variant => {
-      if (variant.qty === 0) {
-        variant.status = 'out_of_stock';
-      } else if (variant.qty <= variant.thresholdQty) {
-        variant.status = 'low_stock';
-      } else {
-        variant.status = 'in_stock';
-      }
-    });
-    
-    if (this.discontinueDate && this.discontinueDate < new Date()) {
-      this.status = 'discontinued';
+    // Validate required fields
+    if (!this.images?.length) {
+      return next(new Error('At least one product image is required'));
     }
   }
   next();
 });
 
-// ProductSpecs Schema
+// Static Methods for Common Queries
+productSchema.statics.findActive = function() {
+  return this.find({ status: 'active' });
+};
+
+productSchema.statics.findFeatured = function() {
+  return this.find({ status: 'active', featured: true });
+};
+
+productSchema.statics.findByCategory = function(categoryId) {
+  return this.find({ category: categoryId, status: 'active' });
+};
+
+productSchema.statics.findInStock = function() {
+  return this.find({ status: 'active', totalStock: { $gt: 0 } });
+};
+
+// ProductSpecs Schema - Clean
 const productSpecsSchema = new Schema({
   product: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
   specList: { type: Schema.Types.ObjectId, ref: 'SpecList', required: true },
@@ -185,17 +187,15 @@ const productSpecsSchema = new Schema({
 }, { timestamps: true });
 
 productSpecsSchema.index({ product: 1 });
-productSpecsSchema.index({ specList: 1 });
 productSpecsSchema.index({ specList: 1, value: 1 });
-productSpecsSchema.index({ value: 'text' });
 
-// Review Schema
+// Review Schema - Optimized
 const reviewSchema = new Schema({
   product: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
   user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   rating: { type: Number, required: true, min: 1, max: 5 },
-  title: { type: String, trim: true, maxlength: 100 },
-  review: { type: String, required: true, trim: true, minlength: 10, maxlength: 1000 },
+  title: { type: String, trim: true, maxlength: 60 },
+  review: { type: String, required: true, trim: true, minlength: 10, maxlength: 500 },
   verified: { type: Boolean, default: false },
   helpful: { type: Number, default: 0 },
   status: { 
@@ -205,34 +205,48 @@ const reviewSchema = new Schema({
   }
 }, { timestamps: true });
 
-reviewSchema.index({ product: 1 });
+reviewSchema.index({ product: 1, status: 1 });
 reviewSchema.index({ user: 1 });
-reviewSchema.index({ rating: 1 });
-reviewSchema.index({ status: 1 });
 reviewSchema.index({ product: 1, user: 1 }, { unique: true });
 reviewSchema.index({ createdAt: -1 });
 
-// Update product rating on review save
+// Auto-update product rating - Optimized
 reviewSchema.post('save', async function() {
-  const Product = mongoose.model('Product');
-  const Review = mongoose.model('Review');
-  
-  const stats = await Review.aggregate([
-    { $match: { product: this.product, status: 'approved' } },
-    { 
-      $group: { 
-        _id: '$product',
-        averageRating: { $avg: '$rating' },
-        totalReviews: { $sum: 1 }
+  try {
+    const Product = mongoose.model('Product');
+    const Review = mongoose.model('Review');
+    
+    const stats = await Review.aggregate([
+      { $match: { product: this.product, status: 'approved' } },
+      { 
+        $group: { 
+          _id: '$product',
+          averageRating: { $avg: '$rating' },
+          totalReviews: { $sum: 1 }
+        }
       }
+    ]);
+    
+    if (stats.length > 0) {
+      await Product.findByIdAndUpdate(this.product, {
+        rating: Math.round(stats[0].averageRating * 10) / 10,
+        reviewCount: stats[0].totalReviews
+      });
     }
-  ]);
-  
-  if (stats.length > 0) {
+  } catch (error) {
+    console.error('Error updating product rating:', error);
+  }
+});
+
+// Delete related reviews when product is deleted
+reviewSchema.post('deleteOne', { document: true, query: false }, async function() {
+  try {
+    const Product = mongoose.model('Product');
     await Product.findByIdAndUpdate(this.product, {
-      rating: Math.round(stats[0].averageRating * 10) / 10,
-      reviewCount: stats[0].totalReviews
+      $inc: { reviewCount: -1 }
     });
+  } catch (error) {
+    console.error('Error updating review count:', error);
   }
 });
 

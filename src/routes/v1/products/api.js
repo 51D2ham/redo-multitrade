@@ -2,9 +2,10 @@ const express = require('express');
 const router = express.Router();
 const productController = require('../../../controllers/productController');
 
-// Public product API routes
+// Public product API routes - Optimized for frontend
 router.get('/', productController.getAllProducts);
 router.get('/filters', productController.getProductFilters);
+router.post('/specifications', productController.getSpecificationsByIds);
 router.get('/:id', productController.getProductById);
 
 module.exports = router;

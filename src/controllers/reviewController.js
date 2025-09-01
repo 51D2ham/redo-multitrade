@@ -534,11 +534,18 @@ const reviewController = {
   // Product-specific reviews page (Admin)
   getProductReviewsAdmin: async (req, res) => {
     try {
+      console.log('Product reviews route hit:', req.params, req.query);
       const { id: productId } = req.params;
       const page = parseInt(req.query.page) || 1;
       const limit = Math.min(parseInt(req.query.limit) || 20, 100);
       const skip = (page - 1) * limit;
       const status = req.query.status || 'all';
+      
+      if (!mongoose.Types.ObjectId.isValid(productId)) {
+        console.log('Invalid product ID:', productId);
+        req.flash('error', 'Invalid product ID');
+        return res.redirect('/admin/v1/products');
+      }
       
       // Get product details
       const product = await Product.findById(productId)

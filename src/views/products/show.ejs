@@ -80,7 +80,8 @@
           </div>
           <div class="bg-green-50 rounded-lg p-3 sm:p-4">
             <div class="text-xs sm:text-sm text-green-600 mb-1">Total Stock</div>
-            <div class="text-lg sm:text-xl font-bold text-green-800"><%= product.variants ? product.variants.reduce((sum, v) => sum + (v.qty || 0), 0) : 0 %></div>
+            <% const realTimeStock = product.variants ? product.variants.reduce((sum, v) => sum + (v.stock || 0), 0) : 0; %>
+            <div class="text-lg sm:text-xl font-bold text-green-800"><%= realTimeStock %></div>
           </div>
           <div class="bg-purple-50 rounded-lg p-3 sm:p-4">
             <div class="text-xs sm:text-sm text-purple-600 mb-1">Variants</div>
@@ -88,7 +89,7 @@
           </div>
           <div class="bg-orange-50 rounded-lg p-3 sm:p-4">
             <div class="text-xs sm:text-sm text-orange-600 mb-1">Views</div>
-            <div class="text-lg sm:text-xl font-bold text-orange-800"><%= product.views || 0 %></div>
+            <div class="text-lg sm:text-xl font-bold text-orange-800"><%= product.viewCount || 0 %></div>
           </div>
         </div>
 
@@ -212,23 +213,34 @@
                 </td>
                 <td class="px-4 py-3">
                   <div class="flex flex-col">
-                    <% if (variant.discountPrice && variant.discountPrice < variant.price) { %>
-                      <span class="text-sm line-through text-gray-500">Rs <%= variant.price %></span>
-                      <span class="text-sm font-semibold text-green-600">Rs <%= variant.discountPrice %></span>
+                    <% if (variant.oldPrice && variant.oldPrice > variant.price) { %>
+                      <span class="text-sm line-through text-gray-500">Rs <%= variant.oldPrice %></span>
+                      <span class="text-sm font-semibold text-green-600">Rs <%= variant.price %></span>
                     <% } else { %>
                       <span class="text-sm font-semibold">Rs <%= variant.price %></span>
                     <% } %>
                   </div>
                 </td>
                 <td class="px-4 py-3">
-                  <span class="text-sm font-medium"><%= variant.qty || 0 %></span>
-                  <% if (variant.qty <= (variant.thresholdQty || 5) && variant.qty > 0) { %>
+                  <span class="text-sm font-medium"><%= variant.stock || 0 %></span>
+                  <% if (variant.stock <= (variant.lowStockAlert || 5) && variant.stock > 0) { %>
                     <i class="fa fa-exclamation-triangle text-orange-500 ml-1" title="Low Stock"></i>
                   <% } %>
                 </td>
                 <td class="px-4 py-3">
-                  <span class="px-2 py-1 text-xs font-medium rounded-full <%= variant.status === 'in_stock' ? 'bg-green-100 text-green-800' : variant.status === 'low_stock' ? 'bg-orange-100 text-orange-800' : 'bg-red-100 text-red-800' %>">
-                    <%= variant.status ? variant.status.replace('_', ' ') : 'unknown' %>
+                  <% 
+                    let stockStatus = 'out of stock';
+                    let statusClass = 'bg-red-100 text-red-800';
+                    if (variant.stock > (variant.lowStockAlert || 5)) {
+                      stockStatus = 'in stock';
+                      statusClass = 'bg-green-100 text-green-800';
+                    } else if (variant.stock > 0) {
+                      stockStatus = 'low stock';
+                      statusClass = 'bg-orange-100 text-orange-800';
+                    }
+                  %>
+                  <span class="px-2 py-1 text-xs font-medium rounded-full <%= statusClass %>">
+                    <%= stockStatus %>
                   </span>
                 </td>
                 <td class="px-4 py-3 text-center">
@@ -378,10 +390,10 @@
     <% } %>
   </div>
 
-  <!-- Customer Reviews - Summary Only -->
+  <!-- Customer Reviews -->
   <div class="bg-white rounded-xl shadow-md border border-gray-100 mb-6">
     <div class="p-6">
-      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div class="flex items-center justify-between mb-6">
         <div class="flex items-center gap-4">
           <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
             <i class="fa fa-star text-yellow-600 text-xl"></i>
@@ -391,53 +403,67 @@
             <p class="text-sm sm:text-base text-gray-600">Review management for this product</p>
           </div>
         </div>
-        
-        <!-- Review Stats -->
-        <div class="flex flex-wrap items-center gap-4 sm:gap-6">
-          <div class="text-center">
-            <div class="text-xl sm:text-2xl font-bold text-yellow-600"><%= product.rating || 0 %></div>
-            <div class="text-xs sm:text-sm text-gray-500">Average Rating</div>
-          </div>
-          <div class="text-center">
-            <div class="text-xl sm:text-2xl font-bold text-blue-600"><%= product.reviewCount || 0 %></div>
-            <div class="text-xs sm:text-sm text-gray-500">Total Reviews</div>
-          </div>
-          <% if (reviews && reviews.length > 0) { %>
-            <% const pendingCount = reviews.filter(r => r.status === 'pending').length; %>
-            <% if (pendingCount > 0) { %>
-              <div class="text-center">
-                <div class="text-xl sm:text-2xl font-bold text-orange-600"><%= pendingCount %></div>
-                <div class="text-xs sm:text-sm text-gray-500">Pending</div>
-              </div>
-            <% } %>
-          <% } %>
-          
-          <!-- Manage Button -->
-          <a href="/admin/v1/products/<%= product._id %>/reviews" class="px-3 sm:px-6 py-2 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium flex items-center gap-2 text-sm sm:text-base">
-            <i class="fa fa-cog"></i> <span class="hidden sm:inline">Manage Reviews</span><span class="sm:hidden">Manage</span>
-          </a>
+        <a href="/admin/v1/products/<%= product._id %>/reviews" class="px-3 sm:px-6 py-2 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium flex items-center gap-2 text-sm sm:text-base">
+          <i class="fa fa-cog"></i> <span class="hidden sm:inline">Manage Reviews</span><span class="sm:hidden">Manage</span>
+        </a>
+      </div>
+      
+      <% 
+        const approvedCount = reviews ? reviews.filter(r => r.status === 'approved').length : 0;
+        const pendingCount = reviews ? reviews.filter(r => r.status === 'pending').length : 0;
+        const rejectedCount = reviews ? reviews.filter(r => r.status === 'rejected').length : 0;
+      %>
+      
+      <!-- Review Stats -->
+      <div class="flex flex-wrap items-center gap-4 sm:gap-6">
+        <div class="text-center">
+          <div class="text-xl sm:text-2xl font-bold text-yellow-600"><%= product.rating || 0 %></div>
+          <div class="text-xs sm:text-sm text-gray-500">Average Rating</div>
         </div>
+        <div class="text-center">
+          <div class="text-xl sm:text-2xl font-bold text-blue-600"><%= product.reviewCount || 0 %></div>
+          <div class="text-xs sm:text-sm text-gray-500">Total Reviews</div>
+        </div>
+        <div class="text-center">
+          <div class="text-xl sm:text-2xl font-bold text-green-600"><%= approvedCount %></div>
+          <div class="text-xs sm:text-sm text-gray-500">Approved</div>
+        </div>
+        <% if (pendingCount > 0) { %>
+          <div class="text-center">
+            <div class="text-xl sm:text-2xl font-bold text-orange-600"><%= pendingCount %></div>
+            <div class="text-xs sm:text-sm text-gray-500">Pending</div>
+          </div>
+        <% } %>
       </div>
       
       <!-- Quick Status Bar -->
-      <% if (reviews && reviews.length > 0) { %>
-        <div class="mt-4 pt-4 border-t border-gray-100">
+      <div class="mt-4 pt-4 border-t border-gray-100">
+        <% if (reviews && reviews.length > 0) { %>
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-4 text-sm text-gray-600">
-              <span><%= reviews.filter(r => r.status === 'approved').length %> Approved</span>
-              <span><%= reviews.filter(r => r.status === 'pending').length %> Pending</span>
-              <span><%= reviews.filter(r => r.status === 'rejected').length %> Rejected</span>
+              <span class="flex items-center gap-1">
+                <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                <%= approvedCount %> Approved
+              </span>
+              <span class="flex items-center gap-1">
+                <div class="w-2 h-2 bg-orange-500 rounded-full"></div>
+                <%= pendingCount %> Pending
+              </span>
+              <span class="flex items-center gap-1">
+                <div class="w-2 h-2 bg-red-500 rounded-full"></div>
+                <%= rejectedCount %> Rejected
+              </span>
             </div>
             <div class="text-sm text-gray-500">
               Last review: <%= new Date(Math.max(...reviews.map(r => new Date(r.createdAt)))).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) %>
             </div>
           </div>
-        </div>
-      <% } else { %>
-        <div class="mt-4 pt-4 border-t border-gray-100 text-center">
-          <p class="text-gray-500">No customer reviews yet for this product.</p>
-        </div>
-      <% } %>
+        <% } else { %>
+          <div class="text-center">
+            <p class="text-gray-500">No customer reviews yet for this product.</p>
+          </div>
+        <% } %>
+      </div>
     </div>
   </div>
 
@@ -456,7 +482,7 @@
         <div class="space-y-2">
           <div class="flex justify-between">
             <span class="text-sm text-gray-600">Orders:</span>
-            <span class="text-sm font-semibold"><%= product.totalOrders || 0 %></span>
+            <span class="text-sm font-semibold"><%= product.totalSales || 0 %></span>
           </div>
           <div class="flex justify-between">
             <span class="text-sm text-gray-600">Rating:</span>
@@ -489,9 +515,13 @@
         </div>
         <div class="space-y-2">
           <% 
-            const totalStock = product.variants ? product.variants.reduce((sum, v) => sum + (v.qty || 0), 0) : 0;
-            const lowStockVariants = product.variants ? product.variants.filter(v => v.qty <= (v.thresholdQty || 5) && v.qty > 0).length : 0;
-            const outOfStockVariants = product.variants ? product.variants.filter(v => v.qty === 0).length : 0;
+            const totalStock = product.variants ? product.variants.reduce((sum, v) => sum + (v.stock || 0), 0) : 0;
+            const lowStockVariants = product.variants ? product.variants.filter(v => {
+              const currentStock = v.stock || 0;
+              const alertLevel = v.lowStockAlert || 5;
+              return currentStock <= alertLevel && currentStock > 0;
+            }).length : 0;
+            const outOfStockVariants = product.variants ? product.variants.filter(v => (v.stock || 0) === 0).length : 0;
           %>
           <div class="flex justify-between">
             <span class="text-sm text-gray-600">Total Stock:</span>
@@ -529,4 +559,3 @@
 </main>
 
 <%- include('../partials/footer.ejs') %>
-

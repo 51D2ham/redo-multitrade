@@ -24,7 +24,7 @@ const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|gif|webp/;
+    const allowedTypes = /jpeg|jpg|png|webp/;
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
     const mimetype = allowedTypes.test(file.mimetype);
     
@@ -51,7 +51,7 @@ const isValidObjectId = (id) => {
 };
 
 module.exports = {
-  // List products
+  // Admin - List products
   listProducts: async (req, res) => {
     try {
       const page = parseInt(req.query.page) || 1;
@@ -59,7 +59,6 @@ module.exports = {
       const skip = (page - 1) * limit;
       
       const filter = {};
-      
       if (req.query.status) filter.status = req.query.status;
       if (req.query.category) filter.category = req.query.category;
       if (req.query.brand) filter.brand = req.query.brand;
@@ -67,7 +66,7 @@ module.exports = {
         filter.$text = { $search: req.query.search };
       }
       
-      const [productsRaw, total, categories, brands] = await Promise.all([
+      const [products, total, categories, brands] = await Promise.all([
         Product.find(filter)
           .populate('category', 'name')
           .populate('subCategory', 'name')
@@ -80,23 +79,12 @@ module.exports = {
         Category.find().sort({ name: 1 }),
         Brand.find().sort({ name: 1 })
       ]);
-      
-
-
-      // Calculate totalStock for each product from variants
-      const products = productsRaw.map(product => {
-        const totalStock = product.variants && product.variants.length > 0
-          ? product.variants.reduce((sum, v) => sum + (v.qty || 0), 0)
-          : 0;
-        return { ...product.toObject(), totalStock };
-      });
 
       const totalPages = Math.ceil(total / limit);
 
       res.render('products/list', {
         title: 'Manage Products',
         products,
-
         categories,
         brands,
         pagination: {
@@ -114,12 +102,9 @@ module.exports = {
     } catch (error) {
       console.error('List products error:', error);
       req.flash('error', 'Error loading products');
-      
-      // Fallback render with basic data
       res.render('products/list', {
         title: 'Manage Products',
         products: [],
-
         categories: [],
         brands: [],
         pagination: { current: 1, total: 1, hasNext: false, hasPrev: false, next: 1, prev: 1 },
@@ -130,11 +115,13 @@ module.exports = {
     }
   },
 
-  // Show new product form
+  // Admin - Show new product form
   newProduct: async (req, res) => {
     try {
-      const [categories, brands, specLists] = await Promise.all([
+      const [categories, subCategories, types, brands, specLists] = await Promise.all([
         Category.find().sort({ name: 1 }),
+        SubCategory.find().sort({ name: 1 }),
+        Type.find().sort({ name: 1 }),
         Brand.find().sort({ name: 1 }),
         SpecList.find().sort({ title: 1 })
       ]);
@@ -142,6 +129,8 @@ module.exports = {
       res.render('products/new', {
         title: 'Create New Product',
         categories,
+        subCategories,
+        types,
         brands,
         specLists,
         formData: {},
@@ -155,12 +144,12 @@ module.exports = {
     }
   },
 
-  // Create product
+  // Admin - Create product
   createProduct: async (req, res) => {
     try {
-      const { title, description, shortDescription, basePrice, category, subCategory, type, brand, status, featured } = req.body;
+      const { title, description, shortDescription, category, subCategory, type, brand, status, featured } = req.body;
 
-      if (!title || !description || !basePrice || !category || !subCategory || !type || !brand) {
+      if (!title || !description || !category || !subCategory || !type || !brand) {
         req.flash('error', 'All required fields must be filled');
         return res.redirect('/admin/v1/products/new');
       }
@@ -185,19 +174,18 @@ module.exports = {
       if (req.body.variants) {
         for (let i = 0; req.body.variants[i]; i++) {
           const variant = req.body.variants[i];
-          if (variant.sku && variant.price && variant.qty !== undefined) {
+          if (variant.sku && variant.price && variant.stock !== undefined) {
             variants.push({
               sku: variant.sku,
               price: parseFloat(variant.price),
-              oldPrice: variant.oldPrice ? parseFloat(variant.oldPrice) : undefined,
-              discountPrice: variant.discountPrice ? parseFloat(variant.discountPrice) : undefined,
-              qty: parseInt(variant.qty),
-              thresholdQty: parseInt(variant.thresholdQty) || 5,
+              originalPrice: variant.originalPrice ? parseFloat(variant.originalPrice) : undefined,
+              stock: parseInt(variant.stock),
+              lowStockAlert: parseInt(variant.lowStockAlert) || 5,
               color: variant.color || '',
               size: variant.size || '',
               material: variant.material || '',
               weight: variant.weight ? parseFloat(variant.weight) : undefined,
-              shipping: variant.shipping !== 'false',
+              dimensions: variant.dimensions || '',
               isDefault: variant.isDefault === 'true' || i === 0
             });
           }
@@ -211,7 +199,6 @@ module.exports = {
         description: description.trim(),
         shortDescription: shortDescription?.trim(),
         images,
-        price: parseFloat(basePrice),
         category,
         subCategory,
         type,
@@ -219,16 +206,11 @@ module.exports = {
         variants,
         status: status || 'draft',
         featured: featured === 'true',
-        isDiscounted: req.body.isDiscounted === 'true',
-        // admin: req.user._id
+        admin: req.user._id
       };
 
       // Add business fields
       if (req.body.warranty) productData.warranty = req.body.warranty.trim();
-      if (req.body.returnPolicy) productData.returnPolicy = req.body.returnPolicy.trim();
-      if (req.body.shippingInfo) productData.shippingInfo = req.body.shippingInfo.trim();
-      
-      // Handle tags array
       if (req.body.tags) {
         productData.tags = req.body.tags.split(',').map(t => t.trim()).filter(t => t);
       }
@@ -263,7 +245,7 @@ module.exports = {
     }
   },
 
-  // Show product
+  // Admin - Show product
   showProduct: async (req, res) => {
     try {
       if (!isValidObjectId(req.params.id)) {
@@ -271,9 +253,7 @@ module.exports = {
         return res.redirect('/admin/v1/products');
       }
 
-      const product = await Product.findOne({
-        _id: req.params.id
-      })
+      const product = await Product.findById(req.params.id)
         .populate('category', 'name')
         .populate('subCategory', 'name')
         .populate('type', 'name')
@@ -304,7 +284,7 @@ module.exports = {
     }
   },
 
-  // Edit product
+  // Admin - Edit product
   editProduct: async (req, res) => {
     try {
       if (!isValidObjectId(req.params.id)) {
@@ -313,7 +293,7 @@ module.exports = {
       }
 
       const [product, categories, subCategories, types, brands, specLists, specifications] = await Promise.all([
-        Product.findOne({ _id: req.params.id }),
+        Product.findById(req.params.id),
         Category.find().sort({ name: 1 }),
         SubCategory.find().sort({ name: 1 }),
         Type.find().sort({ name: 1 }),
@@ -346,7 +326,7 @@ module.exports = {
     }
   },
 
-  // Update product
+  // Admin - Update product
   updateProduct: async (req, res) => {
     try {
       if (!isValidObjectId(req.params.id)) {
@@ -354,13 +334,13 @@ module.exports = {
         return res.redirect('/admin/v1/products');
       }
 
-      const product = await Product.findOne({ _id: req.params.id });
+      const product = await Product.findById(req.params.id);
       if (!product) {
         req.flash('error', 'Product not found');
         return res.redirect('/admin/v1/products');
       }
 
-      const { title, description, shortDescription, basePrice, category, subCategory, type, brand, status, featured } = req.body;
+      const { title, description, shortDescription, category, subCategory, type, brand, status, featured } = req.body;
 
       // Handle images
       let images = [...product.images];
@@ -384,20 +364,19 @@ module.exports = {
       if (req.body.variants) {
         for (let i = 0; req.body.variants[i]; i++) {
           const variant = req.body.variants[i];
-          if (variant.sku && variant.price && variant.qty !== undefined) {
+          if (variant.sku && variant.price && variant.stock !== undefined) {
             variants.push({
               _id: variant._id || undefined,
               sku: variant.sku,
               price: parseFloat(variant.price),
-              oldPrice: variant.oldPrice ? parseFloat(variant.oldPrice) : undefined,
-              discountPrice: variant.discountPrice ? parseFloat(variant.discountPrice) : undefined,
-              qty: parseInt(variant.qty),
-              thresholdQty: parseInt(variant.thresholdQty) || 5,
+              originalPrice: variant.originalPrice ? parseFloat(variant.originalPrice) : undefined,
+              stock: parseInt(variant.stock),
+              lowStockAlert: parseInt(variant.lowStockAlert) || 5,
               color: variant.color || '',
               size: variant.size || '',
               material: variant.material || '',
               weight: variant.weight ? parseFloat(variant.weight) : undefined,
-              shipping: variant.shipping !== 'false',
+              dimensions: variant.dimensions || '',
               isDefault: variant.isDefault === 'true' || i === 0
             });
           }
@@ -410,23 +389,17 @@ module.exports = {
         description: description.trim(),
         shortDescription: shortDescription?.trim(),
         images,
-        price: parseFloat(basePrice),
         category,
         subCategory,
         type,
         brand,
         variants,
         status: status || 'draft',
-        featured: featured === 'true',
-        isDiscounted: req.body.isDiscounted === 'true'
+        featured: featured === 'true'
       };
 
       // Add business fields
       if (req.body.warranty) updateData.warranty = req.body.warranty.trim();
-      if (req.body.returnPolicy) updateData.returnPolicy = req.body.returnPolicy.trim();
-      if (req.body.shippingInfo) updateData.shippingInfo = req.body.shippingInfo.trim();
-      
-      // Handle tags array
       if (req.body.tags) {
         updateData.tags = req.body.tags.split(',').map(t => t.trim()).filter(t => t);
       }
@@ -462,7 +435,7 @@ module.exports = {
     }
   },
 
-  // Delete product
+  // Admin - Delete product
   deleteProduct: async (req, res) => {
     try {
       if (!isValidObjectId(req.params.id)) {
@@ -470,9 +443,7 @@ module.exports = {
         return res.redirect('/admin/v1/products');
       }
 
-      const product = await Product.findOneAndDelete({
-        _id: req.params.id
-      });
+      const product = await Product.findByIdAndDelete(req.params.id);
 
       if (!product) {
         req.flash('error', 'Product not found');
@@ -494,11 +465,11 @@ module.exports = {
     }
   },
 
-  // Public API - Get all products
+  // Public API - Get all products (OPTIMIZED & LIGHTWEIGHT)
   getAllProducts: async (req, res) => {
     try {
       const page = parseInt(req.query.page) || 1;
-      const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+      const limit = Math.min(parseInt(req.query.limit) || 20, 50);
       const skip = (page - 1) * limit;
       
       const filter = { status: 'active' };
@@ -507,29 +478,16 @@ module.exports = {
       if (req.query.subCategory) filter.subCategory = req.query.subCategory;
       if (req.query.type) filter.type = req.query.type;
       if (req.query.brand) filter.brand = req.query.brand;
-      
-      if (req.query.minPrice || req.query.maxPrice) {
-        filter.minPrice = {};
-        if (req.query.minPrice) filter.minPrice.$gte = parseFloat(req.query.minPrice);
-        if (req.query.maxPrice) filter.minPrice.$lte = parseFloat(req.query.maxPrice);
-      }
-      
-      if (req.query.minRating) {
-        filter.rating = { $gte: parseFloat(req.query.minRating) };
-      }
+      if (req.query.featured === 'true') filter.featured = true;
       
       if (req.query.search) {
         filter.$text = { $search: req.query.search };
       }
       
-      if (req.query.featured === 'true') {
-        filter.featured = true;
-      }
-      
       let sort = { createdAt: -1 };
       switch (req.query.sort) {
-        case 'price_asc': sort = { minPrice: 1 }; break;
-        case 'price_desc': sort = { minPrice: -1 }; break;
+        case 'price_asc': sort = { 'variants.price': 1 }; break;
+        case 'price_desc': sort = { 'variants.price': -1 }; break;
         case 'rating': sort = { rating: -1 }; break;
         case 'popular': sort = { reviewCount: -1 }; break;
         case 'newest': sort = { createdAt: -1 }; break;
@@ -537,36 +495,51 @@ module.exports = {
       
       const [products, total] = await Promise.all([
         Product.find(filter)
-          .populate('category', 'name slug')
-          .populate('subCategory', 'name slug')
-          .populate('type', 'name slug')
-          .populate('brand', 'name slug')
-          .select('-admin')
+          .populate('category', 'name')
+          .populate('brand', 'name')
+          .select('_id title images rating reviewCount totalStock featured createdAt variants')
           .sort(sort)
           .skip(skip)
           .limit(limit),
         Product.countDocuments(filter)
       ]);
       
-      // Add specifications to each product
-      const productsWithSpecs = await Promise.all(
-        products.map(async (product) => {
-          const specifications = await ProductSpecs.find({ product: product._id })
-            .populate('specList', 'title')
-            .select('specList value');
-          
-          return {
-            ...product.toObject(),
-            specifications
-          };
-        })
-      );
+      // Get specification IDs for all products
+      const productIds = products.map(p => p._id);
+      const specifications = await ProductSpecs.find({ product: { $in: productIds } })
+        .select('product specList');
+      
+      // Group specification IDs by product
+      const specsMap = {};
+      specifications.forEach(spec => {
+        const productId = spec.product.toString();
+        if (!specsMap[productId]) specsMap[productId] = [];
+        specsMap[productId].push(spec.specList);
+      });
+      
+      // Transform to lightweight format with specification IDs
+      const lightweightProducts = products.map(product => ({
+        _id: product._id,
+        title: product.title,
+        thumbnail: product.thumbnail, // Virtual field
+        price: product.price, // Virtual field
+        originalPrice: product.originalPrice, // Virtual field
+        isOnSale: product.isOnSale, // Virtual field
+        discountPercent: product.discountPercent, // Virtual field
+        rating: product.rating,
+        reviewCount: product.reviewCount,
+        totalStock: product.totalStock, // Total variant stock count
+        featured: product.featured,
+        category: product.category,
+        brand: product.brand,
+        specifications: specsMap[product._id.toString()] || []
+      }));
       
       const totalPages = Math.ceil(total / limit);
       
       res.status(200).json({
         success: true,
-        data: productsWithSpecs,
+        data: lightweightProducts,
         pagination: {
           current: page,
           total: totalPages,
@@ -585,7 +558,7 @@ module.exports = {
     }
   },
 
-  // Public API - Get product by ID
+  // Public API - Get product by ID/slug (FULL DETAILS)
   getProductById: async (req, res) => {
     try {
       const identifier = req.params.id;
@@ -598,11 +571,10 @@ module.exports = {
       }
       
       const product = await Product.findOne(filter)
-        .populate('category', 'name slug')
-        .populate('subCategory', 'name slug')
-        .populate('type', 'name slug')
-        .populate('brand', 'name slug')
-        .select('-admin');
+        .populate('category', 'name')
+        .populate('subCategory', 'name')
+        .populate('type', 'name')
+        .populate('brand', 'name');
       
       if (!product) {
         return res.status(404).json({
@@ -627,9 +599,23 @@ module.exports = {
         })
           .populate('category', 'name')
           .populate('brand', 'name')
-          .select('title slug thumbnail minPrice maxPrice rating reviewCount')
+          .select('_id title images rating reviewCount')
           .limit(8)
       ]);
+      
+      // Transform related products to lightweight format
+      const lightweightRelated = relatedProducts.map(p => ({
+        _id: p._id,
+        title: p.title,
+        thumbnail: p.thumbnail,
+        price: p.price,
+        originalPrice: p.originalPrice,
+        isOnSale: p.isOnSale,
+        rating: p.rating,
+        reviewCount: p.reviewCount,
+        category: p.category,
+        brand: p.brand
+      }));
       
       res.status(200).json({
         success: true,
@@ -637,7 +623,7 @@ module.exports = {
           ...product.toObject(),
           specifications,
           reviews,
-          relatedProducts
+          relatedProducts: lightweightRelated
         }
       });
     } catch (error) {
@@ -653,31 +639,49 @@ module.exports = {
   // Public API - Get product filters
   getProductFilters: async (req, res) => {
     try {
-      const [categories, brands, priceRange] = await Promise.all([
+      const [categories, brands] = await Promise.all([
         Category.find().sort({ name: 1 }),
-        Brand.find().sort({ name: 1 }),
-        Product.aggregate([
-          { $match: { status: 'active' } },
-          { 
-            $group: { 
-              _id: null, 
-              minPrice: { $min: '$minPrice' }, 
-              maxPrice: { $max: '$maxPrice' } 
-            } 
-          }
-        ])
+        Brand.find().sort({ name: 1 })
       ]);
       
       res.status(200).json({
         success: true,
         data: {
           categories,
-          brands,
-          priceRange: priceRange[0] || { minPrice: 0, maxPrice: 0 }
+          brands
         }
       });
     } catch (error) {
       console.error('Get product filters error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Server error',
+        error: error.message
+      });
+    }
+  },
+
+  // Public API - Get specifications by IDs
+  getSpecificationsByIds: async (req, res) => {
+    try {
+      const { ids } = req.body;
+      
+      if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Specification IDs array is required'
+        });
+      }
+      
+      const specifications = await SpecList.find({ _id: { $in: ids } })
+        .select('_id title unit');
+      
+      res.status(200).json({
+        success: true,
+        data: specifications
+      });
+    } catch (error) {
+      console.error('Get specifications by IDs error:', error);
       res.status(500).json({
         success: false,
         message: 'Server error',
