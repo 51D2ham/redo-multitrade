@@ -83,7 +83,7 @@ const registerAdmin = async (req, res) => {
       gender: gender.toLowerCase(),
       Address: Address || '',
       role: role.toLowerCase(),
-      ...(req.file && { profileImage: `/uploads/${req.file.filename}` }),
+      ...(req.file && { profileImage: req.file.filename }),
       status: 'active' // Default status
     };
 
@@ -392,7 +392,7 @@ const updateAdminRender = async (req, res) => {
       }
       
       // Set new image path
-      updates.profileImage = `/uploads/${req.file.filename}`;
+      updates.profileImage = req.file.filename;
     }
 
     // Convert role and gender to lowercase to match enum

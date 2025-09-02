@@ -18,11 +18,7 @@ const handleMulterError = (err, req, res, next) => {
 
 // Authentication Routes
 router.get('/register',  (req, res) => res.render('admin/register'));
-router.post('/register',upload.single('photo'), handleMulterError, (req, res, next) => {
-  console.log('Multer Middleware - req.body:', req.body);
-  console.log('Multer Middleware - req.file:', req.file);
-  next();
-}, adminController.registerAdmin);
+router.post('/register',upload.single('photo'), handleMulterError, adminController.registerAdmin);
 
 // login post and get
 router.get('/login', (req, res) => res.render('admin/login'));

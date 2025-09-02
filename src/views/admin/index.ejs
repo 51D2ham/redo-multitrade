@@ -92,7 +92,7 @@
             <div class="flex items-start justify-between mb-4">
               <div class="flex items-center gap-3">
                 <% if (admin.profileImage) { %>
-                  <img src="<%= admin.profileImage %>" alt="Profile" class="w-12 h-12 rounded-full object-cover">
+                  <img src="/uploads/<%= admin.profileImage %>" alt="Profile" class="w-12 h-12 rounded-full object-cover">
                 <% } else { %>
                   <div class="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 flex items-center justify-center text-white font-semibold">
                     <%= admin.fullname ? admin.fullname.charAt(0).toUpperCase() : '?' %>
@@ -164,7 +164,7 @@
                 <td class="py-4 px-4">
                   <div class="flex items-center gap-3">
                     <% if (admin.profileImage) { %>
-                      <img src="<%= admin.profileImage %>" alt="Profile" class="w-10 h-10 rounded-full object-cover">
+                      <img src="/uploads/<%= admin.profileImage %>" alt="Profile" class="w-10 h-10 rounded-full object-cover">
                     <% } else { %>
                       <div class="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 flex items-center justify-center text-white font-medium">
                         <%= admin.fullname ? admin.fullname.charAt(0).toUpperCase() : '?' %>
