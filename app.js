@@ -26,32 +26,29 @@ app.set('views', path.join(__dirname, 'src', 'views'));
 app.set('view engine', 'ejs');
 
 // Static files & uploads
-const publicPath = path.join(__dirname, 'src', 'public');
-const srcUploadsPath = path.join(__dirname, 'src', 'uploads');
-const publicUploadsPath = path.join(__dirname, 'public', 'uploads');
+const uploadsPath = path.join(__dirname, 'public', 'uploads');
 
-[publicUploadsPath, srcUploadsPath].forEach(dir => {
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-});
+if (!fs.existsSync(uploadsPath)) {
+  fs.mkdirSync(uploadsPath, { recursive: true });
+}
 
 // Middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 app.use(methodOverride('_method'));
-app.use(express.static(publicPath, { maxAge: '1d' }));
-app.use('/uploads', express.static(srcUploadsPath));
-app.use('/uploads', express.static(publicUploadsPath));
+app.use('/uploads', express.static(uploadsPath, { maxAge: '7d' }));
 
 
 // Session
 app.use(session({
   name: 'multitrade.sid',
-  secret: process.env.SESSION_SECRET ,
+  secret: process.env.SESSION_SECRET || 'fallback-secret-key',
   resave: false,
   saveUninitialized: false,
   store: MongoStore.create({
     mongoUrl: process.env.CONNECTION_STRING,
-    ttl: 24 * 60 * 60
+    ttl: 24 * 60 * 60,
+    touchAfter: 24 * 3600
   }),
   cookie: {
     secure: process.env.NODE_ENV === 'production',
@@ -90,8 +87,8 @@ const customerRenderRouter = require('./src/routes/v1/customer/render');
 const adminRenderRouter = require('./src/routes/v1/admin/render');
 const orderManagementRoutes = require('./src/routes/v1/order');
 const orderManagementApiRoutes = require('./src/routes/v1/order/api');
-const cartApiRoutes = require('./src/routes/v1/cart');
-const wishlistApiRoutes = require('./src/routes/v1/wishlist');
+const cartApiRoutes = require('./src/routes/v1/cart/api');
+const wishlistApiRoutes = require('./src/routes/v1/wishlist/api');
 const productRoutes = require('./src/routes/v1/products/render');
 const productApiRoutes = require('./src/routes/v1/products/api');
 const bulkUploadRoutes = require('./src/routes/bulkUploadRoutes');

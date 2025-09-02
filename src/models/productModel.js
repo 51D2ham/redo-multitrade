@@ -82,7 +82,7 @@ productSchema.index({ featured: 1, status: 1 });
 productSchema.index({ rating: -1, reviewCount: -1 });
 productSchema.index({ totalSales: -1 });
 productSchema.index({ createdAt: -1 });
-productSchema.index({ slug: 1 });
+
 productSchema.index({ title: 'text', description: 'text', tags: 'text' });
 productSchema.index({ 'variants.sku': 1 }, { sparse: true });
 
