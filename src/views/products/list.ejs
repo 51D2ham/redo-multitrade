@@ -31,23 +31,29 @@
     </div>
   <% } %>
 
-  <!-- Filters -->
+  <!-- Search & Filters -->
   <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
-    <form method="GET" class="grid grid-cols-1 md:grid-cols-5 gap-4">
-      <div>
-        <input name="search" value="<%= filters.search || '' %>" 
-               class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500" 
-               placeholder="Search products..." />
+    <form method="GET" id="searchForm" class="space-y-4">
+      <!-- Search Bar -->
+      <div class="relative">
+        <input name="search" id="searchInput" value="<%= filters.search || '' %>" 
+               class="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+               placeholder="Search products by title, SKU, description..." 
+               autocomplete="off" />
+        <button type="button" id="clearSearch" class="absolute right-3 top-3 text-gray-400 hover:text-gray-600" style="display: none;">
+          ×
+        </button>
       </div>
-      <div>
+      
+      <!-- Filters -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <select name="status" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500">
           <option value="">All Status</option>
           <option value="draft" <%= filters.status === 'draft' ? 'selected' : '' %>>Draft</option>
           <option value="active" <%= filters.status === 'active' ? 'selected' : '' %>>Active</option>
           <option value="inactive" <%= filters.status === 'inactive' ? 'selected' : '' %>>Inactive</option>
         </select>
-      </div>
-      <div>
+        
         <select name="category" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500">
           <option value="">All Categories</option>
           <% if (categories) { categories.forEach(cat => { %>
@@ -56,8 +62,7 @@
             </option>
           <% }); } %>
         </select>
-      </div>
-      <div>
+        
         <select name="brand" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500">
           <option value="">All Brands</option>
           <% if (brands) { brands.forEach(brand => { %>
@@ -66,13 +71,22 @@
             </option>
           <% }); } %>
         </select>
+        
+        <select name="stock" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500">
+          <option value="">All Stock</option>
+          <option value="instock" <%= filters.stock === 'instock' ? 'selected' : '' %>>In Stock</option>
+          <option value="lowstock" <%= filters.stock === 'lowstock' ? 'selected' : '' %>>Low Stock</option>
+          <option value="outofstock" <%= filters.stock === 'outofstock' ? 'selected' : '' %>>Out of Stock</option>
+        </select>
       </div>
-      <div class="flex gap-2">
-        <button type="submit" class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-          <i class="fa fa-search mr-2"></i>Filter
+      
+      <!-- Actions -->
+      <div class="flex gap-3">
+        <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+          Search
         </button>
-        <a href="/admin/v1/products" class="px-3 py-3 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200">
-          <i class="fa fa-times"></i>
+        <a href="/admin/v1/products" class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
+          Clear
         </a>
       </div>
     </form>
@@ -110,13 +124,9 @@
               <tr class="hover:bg-gray-50 border-b">
                 <td class="py-4 px-4">
                   <div class="flex items-center">
-                    <% if (product.thumbnail || (product.images && product.images[0])) { %>
+                    <% if (product.images && product.images.length > 0) { %>
                       <div class="w-12 h-12 rounded-lg overflow-hidden mr-3 border">
-                        <img src="<%= product.thumbnail || product.images[0] %>" alt="<%= product.title %>" class="w-full h-full object-cover">
-                      </div>
-                    <% } else { %>
-                      <div class="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mr-3">
-                        <i class="fa fa-image text-gray-400"></i>
+                        <img src="/uploads/products/<%= product.images[0] %>" alt="<%= product.title %>" class="w-full h-full object-cover">
                       </div>
                     <% } %>
                     <div>
@@ -223,5 +233,60 @@
     </div>
   <% } %>
 </main>
+
+<script>
+// Enhanced Search Functionality
+document.addEventListener('DOMContentLoaded', function() {
+  const searchInput = document.getElementById('searchInput');
+  const clearSearch = document.getElementById('clearSearch');
+  const searchForm = document.getElementById('searchForm');
+  let searchTimeout;
+  
+  // Show/hide clear button
+  function toggleClearButton() {
+    clearSearch.style.display = searchInput.value ? 'block' : 'none';
+  }
+  
+  // Clear search
+  clearSearch.addEventListener('click', function() {
+    searchInput.value = '';
+    toggleClearButton();
+    searchInput.focus();
+  });
+  
+  // Real-time search with debounce
+  searchInput.addEventListener('input', function() {
+    toggleClearButton();
+    
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+      if (searchInput.value.length >= 2 || searchInput.value.length === 0) {
+        searchForm.submit();
+      }
+    }, 500);
+  });
+  
+  // Auto-submit on filter change
+  const filterSelects = document.querySelectorAll('select[name="status"], select[name="category"], select[name="brand"], select[name="stock"]');
+  filterSelects.forEach(select => {
+    select.addEventListener('change', () => {
+      searchForm.submit();
+    });
+  });
+  
+
+  
+  // Initialize
+  toggleClearButton();
+  
+  // Keyboard shortcuts
+  document.addEventListener('keydown', function(e) {
+    if (e.ctrlKey && e.key === 'f') {
+      e.preventDefault();
+      searchInput.focus();
+    }
+  });
+});
+</script>
 
 <%- include('../partials/footer.ejs') %>

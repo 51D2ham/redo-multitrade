@@ -111,20 +111,22 @@
     <!-- Current Images -->
     <div class="bg-white rounded-lg shadow-sm p-6">
       <h3 class="text-xl font-bold text-gray-800 mb-4">Current Images</h3>
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-        <% product.images.forEach((image, index) => { %>
-          <div class="relative border rounded-lg overflow-hidden">
-            <img src="<%= image %>" alt="Product Image <%= index + 1 %>" class="w-full h-32 object-cover">
-            <div class="absolute top-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded">
-              <%= index === 0 ? 'Thumbnail' : `Image ${index + 1}` %>
+      <% if (product.images && product.images.length > 0) { %>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+          <% product.images.forEach((image, index) => { %>
+            <div class="relative border rounded-lg overflow-hidden">
+              <img src="/uploads/products/<%= image %>" alt="Product Image <%= index + 1 %>" class="w-full h-32 object-cover">
+              <div class="absolute top-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded">
+                <%= index === 0 ? 'Thumbnail' : `Image ${index + 1}` %>
+              </div>
+              <button type="button" class="absolute top-2 right-2 bg-red-600 text-white text-xs px-2 py-1 rounded hover:bg-red-700" 
+                      onclick="removeImage('<%= image %>', this)">
+                <i class="fa fa-trash"></i>
+              </button>
             </div>
-            <button type="button" class="absolute top-2 right-2 bg-red-600 text-white text-xs px-2 py-1 rounded hover:bg-red-700" 
-                    onclick="removeImage('<%= image %>', this)">
-              <i class="fa fa-trash"></i>
-            </button>
-          </div>
-        <% }) %>
-      </div>
+          <% }) %>
+        </div>
+      <% } %>
       
       <div>
         <label class="block font-semibold mb-2 text-gray-700">Add New Images</label>

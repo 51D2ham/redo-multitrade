@@ -459,7 +459,7 @@ async function buildProductWithVariants(variantRows, adminId, uploadMode) {
     slug: slug,
     description: baseRow.description,
     shortDescription: baseRow.shortDescription || '',
-    images: ['/uploads/products/placeholder.jpg'],
+    images: [],
     category: category._id,
     subCategory: subCategory._id,
     type: type._id,

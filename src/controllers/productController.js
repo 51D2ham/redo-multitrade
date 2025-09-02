@@ -1,6 +1,7 @@
 const { Product, ProductSpecs, Review } = require('../models/productModel');
 const { Category, SubCategory, Type, Brand } = require('../models/parametersModel');
 const SpecList = require('../models/specListModel');
+const mongoose = require('mongoose');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -62,8 +63,31 @@ module.exports = {
       if (req.query.status) filter.status = req.query.status;
       if (req.query.category) filter.category = req.query.category;
       if (req.query.brand) filter.brand = req.query.brand;
+      
+      // Enhanced search
       if (req.query.search) {
-        filter.$text = { $search: req.query.search };
+        const searchTerm = req.query.search.trim();
+        filter.$or = [
+          { title: { $regex: searchTerm, $options: 'i' } },
+          { description: { $regex: searchTerm, $options: 'i' } },
+          { 'variants.sku': { $regex: searchTerm, $options: 'i' } },
+          { tags: { $in: [new RegExp(searchTerm, 'i')] } }
+        ];
+      }
+      
+      // Stock filter
+      if (req.query.stock) {
+        switch (req.query.stock) {
+          case 'instock':
+            filter.totalStock = { $gt: 5 };
+            break;
+          case 'lowstock':
+            filter.totalStock = { $gte: 1, $lte: 5 };
+            break;
+          case 'outofstock':
+            filter.totalStock = 0;
+            break;
+        }
       }
       
       const [products, total, categories, brands] = await Promise.all([
@@ -165,7 +189,7 @@ module.exports = {
       const images = [];
       if (req.files && req.files.length > 0) {
         req.files.forEach(file => {
-          images.push(`/uploads/products/${file.filename}`);
+          images.push(file.filename);
         });
       }
 
@@ -344,8 +368,27 @@ module.exports = {
 
       // Handle images
       let images = [...product.images];
+      
+      // Remove deleted images
+      if (req.body.removedImages) {
+        try {
+          const removedImages = JSON.parse(req.body.removedImages);
+          // Delete files from filesystem
+          removedImages.forEach(filename => {
+            const filePath = path.join(__dirname, '../uploads/products', filename);
+            if (fs.existsSync(filePath)) {
+              fs.unlinkSync(filePath);
+            }
+          });
+          images = images.filter(img => !removedImages.includes(img));
+        } catch (e) {
+          console.error('Error parsing removedImages:', e);
+        }
+      }
+      
+      // Add new images
       if (req.files && req.files.length > 0) {
-        const newImages = req.files.map(file => `/uploads/products/${file.filename}`);
+        const newImages = req.files.map(file => file.filename);
         images = [...images, ...newImages];
       }
 
@@ -450,6 +493,16 @@ module.exports = {
         return res.redirect('/admin/v1/products');
       }
 
+      // Delete product images from filesystem
+      if (product.images && product.images.length > 0) {
+        product.images.forEach(filename => {
+          const filePath = path.join(__dirname, '../uploads/products', filename);
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+          }
+        });
+      }
+
       // Delete related data
       await Promise.all([
         ProductSpecs.deleteMany({ product: req.params.id }),
@@ -474,11 +527,204 @@ module.exports = {
       
       const filter = { status: 'active' };
       
-      if (req.query.category) filter.category = req.query.category;
-      if (req.query.subCategory) filter.subCategory = req.query.subCategory;
-      if (req.query.type) filter.type = req.query.type;
-      if (req.query.brand) filter.brand = req.query.brand;
+      if (req.query.category && isValidObjectId(req.query.category)) filter.category = new mongoose.Types.ObjectId(req.query.category);
+      if (req.query.subCategory && isValidObjectId(req.query.subCategory)) filter.subCategory = new mongoose.Types.ObjectId(req.query.subCategory);
+      if (req.query.type && isValidObjectId(req.query.type)) filter.type = new mongoose.Types.ObjectId(req.query.type);
+      if (req.query.brand && isValidObjectId(req.query.brand)) filter.brand = new mongoose.Types.ObjectId(req.query.brand);
       if (req.query.featured === 'true') filter.featured = true;
+      
+      // Define sort before using it
+      let sort = { createdAt: -1 };
+      switch (req.query.sort) {
+        case 'price_asc': sort = { 'variants.price': 1 }; break;
+        case 'price_desc': sort = { 'variants.price': -1 }; break;
+        case 'rating': sort = { rating: -1 }; break;
+        case 'popular': sort = { reviewCount: -1 }; break;
+        case 'newest': sort = { createdAt: -1 }; break;
+        case 'oldest': sort = { createdAt: 1 }; break;
+        case 'date_desc': sort = { createdAt: -1 }; break;
+        case 'date_asc': sort = { createdAt: 1 }; break;
+      }
+      
+      // Discount filter
+      if (req.query.discount) {
+        if (req.query.discount === 'true') {
+          // Any discount
+          filter['variants.originalPrice'] = { $exists: true, $ne: null, $gt: 0 };
+          filter.$expr = {
+            $gt: [{ $arrayElemAt: ['$variants.originalPrice', 0] }, { $arrayElemAt: ['$variants.price', 0] }]
+          };
+        } else {
+          const minDiscount = parseInt(req.query.discount);
+          if (!isNaN(minDiscount) && minDiscount > 0) {
+            // Use aggregation pipeline for discount percentage calculation
+            const discountPipeline = [
+              { $match: { status: 'active' } },
+              {
+                $addFields: {
+                  discountPercent: {
+                    $cond: {
+                      if: {
+                        $and: [
+                          { $gt: [{ $arrayElemAt: ['$variants.originalPrice', 0] }, 0] },
+                          { $gt: [{ $arrayElemAt: ['$variants.price', 0] }, 0] },
+                          { $gt: [{ $arrayElemAt: ['$variants.originalPrice', 0] }, { $arrayElemAt: ['$variants.price', 0] }] }
+                        ]
+                      },
+                      then: {
+                        $multiply: [
+                          {
+                            $divide: [
+                              { $subtract: [{ $arrayElemAt: ['$variants.originalPrice', 0] }, { $arrayElemAt: ['$variants.price', 0] }] },
+                              { $arrayElemAt: ['$variants.originalPrice', 0] }
+                            ]
+                          },
+                          100
+                        ]
+                      },
+                      else: 0
+                    }
+                  }
+                }
+              },
+              { $match: { discountPercent: { $gte: minDiscount } } }
+            ];
+            
+            // Apply other filters to pipeline
+            if (req.query.category && isValidObjectId(req.query.category)) discountPipeline[0].$match.category = new mongoose.Types.ObjectId(req.query.category);
+            if (req.query.subCategory && isValidObjectId(req.query.subCategory)) discountPipeline[0].$match.subCategory = new mongoose.Types.ObjectId(req.query.subCategory);
+            if (req.query.type && isValidObjectId(req.query.type)) discountPipeline[0].$match.type = new mongoose.Types.ObjectId(req.query.type);
+            if (req.query.brand && isValidObjectId(req.query.brand)) discountPipeline[0].$match.brand = new mongoose.Types.ObjectId(req.query.brand);
+            if (req.query.featured === 'true') discountPipeline[0].$match.featured = true;
+            if (req.query.search) discountPipeline[0].$match.$text = { $search: req.query.search };
+            
+            // Date filters
+            if (req.query.dateFrom || req.query.dateTo) {
+              discountPipeline[0].$match.createdAt = {};
+              if (req.query.dateFrom) {
+                discountPipeline[0].$match.createdAt.$gte = new Date(req.query.dateFrom);
+              }
+              if (req.query.dateTo) {
+                const dateTo = new Date(req.query.dateTo);
+                dateTo.setHours(23, 59, 59, 999);
+                discountPipeline[0].$match.createdAt.$lte = dateTo;
+              }
+            }
+            
+            // Add pagination and population
+            discountPipeline.push(
+              { $sort: sort },
+              { $skip: skip },
+              { $limit: limit },
+              {
+                $lookup: {
+                  from: 'categories',
+                  localField: 'category',
+                  foreignField: '_id',
+                  as: 'category',
+                  pipeline: [{ $project: { name: 1 } }]
+                }
+              },
+              {
+                $lookup: {
+                  from: 'brands',
+                  localField: 'brand',
+                  foreignField: '_id',
+                  as: 'brand',
+                  pipeline: [{ $project: { name: 1 } }]
+                }
+              },
+              {
+                $addFields: {
+                  category: { $arrayElemAt: ['$category', 0] },
+                  brand: { $arrayElemAt: ['$brand', 0] }
+                }
+              },
+              {
+                $project: {
+                  _id: 1,
+                  title: 1,
+                  images: 1,
+                  rating: 1,
+                  reviewCount: 1,
+                  totalStock: 1,
+                  featured: 1,
+                  createdAt: 1,
+                  variants: 1,
+                  category: 1,
+                  brand: 1
+                }
+              }
+            );
+            
+            // Execute aggregation and get total count
+            const [products, totalResult] = await Promise.all([
+              Product.aggregate(discountPipeline),
+              Product.aggregate([
+                ...discountPipeline.slice(0, 2),
+                { $count: 'total' }
+              ])
+            ]);
+            
+            const total = totalResult[0]?.total || 0;
+            
+            // Get specification IDs for all products
+            const productIds = products.map(p => p._id);
+            const specifications = await ProductSpecs.find({ product: { $in: productIds } })
+              .select('product specList');
+            
+            // Group specification IDs by product
+            const specsMap = {};
+            specifications.forEach(spec => {
+              const productId = spec.product.toString();
+              if (!specsMap[productId]) specsMap[productId] = [];
+              specsMap[productId].push(spec.specList);
+            });
+            
+            // Transform to lightweight format with specification IDs
+            const lightweightProducts = products.map(product => {
+              // Calculate virtuals manually since aggregation doesn't include them
+              const defaultVariant = product.variants?.find(v => v.isDefault) || product.variants?.[0];
+              const price = defaultVariant?.price || 0;
+              const originalPrice = defaultVariant?.originalPrice || null;
+              const isOnSale = !!(originalPrice && originalPrice > price);
+              const discountPercent = isOnSale ? Math.round(((originalPrice - price) / originalPrice) * 100) : 0;
+              const thumbnail = product.images?.[0] ? `/uploads/products/${product.images[0]}` : null;
+              
+              return {
+                _id: product._id,
+                title: product.title,
+                thumbnail,
+                price,
+                originalPrice,
+                isOnSale,
+                discountPercent,
+                rating: product.rating,
+                reviewCount: product.reviewCount,
+                totalStock: product.totalStock,
+                featured: product.featured,
+                category: product.category,
+                brand: product.brand,
+                specifications: specsMap[product._id.toString()] || []
+              };
+            });
+            
+            const totalPages = Math.ceil(total / limit);
+            
+            return res.status(200).json({
+              success: true,
+              data: lightweightProducts,
+              pagination: {
+                current: page,
+                total: totalPages,
+                hasNext: page < totalPages,
+                hasPrev: page > 1,
+                totalProducts: total
+              }
+            });
+          }
+        }
+      }
       
       if (req.query.search) {
         filter.$text = { $search: req.query.search };
@@ -495,18 +741,6 @@ module.exports = {
           dateTo.setHours(23, 59, 59, 999); // End of day
           filter.createdAt.$lte = dateTo;
         }
-      }
-      
-      let sort = { createdAt: -1 };
-      switch (req.query.sort) {
-        case 'price_asc': sort = { 'variants.price': 1 }; break;
-        case 'price_desc': sort = { 'variants.price': -1 }; break;
-        case 'rating': sort = { rating: -1 }; break;
-        case 'popular': sort = { reviewCount: -1 }; break;
-        case 'newest': sort = { createdAt: -1 }; break;
-        case 'oldest': sort = { createdAt: 1 }; break;
-        case 'date_desc': sort = { createdAt: -1 }; break;
-        case 'date_asc': sort = { createdAt: 1 }; break;
       }
       
       const [products, total] = await Promise.all([
@@ -537,14 +771,14 @@ module.exports = {
       const lightweightProducts = products.map(product => ({
         _id: product._id,
         title: product.title,
-        thumbnail: product.thumbnail, // Virtual field
-        price: product.price, // Virtual field
-        originalPrice: product.originalPrice, // Virtual field
-        isOnSale: product.isOnSale, // Virtual field
-        discountPercent: product.discountPercent, // Virtual field
+        thumbnail: product.thumbnail,
+        price: product.price,
+        originalPrice: product.originalPrice,
+        isOnSale: product.isOnSale,
+        discountPercent: product.discountPercent,
         rating: product.rating,
         reviewCount: product.reviewCount,
-        totalStock: product.totalStock, // Total variant stock count
+        totalStock: product.totalStock,
         featured: product.featured,
         category: product.category,
         brand: product.brand,

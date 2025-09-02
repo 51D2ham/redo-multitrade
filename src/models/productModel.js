@@ -37,7 +37,7 @@ const productSchema = new Schema({
     maxlength: 1500
   },
   shortDescription: { type: String, maxlength: 200 },
-  images: [{ type: String, trim: true, required: true }], // Main product gallery
+  images: [{ type: String, trim: true, required: false }], 
   
   // Categories
   category: { type: Schema.Types.ObjectId, ref: 'Category', required: true },
@@ -126,7 +126,8 @@ productSchema.virtual('priceStatus').get(function() {
 });
 
 productSchema.virtual('thumbnail').get(function() {
-  return this.images?.[0] || null;
+  if (!this.images?.[0]) return null;
+  return `/uploads/products/${this.images[0]}`;
 });
 
 productSchema.virtual('inStock').get(function() {
@@ -154,10 +155,7 @@ productSchema.pre('save', function(next) {
       this.variants[0].isDefault = true;
     }
     
-    // Validate required fields
-    if (!this.images?.length) {
-      return next(new Error('At least one product image is required'));
-    }
+    // Images are now optional
   }
   next();
 });

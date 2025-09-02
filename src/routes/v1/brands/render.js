@@ -8,9 +8,9 @@ const brandsController = require('../../../controllers/brandsController');
 router.get('/', adminAuth, brandsController.listBrands);
 router.get('/new', adminAuth, brandsController.newBrand);
 router.post('/', adminAuth, upload.single('logo'), brandsController.createBrand);
-router.get('/:id', adminAuth, brandsController.showBrand);
 router.get('/:id/edit', adminAuth, brandsController.editBrand);
-router.put('/:id', adminAuth, upload.single('logo'), brandsController.updateBrand);
+router.post('/:id/update', adminAuth, upload.single('logo'), brandsController.updateBrand);
+router.get('/:id', adminAuth, brandsController.showBrand);
 router.delete('/:id', adminAuth, brandsController.deleteBrand);
 
 module.exports = router

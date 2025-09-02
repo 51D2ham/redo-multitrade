@@ -36,8 +36,8 @@ if (!fs.existsSync(uploadsPath)) {
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 app.use(methodOverride('_method'));
-app.use('/uploads', express.static(uploadsPath, { maxAge: '7d' }));
 app.use('/uploads', express.static(path.join(__dirname, 'src', 'uploads'), { maxAge: '7d' }));
+app.use('/uploads', express.static(uploadsPath, { maxAge: '7d' }));
 
 
 // Session

@@ -93,8 +93,8 @@ const brandController = {
         admin: adminId
       };
 
-      if (req.files && req.files.logo) {
-        brandData.logo = req.files.logo[0].filename;
+      if (req.file) {
+        brandData.logo = req.file.filename;
       }
       
       const brand = await Brand.create(brandData);
@@ -110,7 +110,14 @@ const brandController = {
   // Show single brand
   showBrand: async (req, res) => {
     try {
-      const brand = await Brand.findById(req.params.id)
+      const { id } = req.params;
+      
+      if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+        req.flash('error', 'Invalid brand ID');
+        return res.redirect('/admin/v1/parameters/brands');
+      }
+      
+      const brand = await Brand.findById(id)
         .populate('admin', 'username email');
       
       if (!brand) {
@@ -132,7 +139,15 @@ const brandController = {
   // Show edit form
   editBrand: async (req, res) => {
     try {
-      const brand = await Brand.findById(req.params.id)
+      const { id } = req.params;
+      
+      // Validate ObjectId
+      if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+        req.flash('error', 'Invalid brand ID');
+        return res.redirect('/admin/v1/parameters/brands');
+      }
+      
+      const brand = await Brand.findById(id)
         .populate('admin', 'username email');
 
       if (!brand) {
@@ -154,28 +169,32 @@ const brandController = {
   // Update brand
   updateBrand: async (req, res) => {
     try {
+      const brandId = req.params.id;
       const { name, isActive, isFeatured } = req.body;
       
-      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-
+      if (!name || !name.trim()) {
+        req.flash('error', 'Brand name is required');
+        return res.redirect(`/admin/v1/parameters/brands/${brandId}/edit`);
+      }
+      
       const updateData = {
-        name,
-        slug,
-        isActive: isActive === 'on' || isActive === true,
-        isFeatured: isFeatured === 'on' || isFeatured === true,
-        updatedAt: Date.now()
+        name: name.trim(),
+        slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+        isActive: !!isActive,
+        isFeatured: !!isFeatured
       };
 
-      if (req.files && req.files.logo) {
-        updateData.logo = req.files.logo[0].filename;
+      if (req.file) {
+        updateData.logo = req.file.filename;
       }
 
-      await Brand.findByIdAndUpdate(req.params.id, updateData);
+      await Brand.findByIdAndUpdate(brandId, updateData);
 
       req.flash('success', 'Brand updated successfully');
       res.redirect('/admin/v1/parameters/brands');
+      
     } catch (error) {
-      req.flash('error', 'Error: ' + error.message);
+      req.flash('error', 'Error updating brand');
       res.redirect(`/admin/v1/parameters/brands/${req.params.id}/edit`);
     }
   },

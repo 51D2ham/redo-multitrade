@@ -29,29 +29,22 @@
   <div class="bg-white rounded-xl shadow-md p-4 sm:p-6 lg:p-8 border border-gray-100 mb-6 sm:mb-8">
     <div class="flex flex-col lg:flex-row gap-4 sm:gap-6 lg:gap-8">
       <!-- Product Images -->
-      <div class="lg:w-2/5">
-        <% if (product.images && product.images.length > 0) { %>
+      <% if (product.images && product.images.length > 0) { %>
+        <div class="lg:w-2/5">
           <div class="space-y-4">
             <div class="relative">
-              <img src="<%= product.images[0] %>" alt="<%= product.title %>" class="w-full h-80 object-cover rounded-lg shadow-md">
+              <img src="/uploads/products/<%= product.images[0] %>" alt="<%= product.title %>" class="w-full h-80 object-cover rounded-lg shadow-md">
             </div>
             <% if (product.images.length > 1) { %>
               <div class="grid grid-cols-4 gap-3">
                 <% product.images.slice(1, 5).forEach(image => { %>
-                  <img src="<%= image %>" alt="<%= product.title %>" class="w-full h-20 object-cover rounded-lg border">
+                  <img src="/uploads/products/<%= image %>" alt="<%= product.title %>" class="w-full h-20 object-cover rounded-lg border">
                 <% }) %>
               </div>
             <% } %>
           </div>
-        <% } else { %>
-          <div class="w-full h-80 bg-gray-100 rounded-lg flex items-center justify-center">
-            <div class="text-center">
-              <i class="fa fa-image text-4xl text-gray-400 mb-2"></i>
-              <p class="text-gray-500">No images available</p>
-            </div>
-          </div>
-        <% } %>
-      </div>
+        </div>
+      <% } %>
 
       <!-- Product Information -->
       <div class="lg:w-3/5">
