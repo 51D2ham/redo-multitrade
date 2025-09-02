@@ -55,11 +55,9 @@ exports.processBulkUpload = async (req, res) => {
             
             // Validate required headers
             const requiredHeaders = ['title', 'description', 'category', 'subCategory', 'type', 'brand', 'variant_sku', 'variant_price', 'stock'];
-            console.log('CSV Headers found:', csvHeaders);
             const missingHeaders = requiredHeaders.filter(header => 
               !csvHeaders.some(csvHeader => csvHeader.toLowerCase().trim() === header.toLowerCase())
             );
-            console.log('Missing headers:', missingHeaders);
             
             if (missingHeaders.length > 0) {
               return reject(new Error(`Missing required CSV headers: ${missingHeaders.join(', ')}`));
@@ -141,17 +139,12 @@ exports.processBulkUpload = async (req, res) => {
         }
 
         const adminId = req.session?.admin?.id || req.session?.admin?._id || req.user?._id;
-        console.log('Admin ID extracted:', adminId);
-        console.log('Session admin:', req.session?.admin);
         if (!adminId) {
           throw new Error('Admin authentication required');
         }
 
         // Build product with all variants
-        console.log('Building product for group:', productKey);
-        console.log('Variants count:', group.variants.length);
         const productData = await buildProductWithVariants(group.variants, adminId, uploadMode);
-        console.log('Product data built:', JSON.stringify(productData, null, 2));
         
         let product;
         if (uploadMode === 'update') {
@@ -187,11 +180,8 @@ exports.processBulkUpload = async (req, res) => {
             await product.save();
           }
         } else {
-          console.log('Creating new product with data:', productData);
           product = new Product(productData);
-          console.log('Product instance created, attempting save...');
           await product.save();
-          console.log('Product saved successfully:', product._id);
         }
 
         // Add success results for all variants
@@ -206,12 +196,7 @@ exports.processBulkUpload = async (req, res) => {
         });
 
       } catch (error) {
-        console.error(`Error processing product group ${productKey}:`, {
-          error: error.message,
-          stack: error.stack,
-          variants: group.variants.length,
-          productData: productData || 'Not created'
-        });
+        console.error(`Error processing product group ${productKey}:`, error.message);
         
         // Add errors for all variants in this group
         group.rowNumbers.forEach((rowNumber, index) => {
@@ -248,11 +233,7 @@ exports.processBulkUpload = async (req, res) => {
     res.json(response);
 
   } catch (error) {
-    console.error('Bulk upload error:', {
-      message: error.message,
-      stack: error.stack,
-      name: error.name
-    });
+    console.error('Bulk upload error:', error.message);
     
     if (req.file && fs.existsSync(req.file.path)) {
       fs.unlinkSync(req.file.path);
@@ -260,8 +241,7 @@ exports.processBulkUpload = async (req, res) => {
     
     res.status(500).json({ 
       success: false, 
-      message: 'Upload failed: ' + error.message,
-      error: error.stack
+      message: 'Upload failed: ' + error.message
     });
   }
 };
@@ -350,17 +330,14 @@ async function validateVariantRow(row, rowNumber, uploadMode) {
   }
 
   // Validate featured flag
-  if (row.featured && !['true', 'false', ''].includes(row.featured.toLowerCase())) {
+  if (row.featured && row.featured !== '' && !['true', 'false'].includes(row.featured.toString().toLowerCase())) {
     errors.push('Featured must be true or false');
   }
 
-  // Validate variant shipping flag
-  if (row.variant_shipping && !['true', 'false', ''].includes(row.variant_shipping.toLowerCase())) {
-    errors.push('Variant shipping must be true or false');
-  }
+  // Skip variant_shipping validation - not in product model
 
   // Validate variant default flag
-  if (row.variant_isDefault && !['true', 'false', ''].includes(row.variant_isDefault.toLowerCase())) {
+  if (row.variant_isDefault && row.variant_isDefault !== '' && !['true', 'false'].includes(row.variant_isDefault.toString().toLowerCase())) {
     errors.push('Variant isDefault must be true or false');
   }
 
@@ -449,8 +426,7 @@ async function buildProductWithVariants(variantRows, adminId, uploadMode) {
       price: parseFloat(row.variant_price),
       stock: parseInt(row.stock) || 0,
       lowStockAlert: row.lowStockAlert ? parseInt(row.lowStockAlert) : 5,
-      isDefault: isDefault,
-      shipping: row.variant_shipping !== 'false'
+      isDefault: isDefault
     };
 
     // Optional variant fields

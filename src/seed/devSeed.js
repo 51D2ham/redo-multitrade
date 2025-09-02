@@ -7,10 +7,10 @@ const seedDeveloper = async () => {
   try {
     await connectDb();
 
-    const email = process.env.DEVELOPER_EMAIL || 'admin@multitrade.com';
-    const plainPassword = process.env.DEVELOPER_PASSWORD || 'SecureAdminPass123';
-    const phone = process.env.DEVELOPER_PHONE || '9800000000';
-    const name = process.env.DEVELOPER_NAME || 'System Administrator';
+    const email = process.env.DEVELOPER_EMAIL ;
+    const plainPassword = process.env.DEVELOPER_PASSWORD ;
+    const phone = process.env.DEVELOPER_PHONE ;
+    const name = process.env.DEVELOPER_NAME ;
 
     // Check if developer admin already exists
     const existingAdmin = await Admin.findOne({ 
