@@ -1,0 +1,2 @@
+title,description,shortDescription,category,subCategory,type,brand,status,featured,warranty,returnPolicy,shippingInfo,tags,variant_sku,variant_color,variant_size,variant_material,variant_weight,variant_length,variant_width,variant_height,variant_price,variant_oldPrice,stock,lowStockAlert,variant_shipping,variant_isDefault
+Test Product,Test product description,Short description,Electronics,Smartphones,Premium Smartphones,Apple,active,true,1 year warranty,30 days return,Free shipping,test;product,TEST-001,Black,128GB,Aluminum,200,15,7,1,999.99,1099.99,50,5,true,true

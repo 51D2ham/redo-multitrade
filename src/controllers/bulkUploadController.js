@@ -55,9 +55,11 @@ exports.processBulkUpload = async (req, res) => {
             
             // Validate required headers
             const requiredHeaders = ['title', 'description', 'category', 'subCategory', 'type', 'brand', 'variant_sku', 'variant_price', 'stock'];
+            console.log('CSV Headers found:', csvHeaders);
             const missingHeaders = requiredHeaders.filter(header => 
               !csvHeaders.some(csvHeader => csvHeader.toLowerCase().trim() === header.toLowerCase())
             );
+            console.log('Missing headers:', missingHeaders);
             
             if (missingHeaders.length > 0) {
               return reject(new Error(`Missing required CSV headers: ${missingHeaders.join(', ')}`));
@@ -138,13 +140,18 @@ exports.processBulkUpload = async (req, res) => {
           continue;
         }
 
-        const adminId = req.session?.admin?.id || req.user?._id;
+        const adminId = req.session?.admin?.id || req.session?.admin?._id || req.user?._id;
+        console.log('Admin ID extracted:', adminId);
+        console.log('Session admin:', req.session?.admin);
         if (!adminId) {
           throw new Error('Admin authentication required');
         }
 
         // Build product with all variants
+        console.log('Building product for group:', productKey);
+        console.log('Variants count:', group.variants.length);
         const productData = await buildProductWithVariants(group.variants, adminId, uploadMode);
+        console.log('Product data built:', JSON.stringify(productData, null, 2));
         
         let product;
         if (uploadMode === 'update') {
@@ -180,8 +187,11 @@ exports.processBulkUpload = async (req, res) => {
             await product.save();
           }
         } else {
+          console.log('Creating new product with data:', productData);
           product = new Product(productData);
+          console.log('Product instance created, attempting save...');
           await product.save();
+          console.log('Product saved successfully:', product._id);
         }
 
         // Add success results for all variants
@@ -199,7 +209,8 @@ exports.processBulkUpload = async (req, res) => {
         console.error(`Error processing product group ${productKey}:`, {
           error: error.message,
           stack: error.stack,
-          variants: group.variants.length
+          variants: group.variants.length,
+          productData: productData || 'Not created'
         });
         
         // Add errors for all variants in this group
@@ -237,7 +248,11 @@ exports.processBulkUpload = async (req, res) => {
     res.json(response);
 
   } catch (error) {
-    console.error('Bulk upload error:', error);
+    console.error('Bulk upload error:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
     
     if (req.file && fs.existsSync(req.file.path)) {
       fs.unlinkSync(req.file.path);
@@ -245,7 +260,8 @@ exports.processBulkUpload = async (req, res) => {
     
     res.status(500).json({ 
       success: false, 
-      message: 'Upload failed: ' + error.message 
+      message: 'Upload failed: ' + error.message,
+      error: error.stack
     });
   }
 };
@@ -274,10 +290,7 @@ async function validateVariantRow(row, rowNumber, uploadMode) {
     errors.push('Variant price must be a valid number');
   }
 
-  // Validate variant discount price
-  if (row.variant_discountPrice && isNaN(parseFloat(row.variant_discountPrice))) {
-    errors.push('Variant discount price must be a valid number');
-  }
+  // Skip variant_discountPrice validation - not in product model
 
   // Validate variant old price
   if (row.variant_oldPrice && isNaN(parseFloat(row.variant_oldPrice))) {
@@ -310,14 +323,7 @@ async function validateVariantRow(row, rowNumber, uploadMode) {
     errors.push('Variant height must be a valid number');
   }
 
-  // Validate price relationships
-  if (row.variant_price && row.variant_discountPrice) {
-    const price = parseFloat(row.variant_price);
-    const discountPrice = parseFloat(row.variant_discountPrice);
-    if (discountPrice >= price) {
-      errors.push('Variant discount price must be less than regular price');
-    }
-  }
+  // Skip variant_discountPrice validation - not in product model
 
   if (row.variant_price && row.variant_oldPrice) {
     const price = parseFloat(row.variant_price);
@@ -339,8 +345,8 @@ async function validateVariantRow(row, rowNumber, uploadMode) {
   }
 
   // Validate product status
-  if (row.status && !['draft', 'active', 'inactive', 'discontinued'].includes(row.status)) {
-    errors.push('Status must be one of: draft, active, inactive, discontinued');
+  if (row.status && !['draft', 'active', 'inactive'].includes(row.status)) {
+    errors.push('Status must be one of: draft, active, inactive');
   }
 
   // Validate featured flag
@@ -448,27 +454,26 @@ async function buildProductWithVariants(variantRows, adminId, uploadMode) {
     };
 
     // Optional variant fields
-    if (row.variant_oldPrice) variant.oldPrice = parseFloat(row.variant_oldPrice);
-    if (row.variant_discountPrice) variant.discountPrice = parseFloat(row.variant_discountPrice);
+    if (row.variant_oldPrice) variant.originalPrice = parseFloat(row.variant_oldPrice);
     if (row.variant_color) variant.color = row.variant_color;
     if (row.variant_size) variant.size = row.variant_size;
     if (row.variant_material) variant.material = row.variant_material;
     if (row.variant_weight) variant.weight = parseFloat(row.variant_weight);
     
-    // Variant dimensions
+    // Variant dimensions as string
     if (row.variant_length || row.variant_width || row.variant_height) {
-      variant.dimensions = {};
-      if (row.variant_length) variant.dimensions.length = parseFloat(row.variant_length);
-      if (row.variant_width) variant.dimensions.width = parseFloat(row.variant_width);
-      if (row.variant_height) variant.dimensions.height = parseFloat(row.variant_height);
+      const dims = [];
+      if (row.variant_length) dims.push(`${row.variant_length}`);
+      if (row.variant_width) dims.push(`${row.variant_width}`);
+      if (row.variant_height) dims.push(`${row.variant_height}`);
+      if (dims.length > 0) variant.dimensions = dims.join(' x ') + ' cm';
     }
 
     variants.push(variant);
 
     // Calculate product-level aggregates
-    const effectivePrice = variant.discountPrice || variant.price;
-    minPrice = Math.min(minPrice, effectivePrice);
-    maxPrice = Math.max(maxPrice, effectivePrice);
+    minPrice = Math.min(minPrice, variant.price);
+    maxPrice = Math.max(maxPrice, variant.price);
     totalStock += variant.stock;
   }
 
@@ -478,7 +483,7 @@ async function buildProductWithVariants(variantRows, adminId, uploadMode) {
     slug: slug,
     description: baseRow.description,
     shortDescription: baseRow.shortDescription || '',
-    price: variants.find(v => v.isDefault)?.price || variants[0].price,
+    images: ['/uploads/products/placeholder.jpg'],
     category: category._id,
     subCategory: subCategory._id,
     type: type._id,
@@ -486,10 +491,7 @@ async function buildProductWithVariants(variantRows, adminId, uploadMode) {
     variants: variants,
     status: baseRow.status || 'draft',
     featured: baseRow.featured === 'true',
-    admin: adminId,
-    minPrice: minPrice === Infinity ? 0 : minPrice,
-    maxPrice: maxPrice,
-    totalStock: totalStock
+    admin: adminId
   };
 
   // Optional product fields
