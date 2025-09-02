@@ -75,7 +75,7 @@ const brandController = {
   // Create a new brand
   createBrand: async (req, res) => {
     try {
-      const { name } = req.body;
+      const { name, isActive, isFeatured } = req.body;
       
       const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
       
@@ -85,11 +85,19 @@ const brandController = {
         return res.redirect('/admin/v1/staff/login');
       }
       
-      const brand = await Brand.create({ 
+      const brandData = {
         name, 
         slug,
+        isActive: isActive === 'on' || isActive === true,
+        isFeatured: isFeatured === 'on' || isFeatured === true,
         admin: adminId
-      });
+      };
+
+      if (req.files && req.files.logo) {
+        brandData.logo = req.files.logo[0].filename;
+      }
+      
+      const brand = await Brand.create(brandData);
 
       req.flash('success', 'Brand created successfully');
       res.redirect('/admin/v1/parameters/brands');
@@ -146,15 +154,23 @@ const brandController = {
   // Update brand
   updateBrand: async (req, res) => {
     try {
-      const { name } = req.body;
+      const { name, isActive, isFeatured } = req.body;
       
       const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
-      await Brand.findByIdAndUpdate(req.params.id, {
+      const updateData = {
         name,
         slug,
+        isActive: isActive === 'on' || isActive === true,
+        isFeatured: isFeatured === 'on' || isFeatured === true,
         updatedAt: Date.now()
-      });
+      };
+
+      if (req.files && req.files.logo) {
+        updateData.logo = req.files.logo[0].filename;
+      }
+
+      await Brand.findByIdAndUpdate(req.params.id, updateData);
 
       req.flash('success', 'Brand updated successfully');
       res.redirect('/admin/v1/parameters/brands');
@@ -198,14 +214,19 @@ const brandController = {
   // Public API for brands
   getAllPublicBrands: async (req, res) => {
     try {
-      const brands = await Brand.find()
-        .select('name slug createdAt')
+      const brands = await Brand.find({ isActive: true })
+        .select('name slug logo isActive isFeatured createdAt')
         .sort({ name: 1 });
+      
+      const brandsWithUrls = brands.map(brand => ({
+        ...brand.toObject(),
+        logoUrl: brand.logo ? `${req.protocol}://${req.get('host')}/uploads/${brand.logo}` : null
+      }));
       
       res.status(200).json({
         success: true,
-        count: brands.length,
-        data: brands
+        count: brandsWithUrls.length,
+        data: brandsWithUrls
       });
     } catch (error) {
       res.status(500).json({

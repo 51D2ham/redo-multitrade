@@ -11,7 +11,7 @@ exports.getWishlist = async (req, res) => {
     const wishlistItems = await Wishlist.find({ user: req.userInfo.userId })
       .populate({
         path: 'product',
-        select: 'title slug thumbnail price rating reviewCount status variants',
+        select: 'title slug images price rating reviewCount status variants brand',
         populate: {
           path: 'brand',
           select: 'name'
@@ -42,7 +42,7 @@ exports.getWishlist = async (req, res) => {
           id: item.product._id,
           title: item.product.title,
           slug: item.product.slug,
-          thumbnail: item.product.thumbnail,
+          image: item.product.images?.[0] || null,
           price: item.product.price,
           rating: item.product.rating,
           reviewCount: item.product.reviewCount,
@@ -55,8 +55,8 @@ exports.getWishlist = async (req, res) => {
           size: variant.size,
           price: variant.price,
           discountPrice: variant.discountPrice,
-          qty: variant.qty,
-          status: variant.status
+          stock: variant.stock,
+          lowStockAlert: variant.lowStockAlert
         } : null,
         variantSku: item.variantSku,
         addedAt: item.createdAt
@@ -166,7 +166,7 @@ exports.addToWishlist = async (req, res) => {
     // Populate product data for response
     await wishlistItem.populate({
       path: 'product',
-      select: 'title slug thumbnail price rating reviewCount variants',
+      select: 'title slug images price rating reviewCount variants brand',
       populate: {
         path: 'brand',
         select: 'name'
@@ -184,7 +184,7 @@ exports.addToWishlist = async (req, res) => {
         id: wishlistItem.product._id,
         title: wishlistItem.product.title,
         slug: wishlistItem.product.slug,
-        thumbnail: wishlistItem.product.thumbnail,
+        image: wishlistItem.product.images?.[0] || null,
         price: wishlistItem.product.price,
         rating: wishlistItem.product.rating,
         reviewCount: wishlistItem.product.reviewCount,
@@ -196,8 +196,8 @@ exports.addToWishlist = async (req, res) => {
         size: variant.size,
         price: variant.price,
         discountPrice: variant.discountPrice,
-        qty: variant.qty,
-        status: variant.status
+        stock: variant.stock,
+        lowStockAlert: variant.lowStockAlert
       } : null,
       variantSku: wishlistItem.variantSku,
       addedAt: wishlistItem.createdAt
@@ -287,6 +287,49 @@ exports.clearWishlist = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to clear wishlist'
+    });
+  }
+};
+
+/**
+ * Check if product is in wishlist
+ * GET /api/v1/wishlist/check/:productId
+ */
+exports.checkWishlistStatus = async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const { variantSku } = req.query;
+
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid product ID'
+      });
+    }
+
+    const query = {
+      user: req.userInfo.userId,
+      product: productId
+    };
+
+    if (variantSku) {
+      query.variantSku = variantSku;
+    }
+
+    const wishlistItem = await Wishlist.findOne(query);
+
+    res.json({
+      success: true,
+      data: {
+        inWishlist: !!wishlistItem,
+        wishlistItemId: wishlistItem?._id || null
+      }
+    });
+  } catch (error) {
+    console.error('Check wishlist status error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to check wishlist status'
     });
   }
 };

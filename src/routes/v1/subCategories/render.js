@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const adminAuth = require('../../../middlewares/auth');
+const upload = require('../../../middlewares/productPhoto');
 const subCategoryController = require('../../../controllers/subCategoryController');
 
 // SubCategory routes

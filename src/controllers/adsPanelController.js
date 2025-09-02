@@ -97,12 +97,20 @@ module.exports = {
     const { locationId } = req.query;
     const filter = locationId ? { locationId, status: 'active' } : { status: 'active' };
     const items = await AdsPanel.find(filter);
-    res.json(items);
+    const itemsWithFullUrls = items.map(item => ({
+      ...item.toObject(),
+      image: item.image ? `/uploads/${item.image}` : null
+    }));
+    res.json(itemsWithFullUrls);
   },
 
   async getAdsPanelById(req, res) {
     const item = await AdsPanel.findById(req.params.id);
     if (!item) return res.status(404).json({ error: 'Not found' });
-    res.json(item);
+    const itemWithFullUrl = {
+      ...item.toObject(),
+      image: item.image ? `/uploads/${item.image}` : null
+    };
+    res.json(itemWithFullUrl);
   }
 };

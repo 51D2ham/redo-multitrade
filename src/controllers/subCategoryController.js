@@ -90,16 +90,22 @@ const subCategoryController = {
   // Create a new subcategory
   createSubCategory: async (req, res) => {
     try {
-      const { name, category } = req.body;
+      const { name, category, isActive, isFeatured } = req.body;
       
       const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
-      const subcategory = await SubCategory.create({ 
+      const subcategoryData = {
         name, 
         slug,
         category,
+        isActive: isActive === 'on' || isActive === true,
+        isFeatured: isFeatured === 'on' || isFeatured === true,
         admin: req.user._id
-      });
+      };
+
+
+
+      const subcategory = await SubCategory.create(subcategoryData);
       
       req.flash('success', 'Subcategory created successfully');
       res.redirect('/admin/v1/parameters/subcategories');
@@ -162,44 +168,21 @@ const subCategoryController = {
   // Update subcategory
   updateSubCategory: async (req, res) => {
     try {
-      const { name, category } = req.body;
-
-      if (!name) {
-        req.flash('error', 'Subcategory name is required');
-        return res.redirect(`/admin/v1/parameters/subcategories/${req.params.id}/edit`);
-      }
-      
-      if (!category) {
-        req.flash('error', 'Category is required');
-        return res.redirect(`/admin/v1/parameters/subcategories/${req.params.id}/edit`);
-      }
-
-      // Check if category exists
-      const categoryExists = await Category.findById(category);
-      if (!categoryExists) {
-        req.flash('error', 'Selected category does not exist');
-        return res.redirect(`/admin/v1/parameters/subcategories/${req.params.id}/edit`);
-      }
-
-      // Case-insensitive unique validation within category (excluding current)
-      const existing = await SubCategory.findOne({ 
-        name: { $regex: new RegExp(`^${name}$`, 'i') },
-        category,
-        _id: { $ne: req.params.id }
-      });
-      
-      if (existing) {
-        req.flash('error', 'Subcategory name must be unique within this category');
-        return res.redirect(`/admin/v1/parameters/subcategories/${req.params.id}/edit`);
-      }
+      const { name, category, isActive, isFeatured } = req.body;
 
       const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
       
-      await SubCategory.findByIdAndUpdate(req.params.id, {
+      const updateData = {
         name,
         slug,
-        category
-      });
+        category,
+        isActive: isActive === 'on' || isActive === true,
+        isFeatured: isFeatured === 'on' || isFeatured === true
+      };
+
+
+      
+      await SubCategory.findByIdAndUpdate(req.params.id, updateData);
 
       req.flash('success', 'Subcategory updated successfully');
       res.redirect('/admin/v1/parameters/subcategories');
@@ -240,15 +223,17 @@ const subCategoryController = {
   // Public API for subcategories
   getAllPublicSubCategories: async (req, res) => {
     try {
-      const subcategories = await SubCategory.find()
-        .select('name slug category createdAt')
+      const subcategories = await SubCategory.find({ isActive: true })
+        .select('name slug isActive isFeatured category createdAt')
         .populate('category', 'name slug')
         .sort({ name: 1 });
       
+      const subcategoriesWithUrls = subcategories.map(subcategory => subcategory.toObject());
+      
       res.status(200).json({
         success: true,
-        count: subcategories.length,
-        data: subcategories
+        count: subcategoriesWithUrls.length,
+        data: subcategoriesWithUrls
       });
     } catch (error) {
       res.status(500).json({
@@ -264,14 +249,16 @@ const subCategoryController = {
     try {
       const { categoryId } = req.params;
       
-      const subcategories = await SubCategory.find({ category: categoryId })
-        .select('name slug')
+      const subcategories = await SubCategory.find({ category: categoryId, isActive: true })
+        .select('name slug isActive isFeatured')
         .sort({ name: 1 });
+      
+      const subcategoriesWithUrls = subcategories.map(subcategory => subcategory.toObject());
       
       res.status(200).json({
         success: true,
-        count: subcategories.length,
-        data: subcategories
+        count: subcategoriesWithUrls.length,
+        data: subcategoriesWithUrls
       });
     } catch (error) {
       res.status(500).json({

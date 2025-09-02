@@ -105,12 +105,20 @@ module.exports = {
   // Public API
   async apiListCompanyInfo(req, res) {
     const items = await CompanyInfo.find({ status: 'active' });
-    res.json(items);
+    const itemsWithFullUrls = items.map(item => ({
+      ...item.toObject(),
+      logo: item.logo ? `/uploads/${item.logo}` : null
+    }));
+    res.json(itemsWithFullUrls);
   },
 
   async getCompanyInfoById(req, res) {
     const item = await CompanyInfo.findById(req.params.id);
     if (!item) return res.status(404).json({ error: 'Not found' });
-    res.json(item);
+    const itemWithFullUrl = {
+      ...item.toObject(),
+      logo: item.logo ? `/uploads/${item.logo}` : null
+    };
+    res.json(itemWithFullUrl);
   }
 };

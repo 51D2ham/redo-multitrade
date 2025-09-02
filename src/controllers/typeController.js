@@ -109,17 +109,23 @@ const typeController = {
   // Create a new type
   createType: async (req, res) => {
     try {
-      const { name, category, subCategory } = req.body;
+      const { name, category, subCategory, isActive, isFeatured } = req.body;
       
       const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
       
-      const type = await Type.create({ 
+      const typeData = {
         name, 
         slug,
         category,
         subCategory,
+        isActive: isActive === 'on' || isActive === true,
+        isFeatured: isFeatured === 'on' || isFeatured === true,
         admin: req.user._id
-      });
+      };
+
+
+      
+      const type = await Type.create(typeData);
 
       req.flash('success', 'Type created successfully');
       res.redirect('/admin/v1/parameters/types');
@@ -183,16 +189,22 @@ const typeController = {
   // Update type
   updateType: async (req, res) => {
     try {
-      const { name, category, subCategory } = req.body;
+      const { name, category, subCategory, isActive, isFeatured } = req.body;
       
       const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
-      await Type.findByIdAndUpdate(req.params.id, {
+      const updateData = {
         name,
         slug,
         category,
-        subCategory
-      });
+        subCategory,
+        isActive: isActive === 'on' || isActive === true,
+        isFeatured: isFeatured === 'on' || isFeatured === true
+      };
+
+
+
+      await Type.findByIdAndUpdate(req.params.id, updateData);
 
       req.flash('success', 'Type updated successfully');
       res.redirect('/admin/v1/parameters/types');
@@ -236,16 +248,18 @@ const typeController = {
   // Public API for types
   getAllPublicTypes: async (req, res) => {
     try {
-      const types = await Type.find()
-        .select('name slug category subCategory createdAt')
+      const types = await Type.find({ isActive: true })
+        .select('name slug isActive isFeatured category subCategory createdAt')
         .populate('category', 'name slug')
         .populate('subCategory', 'name slug')
         .sort({ name: 1 });
       
+      const typesWithUrls = types.map(type => type.toObject());
+      
       res.status(200).json({
         success: true,
-        count: types.length,
-        data: types
+        count: typesWithUrls.length,
+        data: typesWithUrls
       });
     } catch (error) {
       res.status(500).json({

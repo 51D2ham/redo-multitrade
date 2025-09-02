@@ -54,7 +54,7 @@ exports.processBulkUpload = async (req, res) => {
             isFirstRow = false;
             
             // Validate required headers
-            const requiredHeaders = ['title', 'description', 'category', 'subCategory', 'type', 'brand', 'variant_sku', 'variant_price', 'variant_qty'];
+            const requiredHeaders = ['title', 'description', 'category', 'subCategory', 'type', 'brand', 'variant_sku', 'variant_price', 'stock'];
             const missingHeaders = requiredHeaders.filter(header => 
               !csvHeaders.some(csvHeader => csvHeader.toLowerCase().trim() === header.toLowerCase())
             );
@@ -260,7 +260,7 @@ async function validateVariantRow(row, rowNumber, uploadMode) {
     return { isValid: false, errors };
   }
   
-  const requiredFields = ['title', 'description', 'category', 'subCategory', 'type', 'brand', 'variant_sku', 'variant_price', 'variant_qty'];
+  const requiredFields = ['title', 'description', 'category', 'subCategory', 'type', 'brand', 'variant_sku', 'variant_price', 'stock'];
   
   for (const field of requiredFields) {
     const value = row[field];
@@ -284,14 +284,14 @@ async function validateVariantRow(row, rowNumber, uploadMode) {
     errors.push('Variant old price must be a valid number');
   }
 
-  // Validate variant quantity
-  if (row.variant_qty && isNaN(parseInt(row.variant_qty))) {
-    errors.push('Variant quantity must be a valid integer');
+  // Validate stock quantity
+  if (row.stock && isNaN(parseInt(row.stock))) {
+    errors.push('Stock quantity must be a valid integer');
   }
 
-  // Validate variant threshold quantity
-  if (row.variant_thresholdQty && isNaN(parseInt(row.variant_thresholdQty))) {
-    errors.push('Variant threshold quantity must be a valid integer');
+  // Validate low stock alert threshold
+  if (row.lowStockAlert && isNaN(parseInt(row.lowStockAlert))) {
+    errors.push('Low stock alert must be a valid integer');
   }
 
   // Validate variant weight
@@ -441,8 +441,8 @@ async function buildProductWithVariants(variantRows, adminId, uploadMode) {
     const variant = {
       sku: row.variant_sku,
       price: parseFloat(row.variant_price),
-      qty: parseInt(row.variant_qty) || 0,
-      thresholdQty: row.variant_thresholdQty ? parseInt(row.variant_thresholdQty) : 5,
+      stock: parseInt(row.stock) || 0,
+      lowStockAlert: row.lowStockAlert ? parseInt(row.lowStockAlert) : 5,
       isDefault: isDefault,
       shipping: row.variant_shipping !== 'false'
     };
@@ -469,7 +469,7 @@ async function buildProductWithVariants(variantRows, adminId, uploadMode) {
     const effectivePrice = variant.discountPrice || variant.price;
     minPrice = Math.min(minPrice, effectivePrice);
     maxPrice = Math.max(maxPrice, effectivePrice);
-    totalStock += variant.qty;
+    totalStock += variant.stock;
   }
 
   // Build product data

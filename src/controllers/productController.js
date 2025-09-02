@@ -484,6 +484,19 @@ module.exports = {
         filter.$text = { $search: req.query.search };
       }
       
+      // Date filters
+      if (req.query.dateFrom || req.query.dateTo) {
+        filter.createdAt = {};
+        if (req.query.dateFrom) {
+          filter.createdAt.$gte = new Date(req.query.dateFrom);
+        }
+        if (req.query.dateTo) {
+          const dateTo = new Date(req.query.dateTo);
+          dateTo.setHours(23, 59, 59, 999); // End of day
+          filter.createdAt.$lte = dateTo;
+        }
+      }
+      
       let sort = { createdAt: -1 };
       switch (req.query.sort) {
         case 'price_asc': sort = { 'variants.price': 1 }; break;
@@ -491,6 +504,9 @@ module.exports = {
         case 'rating': sort = { rating: -1 }; break;
         case 'popular': sort = { reviewCount: -1 }; break;
         case 'newest': sort = { createdAt: -1 }; break;
+        case 'oldest': sort = { createdAt: 1 }; break;
+        case 'date_desc': sort = { createdAt: -1 }; break;
+        case 'date_asc': sort = { createdAt: 1 }; break;
       }
       
       const [products, total] = await Promise.all([

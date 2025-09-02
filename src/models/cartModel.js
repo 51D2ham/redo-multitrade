@@ -34,7 +34,7 @@ cartSchema.statics.getUserCart = function(userId) {
   return this.find({ user: userId })
     .populate({
       path: 'product',
-      select: 'title price thumbnail images slug variants category brand status',
+      select: 'title images variants category brand status totalStock',
       populate: {
         path: 'category',
         select: 'name'

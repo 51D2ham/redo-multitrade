@@ -6,7 +6,6 @@ const Admin = require('../models/adminRegister');
 const seedDeveloper = async () => {
   try {
     await connectDb();
-    console.log('🔗 Database connected for seeding...');
 
     const email = process.env.DEVELOPER_EMAIL || 'admin@multitrade.com';
     const plainPassword = process.env.DEVELOPER_PASSWORD || 'SecureAdminPass123';
@@ -19,9 +18,9 @@ const seedDeveloper = async () => {
     });
 
     if (existingAdmin) {
-      console.log(`✅ Developer admin already exists: ${existingAdmin.email}`);
-      console.log(`📧 Email: ${existingAdmin.email}`);
-      console.log(`🔑 Role: ${existingAdmin.role}`);
+      console.log('Admin already exists');
+      console.log(`Email: ${existingAdmin.email}`);
+      console.log(`Role: ${existingAdmin.role}`);
       return process.exit(0);
     }
 
@@ -43,17 +42,13 @@ const seedDeveloper = async () => {
     });
 
     await developerAdmin.save();
-    
-    console.log('🎉 Developer admin created successfully!');
-    console.log('📧 Email:', email);
-    console.log('🔑 Password:', plainPassword);
-    console.log('👤 Role: developer');
-    console.log('🆔 ID:', developerAdmin._id);
-    console.log('\n🚀 You can now login at: http://localhost:9001/admin/v1/staff/login');
+    console.log('Admin created successfully');
+    console.log(`Email: ${email}`);
+    console.log(`Role: developer`);
     
     process.exit(0);
   } catch (error) {
-    console.error('❌ Seeding error:', error.message);
+    console.error('Seeding failed:', error.message);
     process.exit(1);
   }
 };

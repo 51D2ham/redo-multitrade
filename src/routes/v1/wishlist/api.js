@@ -18,6 +18,7 @@ router.use((req, res, next) => {
 
 // Wishlist routes
 router.get('/', customerAuth, wishlistController.getWishlist);
+router.get('/check/:productId', customerAuth, wishlistController.checkWishlistStatus);
 router.post('/items', customerAuth, wishlistController.addToWishlist);
 router.delete('/items/:itemId', customerAuth, wishlistController.removeWishlistItem);
 router.delete('/', customerAuth, wishlistController.clearWishlist);

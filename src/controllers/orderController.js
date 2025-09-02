@@ -53,7 +53,7 @@ exports.getPublicOrderDetails = async (req, res) => {
   try {
     const order = await Order.findById(req.params.id)
       .select('_id status createdAt totalPrice items')
-      .populate('items.productId', 'title price thumbnail');
+      .populate('items.productId', 'title images variants');
 
     if (!order) {
       return res.status(404).json({

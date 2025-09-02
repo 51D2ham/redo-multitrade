@@ -12,11 +12,11 @@ const connectDb = async () => {
       family: 4
     });
 
-    console.log("Database Connected Successfully!", connect.connection.name);
+    console.log(`Database connected: ${connect.connection.name}`);
 
     return connect;
   } catch (err) {
-    console.error("Database Connection Error:", err.message);
+    console.error(`Database connection failed: ${err.message}`);
     process.exit(1);
   }
 };

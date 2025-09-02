@@ -1,0 +1,98 @@
+<%- include('../partials/header.ejs', { title: 'Edit Brand Carousel' }) %>
+
+<nav class="flex flex-wrap gap-3 mb-8 p-4 bg-white rounded-xl shadow-sm border border-gray-100 items-center">
+  <a href="/admin/v1/staff/dashboard" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition">
+    <i class="fa fa-home"></i> Dashboard
+  </a>
+  <a href="<%= baseUrl %>" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-50 text-gray-700 hover:bg-gray-100 transition">
+    <i class="fa fa-tags"></i> Brand Carousel
+  </a>
+  <a href="<%= baseUrl %>/<%= item._id %>" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-50 text-gray-700 hover:bg-gray-100 transition">
+    <i class="fa fa-eye"></i> View Item
+  </a>
+</nav>
+
+<main class="container mx-auto max-w-lg px-4">
+  <!-- Flash Messages -->
+  <% if (error && error.length) { %>
+    <div class="mb-6 p-4 rounded-lg border-l-4 border-red-400 bg-red-50 text-red-800 shadow-sm">
+      <% error.forEach(msg => { %>
+        <div class="flex items-center gap-2">
+          <i class="fa fa-exclamation-circle"></i>
+          <%= msg %>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+  <% if (success && success.length) { %>
+    <div class="mb-6 p-4 rounded-lg border-l-4 border-green-400 bg-green-50 text-green-800 shadow-sm">
+      <% success.forEach(msg => { %>
+        <div class="flex items-center gap-2">
+          <i class="fa fa-check-circle"></i>
+          <%= msg %>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+
+  <div class="bg-white rounded-xl shadow-md p-8 mb-10 border border-gray-100">
+    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-8 gap-4">
+      <h1 class="text-2xl font-bold text-gray-800">Edit Brand Carousel</h1>
+      <a href="<%= baseUrl %>" class="text-sm text-blue-600 hover:text-blue-700 flex items-center transition">
+        <span class="mr-1">←</span> Back to List
+      </a>
+    </div>
+    
+    <form action="<%= baseUrl %>/<%= item._id %>?_method=PUT" method="POST" class="space-y-6">
+      <div>
+        <label for="brand" class="block font-semibold mb-2 text-gray-700">Brand *</label>
+        <select 
+          id="brand" 
+          name="brand" 
+          required
+          class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+        >
+          <% brands.forEach(brand => { %>
+            <option value="<%= brand._id %>" <%= item.brand._id.toString() === brand._id.toString() ? 'selected' : '' %>><%= brand.name %></option>
+          <% }) %>
+        </select>
+      </div>
+      
+      <div>
+        <label for="order" class="block font-semibold mb-2 text-gray-700">Display Order</label>
+        <input 
+          id="order" 
+          name="order" 
+          type="number" 
+          value="<%= item.order %>"
+          min="0"
+          class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+        >
+        <p class="mt-1 text-sm text-gray-500">Lower numbers appear first</p>
+      </div>
+      
+      <div>
+        <label for="status" class="block font-semibold mb-2 text-gray-700">Status</label>
+        <select 
+          id="status" 
+          name="status" 
+          class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+        >
+          <option value="active" <%= item.status === 'active' ? 'selected' : '' %>>Active</option>
+          <option value="inactive" <%= item.status === 'inactive' ? 'selected' : '' %>>Inactive</option>
+        </select>
+      </div>
+      
+      <div class="flex flex-col sm:flex-row gap-3 sm:justify-end">
+        <a href="<%= baseUrl %>" class="px-4 py-3 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition flex items-center justify-center gap-2">
+          <i class="fa fa-times"></i> Cancel
+        </a>
+        <button type="submit" class="px-4 py-3 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition flex items-center justify-center gap-2">
+          <i class="fa fa-save"></i> Update Carousel
+        </button>
+      </div>
+    </form>
+  </div>
+</main>
+
+<%- include('../partials/footer.ejs') %>

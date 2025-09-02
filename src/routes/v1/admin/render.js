@@ -55,32 +55,35 @@ const renderContentDashboard = async (req, res) => {
     const HeroContent = require('../../../models/heroCarouselModel');
     const AdsPanel = require('../../../models/AdsPanelModel');
     const CompanyInfo = require('../../../models/companyInfoModel');
+    const ParameterPoster = require('../../../models/parameterPosterModel');
     
-    const [heroContentCount, adsPanelCount, companyInfoCount, heroCarousel] = await Promise.all([
+    const [heroContentCount, adsPanelCount, companyInfoCount, parameterPosterCount, heroCarousel] = await Promise.all([
       HeroContent.countDocuments(),
       AdsPanel.countDocuments(),
       CompanyInfo.countDocuments(),
+      ParameterPoster.countDocuments(),
       HeroContent.find().sort({ order: 1, createdAt: -1 }).limit(10)
     ]);
     
     res.render('admin/content_dashboard', {
-      title: 'Content Dashboard',
+      title: 'Content Management Center',
       username: req.session.admin?.username || null,
       fullname: req.session.admin?.fullname || null,
       counts: {
         heroContent: heroContentCount,
         adsPanel: adsPanelCount,
-        companyInfo: companyInfoCount
+        companyInfo: companyInfoCount,
+        parameterPoster: parameterPosterCount
       },
       heroCarousel: heroCarousel || []
     });
   } catch (error) {
     console.error('Content dashboard error:', error);
     res.render('admin/content_dashboard', {
-      title: 'Content Dashboard',
+      title: 'Content Management Center',
       username: req.session.admin?.username || null,
       fullname: req.session.admin?.fullname || null,
-      counts: { heroContent: 0, adsPanel: 0, companyInfo: 0 },
+      counts: { heroContent: 0, adsPanel: 0, companyInfo: 0, parameterPoster: 0 },
       heroCarousel: []
     });
   }
@@ -90,6 +93,8 @@ const renderContentDashboard = async (req, res) => {
 router.get('/dashboard', authMiddleware, adminController.renderDashboard);
 router.get('/parameter-dashboard', authMiddleware, adminController.renderParameterDashboard);
 router.get('/content', authMiddleware, renderContentDashboard);
+
+
 
 // Parameters redirect route
 router.get('/parameters', authMiddleware, (req, res) => {

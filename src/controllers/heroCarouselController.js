@@ -95,12 +95,20 @@ module.exports = {
   // Public API
   async apiListCarouselItems(req, res) {
     const items = await HeroCarousel.find({ status: 'active' });
-    res.json(items);
+    const itemsWithFullUrls = items.map(item => ({
+      ...item.toObject(),
+      image: item.image ? `/uploads/${item.image}` : null
+    }));
+    res.json(itemsWithFullUrls);
   },
 
   async getCarouselItemById(req, res) {
     const item = await HeroCarousel.findById(req.params.id);
     if (!item) return res.status(404).json({ error: 'Not found' });
-    res.json(item);
+    const itemWithFullUrl = {
+      ...item.toObject(),
+      image: item.image ? `/uploads/${item.image}` : null
+    };
+    res.json(itemWithFullUrl);
   }
 };

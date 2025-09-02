@@ -46,7 +46,7 @@ app.use('/uploads', express.static(publicUploadsPath));
 // Session
 app.use(session({
   name: 'multitrade.sid',
-  secret: process.env.SESSION_SECRET || 'fallback-secret',
+  secret: process.env.SESSION_SECRET ,
   resave: false,
   saveUninitialized: false,
   store: MongoStore.create({
@@ -76,9 +76,9 @@ app.use((req, res, next) => {
   next();
 });
 
-// Request logging
+// Request logging (only for errors and important routes)
 app.use((req, res, next) => {
-  if (process.env.NODE_ENV !== 'production') {
+  if (process.env.NODE_ENV !== 'production' && process.env.DEBUG_REQUESTS === 'true') {
     console.log(`${req.method} ${req.originalUrl}`);
   }
   next();
@@ -114,6 +114,10 @@ const companyInfoRoutes = require('./src/routes/v1/companyInfo/render');
 const companyInfoApiRoutes = require('./src/routes/v1/companyInfo/api');
 const inventoryRoutes = require('./src/routes/v1/inventory/render');
 const inventoryApiRoutes = require('./src/routes/v1/inventory/api');
+const parameterPosterRoutes = require('./src/routes/v1/parameterPosters');
+const parameterPosterApiRoutes = require('./src/routes/v1/parameterPosters/api');
+const brandCarouselRoutes = require('./src/routes/v1/brandCarousel/render');
+const brandCarouselApiRoutes = require('./src/routes/v1/brandCarousel/api');
 const salesReport = require('./src/routes/salesRoutes');
 const reviewsApi = require('./src/routes/v1/reviews/api');
 
@@ -133,6 +137,8 @@ app.use('/api/v1/hero-carousel', heroCarouselApiRoutes);
 app.use('/api/v1/ads-panel', adsPanelApiRoutes);
 app.use('/api/v1/company-info', companyInfoApiRoutes);
 app.use('/api/v1/inventory', inventoryApiRoutes);
+app.use('/api/v1/parameter-posters', parameterPosterApiRoutes);
+app.use('/api/v1/brand-carousel', brandCarouselApiRoutes);
 
 // Admin Routes (specific first)
 app.use('/admin/v1/products/bulk-upload', bulkUploadRoutes);
@@ -148,6 +154,8 @@ app.use('/admin/v1/parameters/spec-lists', specListRoutes);
 app.use('/admin/v1/parameters/hero-carousel', heroCarouselRoutes);
 app.use('/admin/v1/parameters/ads-panel', adsPanelRoutes);
 app.use('/admin/v1/parameters/company-info', companyInfoRoutes);
+app.use('/admin/v1/content/parameter-posters', parameterPosterRoutes);
+app.use('/admin/v1/content/brand-carousel', brandCarouselRoutes);
 app.use('/admin/v1/order', orderManagementRoutes);
 app.use('/admin/inventory', inventoryRoutes);
 
@@ -172,7 +180,7 @@ app.use((req, res) => {
 });
 
 app.use((err, req, res, next) => {
-  console.error('[ERROR]', err.message);
+  console.error(`${err.status || 500} Error: ${err.message}`);
   const statusCode = err.status || 500;
   const message = statusCode === 500 ? 'Internal Server Error' : err.message;
   
@@ -192,14 +200,12 @@ app.use((err, req, res, next) => {
 const startServer = async () => {
   try {
     await connectDb();
-    console.log(' Database connected');
     
     app.listen(port, () => {
-      console.log(` Server running: http://localhost:${port}`);
-      console.log(`Dashboard: http://localhost:${port}/admin/v1/staff/dashboard`);
+      console.log(`Server is listening on port ${port}`);
     });
   } catch (error) {
-    console.error(' Server failed:', error.message);
+    console.error('Server startup failed:', error.message);
     process.exit(1);
   }
 };

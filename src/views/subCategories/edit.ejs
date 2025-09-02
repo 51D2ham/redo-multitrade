@@ -50,7 +50,7 @@
 
   <div class="bg-white rounded-xl shadow-md p-8 mb-10 border border-gray-100">
     <% if (subcategory) { %>
-      <form action="/admin/v1/parameters/subcategories/<%= subcategory._id %>" method="POST" class="space-y-6">
+      <form action="/admin/v1/parameters/subcategories/<%= subcategory._id %>" method="POST" enctype="multipart/form-data" class="space-y-6">
         <input type="hidden" name="_method" value="PUT">
         
         <div>
@@ -82,6 +82,19 @@
               <% }) %>
             <% } %>
           </select>
+        </div>
+
+
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="flex items-center gap-3">
+            <input id="isActive" name="isActive" type="checkbox" <%= subcategory.isActive ? 'checked' : '' %> class="w-4 h-4 text-blue-600">
+            <label for="isActive" class="font-semibold text-gray-700">Active</label>
+          </div>
+          <div class="flex items-center gap-3">
+            <input id="isFeatured" name="isFeatured" type="checkbox" <%= subcategory.isFeatured ? 'checked' : '' %> class="w-4 h-4 text-blue-600">
+            <label for="isFeatured" class="font-semibold text-gray-700">Featured</label>
+          </div>
         </div>
         
         <div class="flex justify-end gap-3">

@@ -6,6 +6,9 @@ const { Schema } = mongoose;
 const categorySchema = new Schema({
   name: { type: String, required: true, trim: true },
   slug: { type: String },
+  icon: { type: String },
+  isActive: { type: Boolean, default: true },
+  isFeatured: { type: Boolean, default: false },
   admin: { type: Schema.Types.ObjectId, ref: 'Admin', required: true }
 }, { timestamps: true });
 
@@ -13,6 +16,8 @@ const categorySchema = new Schema({
 const subCategorySchema = new Schema({
   name: { type: String, required: true, trim: true },
   slug: { type: String },
+  isActive: { type: Boolean, default: true },
+  isFeatured: { type: Boolean, default: false },
   category: { type: Schema.Types.ObjectId, ref: 'Category', required: true },
   admin: { type: Schema.Types.ObjectId, ref: 'Admin', required: true }
 }, { timestamps: true });
@@ -21,6 +26,8 @@ const subCategorySchema = new Schema({
 const typeSchema = new Schema({
   name: { type: String, required: true, trim: true },
   slug: { type: String },
+  isActive: { type: Boolean, default: true },
+  isFeatured: { type: Boolean, default: false },
   category: { type: Schema.Types.ObjectId, ref: 'Category', required: true },
   subCategory: { type: Schema.Types.ObjectId, ref: 'SubCategory', required: true },
   admin: { type: Schema.Types.ObjectId, ref: 'Admin', required: true }
@@ -30,6 +37,9 @@ const typeSchema = new Schema({
 const brandSchema = new Schema({
   name: { type: String, required: true, trim: true },
   slug: { type: String },
+  logo: { type: String },
+  isActive: { type: Boolean, default: true },
+  isFeatured: { type: Boolean, default: false },
   admin: { type: Schema.Types.ObjectId, ref: 'Admin', required: true }
 }, { timestamps: true });
 

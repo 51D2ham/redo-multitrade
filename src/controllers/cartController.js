@@ -15,17 +15,15 @@ const formatCartItem = (item) => {
     product: {
       id: item.product._id,
       title: item.product.title,
-      thumbnail: item.product.thumbnail,
-      price: item.product.price
+      thumbnail: item.product.images?.[0] || null,
+      price: item.product.defaultVariant?.price || 0
     },
     variant: variant ? {
       sku: variant.sku,
       color: variant.color,
       size: variant.size,
       price: variant.price,
-      discountPrice: variant.discountPrice,
-      qty: variant.qty,
-      status: variant.status
+      stock: variant.stock
     } : null,
     qty: item.qty,
     productType: item.productType,
@@ -79,13 +77,13 @@ exports.getCart = async (req, res) => {
         }
         
         if (targetVariant) {
-          availableQty = targetVariant.qty;
-          if (targetVariant.status === 'out_of_stock' || targetVariant.qty === 0) {
+          availableQty = targetVariant.stock;
+          if (targetVariant.stock === 0) {
             stockStatus = 'out_of_stock';
             stockMessage = 'Currently out of stock';
-          } else if (targetVariant.qty < item.qty) {
+          } else if (targetVariant.stock < item.qty) {
             stockStatus = 'limited_stock';
-            stockMessage = `Only ${targetVariant.qty} available`;
+            stockMessage = `Only ${targetVariant.stock} available`;
           }
         } else if (item.variantSku) {
           stockStatus = 'variant_not_found';
@@ -169,7 +167,7 @@ exports.addToCart = async (req, res) => {
       });
     }
 
-    let productPrice = product.price;
+    let productPrice = product.defaultVariant?.price || 0;
     let selectedVariant = null;
     let finalVariantSku = null;
     
@@ -189,19 +187,19 @@ exports.addToCart = async (req, res) => {
       }
       
       finalVariantSku = selectedVariant.sku;
-      productPrice = selectedVariant.discountPrice || selectedVariant.price;
+      productPrice = selectedVariant.price;
       
-      if (selectedVariant.status === 'out_of_stock' || selectedVariant.qty === 0) {
+      if (selectedVariant.stock === 0) {
         return res.status(StatusCodes.BAD_REQUEST).json({
           success: false,
           message: 'This variant is out of stock'
         });
       }
       
-      if (selectedVariant.qty < qty) {
+      if (selectedVariant.stock < qty) {
         return res.status(StatusCodes.BAD_REQUEST).json({
           success: false,
-          message: `Only ${selectedVariant.qty} items available`
+          message: `Only ${selectedVariant.stock} items available`
         });
       }
     }
@@ -224,10 +222,10 @@ exports.addToCart = async (req, res) => {
     if (existingItem) {
       // Same product exists, update quantity
       const newQty = existingItem.qty + qty;
-      if (selectedVariant && selectedVariant.qty < newQty) {
+      if (selectedVariant && selectedVariant.stock < newQty) {
         return res.status(StatusCodes.BAD_REQUEST).json({
           success: false,
-          message: `Cannot add ${qty} more. Only ${selectedVariant.qty - existingItem.qty} available`
+          message: `Cannot add ${qty} more. Only ${selectedVariant.stock - existingItem.qty} available`
         });
       }
       

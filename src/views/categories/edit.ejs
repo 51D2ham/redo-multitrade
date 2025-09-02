@@ -44,7 +44,7 @@
   <% } %>
 
   <div class="bg-white rounded-xl shadow-md p-8 mb-10 border border-gray-100">
-    <form action="/admin/v1/parameters/categories/<%= category._id %>" method="POST" class="space-y-6">
+    <form action="/admin/v1/parameters/categories/<%= category._id %>" method="POST" enctype="multipart/form-data" class="space-y-6">
       <input type="hidden" name="_method" value="PUT">
       
       <div>
@@ -57,7 +57,44 @@
           class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
           required
         >
-        <p class="text-sm text-gray-500 mt-1">Enter the category name (e.g., Electronics, Clothing)</p>
+      </div>
+
+      <div>
+        <label for="icon" class="block font-semibold mb-1 text-gray-700">Category Icon</label>
+        <input
+          id="icon"
+          name="icon"
+          type="file"
+          accept="image/*"
+          class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+        >
+        <% if (category.icon) { %>
+          <p class="text-sm text-gray-500 mt-1">Current: <%= category.icon %></p>
+        <% } %>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="flex items-center gap-3">
+          <input
+            id="isActive"
+            name="isActive"
+            type="checkbox"
+            <%= category.isActive ? 'checked' : '' %>
+            class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+          >
+          <label for="isActive" class="font-semibold text-gray-700">Active</label>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <input
+            id="isFeatured"
+            name="isFeatured"
+            type="checkbox"
+            <%= category.isFeatured ? 'checked' : '' %>
+            class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+          >
+          <label for="isFeatured" class="font-semibold text-gray-700">Featured</label>
+        </div>
       </div>
       
       <div class="flex justify-end gap-3">

@@ -78,8 +78,8 @@ class InventoryService {
           variant.sku,
           'sale',
           item.qty,
-          variant.qty + item.qty, // Previous stock (before deduction)
-          variant.qty, // Current stock (after deduction)
+          variant.stock + item.qty, // Previous stock (before deduction)
+          variant.stock, // Current stock (after deduction)
           adminId,
           orderId,
           `Sale: ${item.qty} units of ${item.productTitle} (Order: ${orderId})`
@@ -104,15 +104,9 @@ class InventoryService {
       if (!product) continue;
       let variant = product.variants.find(v => v.sku === item.variantSku);
       if (!variant) variant = product.variants[0];
-      const previousStock = variant.qty;
-      variant.qty += item.qty;
-      if (variant.qty > variant.thresholdQty) {
-        variant.status = 'in_stock';
-      } else if (variant.qty > 0) {
-        variant.status = 'low_stock';
-      } else {
-        variant.status = 'out_of_stock';
-      }
+      const previousStock = variant.stock;
+      variant.stock += item.qty;
+      // No status field in new model - status is calculated dynamically
       await product.save();
       await InventoryService.logMovement(
         item.productId,
@@ -145,15 +139,10 @@ class InventoryService {
     const variant = product.variants.find(v => v.sku === variantSku);
     if (!variant) throw new Error(`Variant with SKU '${variantSku}' not found`);
     
-    const previousStock = variant.qty;
-    variant.qty += quantity;
+    const previousStock = variant.stock;
+    variant.stock += quantity;
     
-    // Update variant status based on new stock level
-    if (variant.qty > variant.thresholdQty) {
-      variant.status = 'in_stock';
-    } else if (variant.qty > 0) {
-      variant.status = 'low_stock';
-    }
+    // No status field in new model - status is calculated dynamically
     
     // Update cost if provided
     if (unitCost && unitCost > 0) {
@@ -190,23 +179,16 @@ class InventoryService {
     const variant = product.variants.find(v => v.sku === variantSku);
     if (!variant) throw new Error(`Variant with SKU '${variantSku}' not found`);
     
-    const previousStock = variant.qty;
+    const previousStock = variant.stock;
     const difference = newQuantity - previousStock;
     
     if (difference === 0) {
       throw new Error('New quantity is the same as current stock');
     }
     
-    variant.qty = newQuantity;
+    variant.stock = newQuantity;
     
-    // Update variant status based on new stock level
-    if (variant.qty === 0) {
-      variant.status = 'out_of_stock';
-    } else if (variant.qty <= variant.thresholdQty) {
-      variant.status = 'low_stock';
-    } else {
-      variant.status = 'in_stock';
-    }
+    // No status field in new model - status is calculated dynamically
     
     await product.save();
     
@@ -233,8 +215,8 @@ class InventoryService {
       products.forEach(product => {
         if (product.variants) {
           product.variants.forEach(variant => {
-            const stock = variant.qty || 0;
-            const threshold = variant.thresholdQty || 5;
+            const stock = variant.stock || 0;
+            const threshold = variant.lowStockAlert || 5;
             if (stock <= threshold) {
               alerts.push({
                 productId: product._id,
@@ -298,9 +280,9 @@ class InventoryService {
               activeProducts: { $sum: { $cond: [{ $eq: ['$status', 'active'] }, 1, 0] } },
               draftProducts: { $sum: { $cond: [{ $eq: ['$status', 'draft'] }, 1, 0] } },
               inactiveProducts: { $sum: { $cond: [{ $eq: ['$status', 'inactive'] }, 1, 0] } },
-              inStock: { $sum: { $cond: [{ $gt: ['$variants.qty', '$variants.thresholdQty'] }, 1, 0] } },
-              lowStock: { $sum: { $cond: [{ $and: [{ $gt: ['$variants.qty', 0] }, { $lte: ['$variants.qty', '$variants.thresholdQty'] }] }, 1, 0] } },
-              outOfStock: { $sum: { $cond: [{ $eq: ['$variants.qty', 0] }, 1, 0] } }
+              inStock: { $sum: { $cond: [{ $gt: ['$variants.stock', '$variants.lowStockAlert'] }, 1, 0] } },
+              lowStock: { $sum: { $cond: [{ $and: [{ $gt: ['$variants.stock', 0] }, { $lte: ['$variants.stock', '$variants.lowStockAlert'] }] }, 1, 0] } },
+              outOfStock: { $sum: { $cond: [{ $eq: ['$variants.stock', 0] }, 1, 0] } }
             }
           }
         ]).then(result => result[0] || {})
@@ -323,8 +305,8 @@ class InventoryService {
             totalValue: {
               $sum: {
                 $multiply: [
-                  '$variants.qty',
-                  { $ifNull: ['$variants.costPrice', '$variants.price'] }
+                  '$variants.stock',
+                  '$variants.price'
                 ]
               }
             }

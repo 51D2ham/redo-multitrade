@@ -32,13 +32,13 @@ exports.getDashboard = async (req, res) => {
         $group: {
           _id: '$_id',
           title: { $first: '$title' },
-          thumbnail: { $first: '$thumbnail' },
-          totalStock: { $sum: '$variants.qty' },
+          thumbnail: { $first: { $arrayElemAt: ['$images', 0] } },
+          totalStock: { $sum: '$variants.stock' },
           stockValue: {
             $sum: {
               $multiply: [
-                '$variants.qty',
-                { $ifNull: ['$variants.costPrice', '$variants.price'] }
+                '$variants.stock',
+                '$variants.price'
               ]
             }
           }
@@ -465,9 +465,9 @@ exports.getProductVariants = async (req, res) => {
           sku: v.sku,
           color: v.color,
           size: v.size,
-          qty: v.qty,
-          thresholdQty: v.thresholdQty,
-          status: v.status
+          stock: v.stock,
+          lowStockAlert: v.lowStockAlert,
+          isDefault: v.isDefault
         }))
       }
     });

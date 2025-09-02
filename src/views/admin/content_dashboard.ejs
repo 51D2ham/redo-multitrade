@@ -58,12 +58,12 @@
       <div class="bg-white rounded-xl p-6 shadow-sm border hover:shadow-md transition-shadow">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-gray-600 mb-1">Published</p>
-            <h3 class="text-2xl font-bold text-gray-900"><%= (heroCarousel || []).filter(item => item.status === 'active').length %></h3>
-            <p class="text-xs text-green-600 mt-1">Live content</p>
+            <p class="text-sm font-medium text-gray-600 mb-1">Parameter Posters</p>
+            <h3 class="text-2xl font-bold text-gray-900"><%= counts?.parameterPoster || 0 %></h3>
+            <p class="text-xs text-green-600 mt-1">Category/Brand images</p>
           </div>
           <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-            <i class="fas fa-check-circle text-green-600"></i>
+            <i class="fas fa-image text-green-600"></i>
           </div>
         </div>
       </div>
@@ -77,6 +77,19 @@
           </div>
           <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
             <i class="fas fa-building text-yellow-600"></i>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl p-6 shadow-sm border hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600 mb-1">Brand Carousel</p>
+            <h3 class="text-2xl font-bold text-gray-900"><%= counts?.brandCarousel || 0 %></h3>
+            <p class="text-xs text-indigo-600 mt-1">Featured brands</p>
+          </div>
+          <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
+            <i class="fas fa-tags text-indigo-600"></i>
           </div>
         </div>
       </div>
@@ -105,7 +118,7 @@
           Content Management Center
         </h2>
         
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6">
           <a href="/admin/v1/parameters/hero-carousel" class="group bg-blue-50 rounded-xl p-6 border border-blue-200 hover:shadow-md hover:bg-blue-100 transition-all">
             <div class="flex items-center gap-4 mb-4">
               <div class="p-3 bg-blue-500 rounded-lg text-white group-hover:bg-blue-600 transition-colors">
@@ -122,6 +135,22 @@
             </div>
           </a>
 
+          <a href="/admin/v1/content/parameter-posters" class="group bg-green-50 rounded-xl p-6 border border-green-200 hover:shadow-md hover:bg-green-100 transition-all">
+            <div class="flex items-center gap-4 mb-4">
+              <div class="p-3 bg-green-500 rounded-lg text-white group-hover:bg-green-600 transition-colors">
+                <i class="fas fa-image text-lg"></i>
+              </div>
+              <div>
+                <h3 class="text-lg font-bold text-gray-900">Parameter Posters</h3>
+                <p class="text-sm text-green-700">Category/Brand images</p>
+              </div>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-sm font-medium text-green-800">Manage Posters</span>
+              <i class="fas fa-arrow-right text-green-600 group-hover:translate-x-1 transition-transform"></i>
+            </div>
+          </a>
+
           <a href="/admin/v1/parameters/company-info" class="group bg-yellow-50 rounded-xl p-6 border border-yellow-200 hover:shadow-md hover:bg-yellow-100 transition-all">
             <div class="flex items-center gap-4 mb-4">
               <div class="p-3 bg-yellow-500 rounded-lg text-white group-hover:bg-yellow-600 transition-colors">
@@ -135,6 +164,22 @@
             <div class="flex items-center justify-between">
               <span class="text-sm font-medium text-yellow-800">Manage Info</span>
               <i class="fas fa-arrow-right text-yellow-600 group-hover:translate-x-1 transition-transform"></i>
+            </div>
+          </a>
+
+          <a href="/admin/v1/content/brand-carousel" class="group bg-indigo-50 rounded-xl p-6 border border-indigo-200 hover:shadow-md hover:bg-indigo-100 transition-all">
+            <div class="flex items-center gap-4 mb-4">
+              <div class="p-3 bg-indigo-500 rounded-lg text-white group-hover:bg-indigo-600 transition-colors">
+                <i class="fas fa-tags text-lg"></i>
+              </div>
+              <div>
+                <h3 class="text-lg font-bold text-gray-900">Brand Carousel</h3>
+                <p class="text-sm text-indigo-700">Featured brands</p>
+              </div>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-sm font-medium text-indigo-800">Manage Brands</span>
+              <i class="fas fa-arrow-right text-indigo-600 group-hover:translate-x-1 transition-transform"></i>
             </div>
           </a>
 

@@ -265,14 +265,23 @@ module.exports = {
    */
   updateCategory: async (req, res) => {
     try {
-      const { name } = req.body;
+      const { name, isActive, isFeatured } = req.body;
       
       const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
-      await Category.findByIdAndUpdate(req.params.id, {
+      const updateData = {
         name,
-        slug
-      });
+        slug,
+        isActive: isActive === 'on' || isActive === true,
+        isFeatured: isFeatured === 'on' || isFeatured === true
+      };
+
+      // Handle file uploads
+      if (req.files && req.files.icon) {
+        updateData.icon = req.files.icon[0].filename;
+      }
+
+      await Category.findByIdAndUpdate(req.params.id, updateData);
 
       req.flash('success', 'Category updated successfully');
       res.redirect('/admin/v1/parameters/categories');

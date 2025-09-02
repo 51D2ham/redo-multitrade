@@ -1,0 +1,119 @@
+<%- include('../partials/header.ejs', { title: 'View Parameter Poster' }) %>
+
+<!-- Navigation Bar -->
+<nav class="flex flex-wrap gap-3 mb-8 p-4 bg-white rounded-xl shadow-sm border border-gray-100 items-center">
+  <a href="/admin/v1/staff/dashboard" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition">
+    <i class="fa fa-home"></i> Dashboard
+  </a>
+  <a href="/admin/v1/content/parameter-posters" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-50 text-gray-700 hover:bg-gray-100 transition">
+    <i class="fa fa-image"></i> Parameter Posters
+  </a>
+  <a href="/admin/v1/content/parameter-posters/<%= poster._id %>/edit" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-yellow-50 text-yellow-700 hover:bg-yellow-100 transition">
+    <i class="fa fa-edit"></i> Edit Poster
+  </a>
+</nav>
+
+<main class="container mx-auto max-w-2xl px-4">
+  <!-- Flash Messages -->
+  <% if (error && error.length) { %>
+    <div class="mb-6 p-4 rounded-lg border-l-4 border-red-400 bg-red-50 text-red-800 shadow-sm">
+      <% error.forEach(msg => { %>
+        <div class="flex items-center gap-2">
+          <i class="fa fa-exclamation-circle"></i>
+          <%= msg %>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+  <% if (success && success.length) { %>
+    <div class="mb-6 p-4 rounded-lg border-l-4 border-green-400 bg-green-50 text-green-800 shadow-sm">
+      <% success.forEach(msg => { %>
+        <div class="flex items-center gap-2">
+          <i class="fa fa-check-circle"></i>
+          <%= msg %>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+
+  <div class="bg-white rounded-xl shadow-md p-8 mb-10 border border-gray-100">
+    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-8 gap-4">
+      <h1 class="text-2xl font-bold text-gray-800">Parameter Poster Details</h1>
+      <a href="/admin/v1/content/parameter-posters" class="text-sm text-blue-600 hover:text-blue-700 flex items-center transition">
+        <span class="mr-1">←</span> Back to List
+      </a>
+    </div>
+    
+    <div class="space-y-6">
+      <!-- Image Preview -->
+      <% if (poster.image) { %>
+        <div class="text-center">
+          <img src="<%= poster.image %>" alt="<%= poster.title %>" class="max-w-full h-auto rounded-lg shadow-lg border mx-auto">
+        </div>
+      <% } %>
+      
+      <!-- Details Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-gray-50 p-4 rounded-lg">
+          <label class="block text-sm font-semibold text-gray-600 mb-2">Title</label>
+          <p class="text-lg text-gray-900"><%= poster.title %></p>
+        </div>
+        
+        <div class="bg-gray-50 p-4 rounded-lg">
+          <label class="block text-sm font-semibold text-gray-600 mb-2">Parameter Type</label>
+          <span class="inline-flex items-center px-3 py-1 rounded-md text-sm font-medium bg-blue-100 text-blue-800">
+            <%= poster.parameterType.charAt(0).toUpperCase() + poster.parameterType.slice(1) %>
+          </span>
+        </div>
+        
+        <div class="bg-gray-50 p-4 rounded-lg">
+          <label class="block text-sm font-semibold text-gray-600 mb-2">Parameter</label>
+          <% if (poster.parameterType === 'category' && poster.categoryDetails) { %>
+            <p class="text-gray-900"><%= poster.categoryDetails.name %></p>
+          <% } else if (poster.parameterType === 'brand' && poster.brandDetails) { %>
+            <p class="text-gray-900"><%= poster.brandDetails.name %></p>
+          <% } else { %>
+            <p class="text-gray-500">Parameter not found</p>
+          <% } %>
+        </div>
+        
+        <div class="bg-gray-50 p-4 rounded-lg">
+          <label class="block text-sm font-semibold text-gray-600 mb-2">Status</label>
+          <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold
+            <%= poster.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700' %>">
+            <i class="fa fa-circle text-xs mr-2 <%= poster.status === 'active' ? 'text-green-500' : 'text-gray-500' %>"></i>
+            <%= poster.status || 'active' %>
+          </span>
+        </div>
+      </div>
+      
+      <!-- Metadata -->
+      <div class="border-t pt-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+          <div>
+            <span class="font-semibold">Created:</span> 
+            <%= new Date(poster.createdAt).toLocaleDateString() %> at <%= new Date(poster.createdAt).toLocaleTimeString() %>
+          </div>
+          <div>
+            <span class="font-semibold">Last Updated:</span> 
+            <%= new Date(poster.updatedAt).toLocaleDateString() %> at <%= new Date(poster.updatedAt).toLocaleTimeString() %>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Actions -->
+      <div class="flex flex-col sm:flex-row gap-3 sm:justify-end pt-6 border-t">
+        <a href="/admin/v1/content/parameter-posters/<%= poster._id %>/edit" class="px-4 py-3 rounded-lg bg-yellow-100 text-yellow-700 hover:bg-yellow-200 transition flex items-center justify-center gap-2">
+          <i class="fa fa-edit"></i> Edit Poster
+        </a>
+        <form action="/admin/v1/content/parameter-posters/<%= poster._id %>?_method=DELETE" method="POST" class="inline">
+          <button type="submit" class="w-full px-4 py-3 rounded-lg bg-red-100 text-red-600 hover:bg-red-200 transition flex items-center justify-center gap-2" onclick="return confirm('Delete this parameter poster? This action cannot be undone.')">
+            <i class="fa fa-trash"></i> Delete Poster
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</main>
+
+<%- include('../partials/footer.ejs') %>

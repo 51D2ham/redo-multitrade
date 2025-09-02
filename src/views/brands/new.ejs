@@ -41,7 +41,7 @@
   <% } %>
 
   <div class="bg-white rounded-xl shadow-md p-8 mb-10 border border-gray-100">
-    <form action="/admin/v1/parameters/brands" method="POST" class="space-y-6">
+    <form action="/admin/v1/parameters/brands" method="POST" enctype="multipart/form-data" class="space-y-6">
       <div>
         <label for="name" class="block font-semibold mb-1 text-gray-700">Brand Name *</label>
         <input
@@ -52,7 +52,23 @@
           required
           placeholder="Enter brand name"
         >
-        <p class="text-sm text-gray-500 mt-1">Enter the brand name (e.g., Nike, Apple)</p>
+      </div>
+
+      <div>
+        <label for="logo" class="block font-semibold mb-1 text-gray-700">Brand Logo</label>
+        <input id="logo" name="logo" type="file" accept="image/*" class="w-full p-3 rounded-lg border border-gray-200">
+        <p class="text-sm text-gray-500 mt-1">Upload brand logo (JPG, PNG, WEBP)</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="flex items-center gap-3">
+          <input id="isActive" name="isActive" type="checkbox" checked class="w-4 h-4 text-blue-600">
+          <label for="isActive" class="font-semibold text-gray-700">Active</label>
+        </div>
+        <div class="flex items-center gap-3">
+          <input id="isFeatured" name="isFeatured" type="checkbox" class="w-4 h-4 text-blue-600">
+          <label for="isFeatured" class="font-semibold text-gray-700">Featured</label>
+        </div>
       </div>
       
       <div class="flex justify-end gap-3">
