@@ -2,8 +2,8 @@
 /* Chart data setup */
 const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 let chartLabels = monthNames;
-let chartData = [15000, 22000, 18000, 35000, 28000, 42000, 38000, 45000, 32000, 29000, 25000, 30000];
-let chartOrderData = [8, 12, 9, 18, 15, 22, 20, 24, 16, 14, 12, 15];
+let chartData = new Array(12).fill(0);
+let chartOrderData = new Array(12).fill(0);
 
 // Use actual data from database
 if (typeof report !== 'undefined' && report && report.monthlyTrend && Array.isArray(report.monthlyTrend)) {
@@ -712,15 +712,15 @@ if (typeof report !== 'undefined' && report && report.monthlyTrend && Array.isAr
       if (dataElement) {
         chartData = JSON.parse(dataElement.textContent);
         chartLabels = chartData.labels || ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-        revenueData = chartData.revenue || [15000, 22000, 18000, 35000, 28000, 42000, 38000, 45000, 32000, 29000, 25000, 30000];
-        orderData = chartData.orders || [8, 12, 9, 18, 15, 22, 20, 24, 16, 14, 12, 15];
+        revenueData = chartData.revenue || new Array(12).fill(0);
+        orderData = chartData.orders || new Array(12).fill(0);
       } else {
         throw new Error('Chart data not found');
       }
     } catch (e) {
       chartLabels = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-      revenueData = [15000, 22000, 18000, 35000, 28000, 42000, 38000, 45000, 32000, 29000, 25000, 30000];
-      orderData = [8, 12, 9, 18, 15, 22, 20, 24, 16, 14, 12, 15];
+      revenueData = new Array(12).fill(0);
+      orderData = new Array(12).fill(0);
     }
     
     if (salesChart) salesChart.destroy();

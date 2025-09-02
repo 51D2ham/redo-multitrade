@@ -28,15 +28,15 @@ module.exports = {
         mixedOrderAnalytics: mixedOrderData,
         // Enhanced revenue summary (delivered items only)
         revenueSummary: {
-          totalRevenue: mixedOrderData?.summary?.totalDeliveredValue || salesData.revenueSummary?.totalRevenue || 84575,
-          totalOrders: mixedOrderData?.summary?.revenueGeneratingOrders || salesData.revenueSummary?.totalOrders || 1,
-          totalOrderValue: mixedOrderData?.summary?.totalOrderValue || 135665,
-          cancelledValue: mixedOrderData?.summary?.totalCancelledValue || 51090
+          totalRevenue: mixedOrderData?.summary?.totalDeliveredValue || salesData.revenueSummary?.totalRevenue || 0,
+          totalOrders: mixedOrderData?.summary?.revenueGeneratingOrders || salesData.revenueSummary?.totalOrders || 0,
+          totalOrderValue: mixedOrderData?.summary?.totalOrderValue || 0,
+          cancelledValue: mixedOrderData?.summary?.totalCancelledValue || 0
         },
         // Enhanced AOV based on delivered value
         aov: {
-          averageOrderValue: mixedOrderData.metrics.averageDeliveredValue || salesData.aov?.averageOrderValue || 0,
-          orderCount: mixedOrderData.summary.revenueGeneratingOrders || salesData.aov?.orderCount || 0
+          averageOrderValue: mixedOrderData?.metrics?.averageDeliveredValue || salesData.aov?.averageOrderValue || 0,
+          orderCount: mixedOrderData?.summary?.revenueGeneratingOrders || salesData.aov?.orderCount || 0
         },
         // Ensure all required fields exist with fallback data
         topProducts: salesData.topProducts || [],
@@ -46,10 +46,10 @@ module.exports = {
         recentMovements: inventoryData.recentMovements || [],
         salesMetrics: {
           ...salesData.salesMetrics,
-          fulfillmentRate: mixedOrderData.metrics.fulfillmentRate || 0,
-          cancellationRate: mixedOrderData.metrics.cancellationRate || 0,
-          mixedOrderRate: mixedOrderData.metrics.mixedOrderRate || 0,
-          revenueEfficiency: mixedOrderData.metrics.revenueEfficiency || 0
+          fulfillmentRate: mixedOrderData?.metrics?.fulfillmentRate || 0,
+          cancellationRate: mixedOrderData?.metrics?.cancellationRate || 0,
+          mixedOrderRate: mixedOrderData?.metrics?.mixedOrderRate || 0,
+          revenueEfficiency: mixedOrderData?.metrics?.revenueEfficiency || 0
         }
       };
 
