@@ -3,6 +3,17 @@ const { Product } = require('../models/productModel');
 const { StatusCodes } = require('http-status-codes');
 const mongoose = require('mongoose');
 
+// Input sanitization helper
+const sanitizeInput = (input) => {
+  if (typeof input !== 'string') return input;
+  return input.replace(/[<>"'&]/g, '');
+};
+
+// Validate ObjectId helper
+const isValidObjectId = (id) => {
+  return mongoose.Types.ObjectId.isValid(id) && /^[0-9a-fA-F]{24}$/.test(id);
+};
+
 // Format cart item response
 const formatCartItem = (item) => {
   let variant = null;
@@ -145,19 +156,24 @@ exports.addToCart = async (req, res) => {
   try {
     const { productId, qty = 1, variantSku } = req.body;
 
-    if (!productId || !mongoose.Types.ObjectId.isValid(productId)) {
+    // Enhanced validation
+    if (!productId || !isValidObjectId(productId)) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         success: false,
         message: 'Valid product ID required'
       });
     }
 
-    if (qty < 1) {
+    const parsedQty = parseInt(qty);
+    if (isNaN(parsedQty) || parsedQty < 1 || parsedQty > 100) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         success: false,
-        message: 'Quantity must be at least 1'
+        message: 'Quantity must be between 1 and 100'
       });
     }
+
+    // Sanitize variant SKU if provided
+    const sanitizedVariantSku = variantSku ? sanitizeInput(variantSku.toString()) : null;
 
     const product = await Product.findById(productId).populate('category', 'name');
     if (!product || product.status !== 'active') {
@@ -171,14 +187,14 @@ exports.addToCart = async (req, res) => {
     let selectedVariant = null;
     let finalVariantSku = null;
     
-    // FORCE variant assignment for products with variants
+    // Enhanced variant handling with proper validation
     if (product.variants && product.variants.length > 0) {
-      if (variantSku) {
-        selectedVariant = product.variants.find(v => v.sku === variantSku);
+      if (sanitizedVariantSku) {
+        selectedVariant = product.variants.find(v => v.sku === sanitizedVariantSku);
         if (!selectedVariant) {
           return res.status(StatusCodes.BAD_REQUEST).json({
             success: false,
-            message: 'Variant not found'
+            message: 'Selected variant not found'
           });
         }
       } else {
@@ -189,25 +205,31 @@ exports.addToCart = async (req, res) => {
       finalVariantSku = selectedVariant.sku;
       productPrice = selectedVariant.price;
       
-      if (selectedVariant.stock === 0) {
+      // Enhanced stock validation
+      if (!selectedVariant.stock || selectedVariant.stock === 0) {
         return res.status(StatusCodes.BAD_REQUEST).json({
           success: false,
-          message: 'This variant is out of stock'
+          message: 'This variant is currently out of stock'
         });
       }
       
-      if (selectedVariant.stock < qty) {
+      if (selectedVariant.stock < parsedQty) {
         return res.status(StatusCodes.BAD_REQUEST).json({
           success: false,
-          message: `Only ${selectedVariant.stock} items available`
+          message: `Only ${selectedVariant.stock} items available for this variant`
         });
       }
+    } else if (product.totalStock < parsedQty) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: `Only ${product.totalStock} items available`
+      });
     }
 
     // Check if this exact product+variant combination already exists in cart
     const cartQuery = {
-      user: req.userInfo.userId,
-      product: productId
+      user: new mongoose.Types.ObjectId(req.userInfo.userId),
+      product: new mongoose.Types.ObjectId(productId)
     };
     
     // Include variant SKU in query if we have one
@@ -221,11 +243,14 @@ exports.addToCart = async (req, res) => {
     
     if (existingItem) {
       // Same product exists, update quantity
-      const newQty = existingItem.qty + qty;
+      const newQty = existingItem.qty + parsedQty;
+      
+      // Enhanced stock validation for existing items
       if (selectedVariant && selectedVariant.stock < newQty) {
+        const availableToAdd = Math.max(0, selectedVariant.stock - existingItem.qty);
         return res.status(StatusCodes.BAD_REQUEST).json({
           success: false,
-          message: `Cannot add ${qty} more. Only ${selectedVariant.stock - existingItem.qty} available`
+          message: `Cannot add ${parsedQty} more. Only ${availableToAdd} additional items available`
         });
       }
       
@@ -236,12 +261,12 @@ exports.addToCart = async (req, res) => {
     } else {
       // Create new cart item with FORCED variant SKU
       const cartData = {
-        qty,
+        qty: parsedQty,
         productType: product.category?.name || 'General',
         productPrice,
-        totalPrice: qty * productPrice,
-        user: req.userInfo.userId,
-        product: productId
+        totalPrice: parsedQty * productPrice,
+        user: new mongoose.Types.ObjectId(req.userInfo.userId),
+        product: new mongoose.Types.ObjectId(productId)
       };
       
       // ALWAYS add variant SKU for products with variants
@@ -309,16 +334,25 @@ exports.updateCartItem = async (req, res) => {
     const { itemId } = req.params;
     const { qty } = req.body;
 
-    if (!mongoose.Types.ObjectId.isValid(itemId) || qty < 1) {
+    // Enhanced validation
+    if (!isValidObjectId(itemId)) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         success: false,
-        message: 'Invalid item ID or quantity'
+        message: 'Invalid item ID'
+      });
+    }
+
+    const parsedQty = parseInt(qty);
+    if (isNaN(parsedQty) || parsedQty < 1 || parsedQty > 100) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: 'Quantity must be between 1 and 100'
       });
     }
 
     const cartItem = await Cart.findOne({
-      _id: itemId,
-      user: req.userInfo.userId
+      _id: new mongoose.Types.ObjectId(itemId),
+      user: new mongoose.Types.ObjectId(req.userInfo.userId)
     }).populate('product');
 
     if (!cartItem) {
@@ -328,7 +362,29 @@ exports.updateCartItem = async (req, res) => {
       });
     }
 
-    cartItem.qty = qty;
+    // Validate stock availability before updating
+    if (cartItem.product && cartItem.product.variants?.length > 0) {
+      let targetVariant = null;
+      if (cartItem.variantSku) {
+        targetVariant = cartItem.product.variants.find(v => v.sku === cartItem.variantSku);
+      } else {
+        targetVariant = cartItem.product.variants.find(v => v.isDefault) || cartItem.product.variants[0];
+      }
+      
+      if (targetVariant && targetVariant.stock < parsedQty) {
+        return res.status(StatusCodes.BAD_REQUEST).json({
+          success: false,
+          message: `Only ${targetVariant.stock} items available for this variant`
+        });
+      }
+    } else if (cartItem.product && cartItem.product.totalStock < parsedQty) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: `Only ${cartItem.product.totalStock} items available`
+      });
+    }
+
+    cartItem.qty = parsedQty;
     await cartItem.save();
 
     const cartItems = await Cart.getUserCart(req.userInfo.userId);
@@ -356,7 +412,7 @@ exports.removeCartItem = async (req, res) => {
   try {
     const { itemId } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(itemId)) {
+    if (!isValidObjectId(itemId)) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         success: false,
         message: 'Invalid item ID'
@@ -364,8 +420,8 @@ exports.removeCartItem = async (req, res) => {
     }
 
     const deletedItem = await Cart.findOneAndDelete({
-      _id: itemId,
-      user: req.userInfo.userId
+      _id: new mongoose.Types.ObjectId(itemId),
+      user: new mongoose.Types.ObjectId(req.userInfo.userId)
     });
 
     if (!deletedItem) {
@@ -398,7 +454,7 @@ exports.removeCartItem = async (req, res) => {
 // Clear all cart items
 exports.clearCart = async (req, res) => {
   try {
-    await Cart.deleteMany({ user: req.userInfo.userId });
+    await Cart.deleteMany({ user: new mongoose.Types.ObjectId(req.userInfo.userId) });
 
     res.status(StatusCodes.OK).json({
       success: true,

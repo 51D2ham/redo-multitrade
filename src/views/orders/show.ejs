@@ -6,13 +6,13 @@
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 sm:mb-6">
       <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-        <a href="/admin/v1/order" class="flex items-center gap-2 px-3 py-2 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow w-fit">
+        <a href="/admin/v1/order" class="flex items-center gap-2 px-3 py-2 bg-white rounded-lg shadow-sm hover:shadow-md transition-all w-fit">
           <i class="fas fa-arrow-left text-gray-600"></i>
           <span class="text-gray-700 text-sm sm:text-base">Back to Orders</span>
         </a>
         <div>
-          <h1 class="text-xl sm:text-2xl font-bold text-gray-900">Order #<%= order._id.toString().slice(-8).toUpperCase() %></h1>
-          <p class="text-gray-500 text-xs sm:text-sm">Placed on <%= new Date(order.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) %></p>
+          <h1 class="text-xl sm:text-2xl font-bold text-gray-900">Order #<%- order._id.toString().slice(-8).toUpperCase() %></h1>
+          <p class="text-gray-500 text-xs sm:text-sm">Placed on <%- new Date(order.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) %></p>
         </div>
       </div>
       
@@ -24,7 +24,7 @@
           order.status === 'delivered' ? 'bg-green-100 text-green-800' :
           'bg-red-100 text-red-800'
         %>">
-          Order: <%= order.status.charAt(0).toUpperCase() + order.status.slice(1) %>
+          Order: <%- (order.status || 'pending').charAt(0).toUpperCase() + (order.status || 'pending').slice(1) %>
         </span>
         <% 
           const itemStatuses = (order.items || []).reduce((acc, item) => {
@@ -33,21 +33,75 @@
             return acc;
           }, {});
         %>
+        <!-- Mixed Order Status Analysis -->
+        <% 
+          const statusCount = Object.keys(itemStatuses).length;
+          let deliveredRevenue = 0, cancelledRevenue = 0, activeRevenue = 0;
+          (order.items || []).forEach(item => {
+            const itemRevenue = item.totalPrice || 0;
+            if (item.status === 'delivered') deliveredRevenue += itemRevenue;
+            else if (item.status === 'cancelled') cancelledRevenue += itemRevenue;
+            else activeRevenue += itemRevenue;
+          });
+          const deliveredCount = itemStatuses.delivered || 0;
+          const cancelledCount = itemStatuses.cancelled || 0;
+          const activeCount = (order.items?.length || 0) - cancelledCount;
+          const fulfillmentRate = activeCount > 0 ? Math.round((deliveredCount / activeCount) * 100) : 0;
+        %>
+        
+        <% if (statusCount > 1) { %>
+          <div class="bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200 px-3 py-2 rounded-lg mb-2">
+            <div class="flex items-center gap-2 text-orange-800 mb-2">
+              <i class="fas fa-exclamation-triangle text-orange-600"></i>
+              <span class="text-sm font-semibold">Mixed Status Order - Revenue Impact Analysis</span>
+            </div>
+            <div class="grid grid-cols-3 gap-2 text-xs">
+              <div class="bg-green-100 text-green-800 px-2 py-1 rounded text-center">
+                <div class="font-bold">Rs <%= deliveredRevenue.toLocaleString() %></div>
+                <div>Delivered (<%- deliveredCount %>)</div>
+              </div>
+              <div class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-center">
+                <div class="font-bold">Rs <%= activeRevenue.toLocaleString() %></div>
+                <div>Active (<%- activeCount - deliveredCount %>)</div>
+              </div>
+              <div class="bg-red-100 text-red-800 px-2 py-1 rounded text-center">
+                <div class="font-bold">Rs <%= cancelledRevenue.toLocaleString() %></div>
+                <div>Cancelled (<%- cancelledCount %>)</div>
+              </div>
+            </div>
+            <% if (fulfillmentRate > 0) { %>
+              <div class="mt-2 bg-white rounded px-2 py-1">
+                <div class="flex justify-between text-xs text-gray-600 mb-1">
+                  <span>Fulfillment Progress</span>
+                  <span><%- fulfillmentRate %>%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                  <div class="bg-gradient-to-r from-green-500 to-emerald-500 h-2 rounded-full" style="width: <%- fulfillmentRate %>%"></div>
+                </div>
+              </div>
+            <% } %>
+          </div>
+        <% } %>
+        
         <div class="text-xs text-gray-600 bg-gray-100 px-3 py-2 rounded-lg">
-          <% Object.entries(itemStatuses).forEach(([status, count]) => { %>
-            <span class="inline-block mr-2">
-              <span class="w-2 h-2 rounded-full inline-block mr-1 <%= 
-                status === 'pending' ? 'bg-yellow-500' :
-                status === 'processing' ? 'bg-blue-500' :
-                status === 'shipped' ? 'bg-purple-500' :
-                status === 'delivered' ? 'bg-green-500' :
-                'bg-red-500'
-              %>"></span>
-              <%= count %> <%= status %>
-            </span>
-          <% }) %>
+          <% if (Object.keys(itemStatuses).length > 0) { %>
+            <% Object.entries(itemStatuses).forEach(([status, count]) => { %>
+              <span class="inline-block mr-2">
+                <span class="w-2 h-2 rounded-full inline-block mr-1 <%= 
+                  status === 'pending' ? 'bg-yellow-500' :
+                  status === 'processing' ? 'bg-blue-500' :
+                  status === 'shipped' ? 'bg-purple-500' :
+                  status === 'delivered' ? 'bg-green-500' :
+                  'bg-red-500'
+                %>"></span>
+                <%- count %> <%- status %>
+              </span>
+            <% }) %>
+          <% } else { %>
+            <span>No items</span>
+          <% } %>
         </div>
-        <a href="/admin/v1/order/<%= order._id %>/edit" class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-xs sm:text-sm">
+        <a href="/admin/v1/order/<%- encodeURIComponent(order._id) %>/edit" class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-xs sm:text-sm transition-all">
           <i class="fas fa-edit mr-1"></i><span class="hidden sm:inline">Edit Order</span><span class="sm:hidden">Edit</span>
         </a>
       </div>
@@ -78,10 +132,10 @@
                       <!-- Product Image -->
                       <div class="w-20 h-20 sm:w-24 sm:h-24 bg-white rounded-lg flex-shrink-0 overflow-hidden border mx-auto sm:mx-0">
                         <% if (item.productImage) { %>
-                          <img src="<%= item.productImage %>" alt="<%= item.productTitle %>" class="w-full h-full object-cover">
+                          <img src="<%- item.productImage %>" alt="<%- item.productTitle || 'Product Image' %>" class="w-full h-full object-cover" loading="lazy" loading="lazy">
                         <% } else { %>
                           <div class="w-full h-full flex items-center justify-center text-gray-400">
-                            <i class="fas fa-cube text-3xl"></i>
+                            <i class="fas fa-cube text-2xl sm:text-3xl"></i>
                           </div>
                         <% } %>
                       </div>
@@ -90,33 +144,50 @@
                       <div class="flex-1">
                         <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-4 text-center sm:text-left">
                           <div class="mb-3 sm:mb-0">
-                            <h3 class="text-lg sm:text-xl font-bold text-gray-900 mb-2"><%= item.productTitle || 'Product Name Not Available' %></h3>
+                            <h3 class="text-lg sm:text-xl font-bold text-gray-900 mb-2 break-words"><%- item.productTitle || 'Product Name Not Available' %></h3>
                             <div class="flex flex-wrap justify-center sm:justify-start items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600 mb-3">
                               <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                                <i class="fas fa-tag mr-1"></i><%= item.brand || (item.productId?.brand?.name || 'Unknown Brand') %>
+                                <i class="fas fa-tag mr-1"></i><%- item.brand || (item.productId?.brand?.name || 'Unknown Brand') %>
                               </span>
                               <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full">
-                                <i class="fas fa-folder mr-1"></i><%= item.category || (item.productId?.category?.name || 'Unknown Category') %>
+                                <i class="fas fa-folder mr-1"></i><%- item.category || (item.productId?.category?.name || 'Unknown Category') %>
                               </span>
                               <% if (item.variantSku) { %>
                                 <span class="bg-purple-100 text-purple-800 px-2 py-1 rounded-full">
-                                  <i class="fas fa-layer-group mr-1"></i>Variant: <%= item.variantSku %>
+                                  <i class="fas fa-layer-group mr-1"></i>Variant: <%- item.variantSku %>
                                 </span>
                               <% } %>
                             </div>
                           </div>
-                          <div class="text-right">
-                            <div class="text-2xl font-bold text-gray-900">Rs <%= (item.totalPrice || 0).toLocaleString() %></div>
+                          <div class="text-center sm:text-right">
+                            <div class="text-xl sm:text-2xl font-bold text-gray-900">Rs <%- (item.totalPrice || 0).toLocaleString() %></div>
                             <div class="text-sm text-gray-500 mb-2">Line Total</div>
-                            <span class="px-3 py-1 rounded-full text-xs font-medium <%= 
-                              (item.status === 'pending') ? 'bg-yellow-100 text-yellow-800' :
-                              (item.status === 'processing') ? 'bg-blue-100 text-blue-800' :
-                              (item.status === 'shipped') ? 'bg-purple-100 text-purple-800' :
-                              (item.status === 'delivered') ? 'bg-green-100 text-green-800' :
-                              'bg-red-100 text-red-800'
-                            %>">
-                              <%= (item.status || 'pending').charAt(0).toUpperCase() + (item.status || 'pending').slice(1) %>
-                            </span>
+                            <div class="flex flex-col gap-1">
+                              <span class="px-3 py-1 rounded-full text-xs font-medium <%= 
+                                (item.status === 'pending') ? 'bg-yellow-100 text-yellow-800' :
+                                (item.status === 'processing') ? 'bg-blue-100 text-blue-800' :
+                                (item.status === 'shipped') ? 'bg-purple-100 text-purple-800' :
+                                (item.status === 'delivered') ? 'bg-green-100 text-green-800' :
+                                'bg-red-100 text-red-800'
+                              %>">
+                                <%- (item.status || 'pending').charAt(0).toUpperCase() + (item.status || 'pending').slice(1) %>
+                              </span>
+                              
+                              <!-- Revenue Impact per Item -->
+                              <% if (item.status === 'delivered') { %>
+                                <span class="text-xs bg-green-50 text-green-700 px-2 py-1 rounded border border-green-200">
+                                  <i class="fas fa-check-circle mr-1"></i>Revenue Secured
+                                </span>
+                              <% } else if (item.status === 'cancelled') { %>
+                                <span class="text-xs bg-red-50 text-red-700 px-2 py-1 rounded border border-red-200">
+                                  <i class="fas fa-times-circle mr-1"></i>Revenue Lost
+                                </span>
+                              <% } else { %>
+                                <span class="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded border border-blue-200">
+                                  <i class="fas fa-clock mr-1"></i>Revenue Pending
+                                </span>
+                              <% } %>
+                            </div>
                           </div>
                         </div>
                         
@@ -131,13 +202,13 @@
                               <% if (item.variantSku) { %>
                                 <div class="bg-white p-3 rounded-lg border border-blue-200">
                                   <div class="text-xs font-medium text-blue-600 uppercase tracking-wide mb-1">Variant SKU</div>
-                                  <div class="font-bold text-blue-800 text-sm"><%= item.variantSku %></div>
+                                  <div class="font-bold text-blue-800 text-sm break-all"><%- item.variantSku %></div>
                                 </div>
                               <% } else if (item.variants && item.variants.length > 0) { %>
                                 <% const defaultVar = item.variants.find(v => v.isDefault) || item.variants[0]; %>
                                 <div class="bg-white p-3 rounded-lg border border-blue-200">
                                   <div class="text-xs font-medium text-blue-600 uppercase tracking-wide mb-1">Variant SKU</div>
-                                  <div class="font-bold text-blue-800 text-sm"><%= defaultVar.sku %></div>
+                                  <div class="font-bold text-blue-800 text-sm break-all"><%- defaultVar.sku %></div>
                                 </div>
                               <% } %>
                               <% 
@@ -164,38 +235,38 @@
                                         white: 'bg-white border-gray-300', teal: 'bg-teal-500',
                                         indigo: 'bg-indigo-500', lime: 'bg-lime-500', cyan: 'bg-cyan-500'
                                       };
-                                      const colorClass = colorMap[varColor.toLowerCase()] || 'bg-gray-300';
+                                      const colorClass = colorMap[(varColor || '').toLowerCase()] || 'bg-gray-300';
                                     %>
                                     <div class="w-4 h-4 rounded-full border <%= colorClass %>"></div>
-                                    <%= varColor %>
+                                    <%- varColor %>
                                   </div>
                                 </div>
                               <% } %>
                               <% if (item.variantDetails && item.variantDetails.size) { %>
                                 <div class="bg-white p-3 rounded-lg border border-blue-200">
                                   <div class="text-xs font-medium text-blue-600 uppercase tracking-wide mb-1">Size</div>
-                                  <div class="font-bold text-blue-800 text-sm"><%= item.variantDetails.size %></div>
+                                  <div class="font-bold text-blue-800 text-sm"><%- item.variantDetails.size %></div>
                                 </div>
                               <% } %>
                               <% if (item.variantDetails && item.variantDetails.material) { %>
                                 <div class="bg-white p-3 rounded-lg border border-blue-200">
                                   <div class="text-xs font-medium text-blue-600 uppercase tracking-wide mb-1">Material</div>
-                                  <div class="font-bold text-blue-800 text-sm"><%= item.variantDetails.material %></div>
+                                  <div class="font-bold text-blue-800 text-sm"><%- item.variantDetails.material %></div>
                                 </div>
                               <% } %>
                               <% if (item.variantDetails && item.variantDetails.weight) { %>
                                 <div class="bg-white p-3 rounded-lg border border-blue-200">
                                   <div class="text-xs font-medium text-blue-600 uppercase tracking-wide mb-1">Weight</div>
-                                  <div class="font-bold text-blue-800 text-sm"><%= item.variantDetails.weight %>g</div>
+                                  <div class="font-bold text-blue-800 text-sm"><%- item.variantDetails.weight %>g</div>
                                 </div>
                               <% } %>
                               <% if (item.variantDetails && item.variantDetails.dimensions && (item.variantDetails.dimensions.length || item.variantDetails.dimensions.width || item.variantDetails.dimensions.height)) { %>
                                 <div class="bg-white p-3 rounded-lg border border-blue-200">
                                   <div class="text-xs font-medium text-blue-600 uppercase tracking-wide mb-1">Dimensions</div>
                                   <div class="font-bold text-blue-800 text-sm">
-                                    <% if (item.variantDetails.dimensions.length) { %><%= item.variantDetails.dimensions.length %><% } %>
-                                    <% if (item.variantDetails.dimensions.width) { %>×<%= item.variantDetails.dimensions.width %><% } %>
-                                    <% if (item.variantDetails.dimensions.height) { %>×<%= item.variantDetails.dimensions.height %>cm<% } %>
+                                    <% if (item.variantDetails.dimensions.length) { %><%- item.variantDetails.dimensions.length %><% } %>
+                                    <% if (item.variantDetails.dimensions.width) { %>×<%- item.variantDetails.dimensions.width %><% } %>
+                                    <% if (item.variantDetails.dimensions.height) { %>×<%- item.variantDetails.dimensions.height %>cm<% } %>
                                   </div>
                                 </div>
                               <% } %>
@@ -217,15 +288,15 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                           <div class="bg-white p-3 rounded-lg border">
                             <div class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Product ID</div>
-                            <div class="font-mono text-xs text-gray-900 break-all"><%= item.productId && item.productId._id ? item.productId._id : (typeof item.productId === 'object' ? item.productId.toString() : item.productId) %></div>
+                            <div class="font-mono text-xs text-gray-900 break-all"><%- item.productId && item.productId._id ? item.productId._id : (typeof item.productId === 'object' ? item.productId.toString() : item.productId) %></div>
                           </div>
                           <div class="bg-white p-3 rounded-lg border">
                             <div class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Unit Price</div>
-                            <div class="font-semibold text-green-600">Rs <%= (item.productPrice || 0).toLocaleString() %></div>
+                            <div class="font-semibold text-green-600">Rs <%- (item.productPrice || 0).toLocaleString() %></div>
                           </div>
                           <div class="bg-white p-3 rounded-lg border">
                             <div class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Quantity</div>
-                            <div class="font-bold text-blue-600">×<%= item.qty || 0 %></div>
+                            <div class="font-bold text-blue-600">×<%- item.qty || 0 %></div>
                           </div>
                           <div class="bg-white p-3 rounded-lg border">
                             <div class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Warranty</div>
@@ -245,8 +316,8 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                               <% item.specifications.forEach((spec, index) => { %>
                                 <div class="flex justify-between items-center py-1 <%= index % 2 === 0 ? '' : 'md:ml-4' %>">
-                                  <span class="text-slate-600"><%= spec.specList?.title || 'Specification' %>:</span>
-                                  <span class="font-medium text-slate-900"><%= spec.value %></span>
+                                  <span class="text-slate-600"><%- spec.specList?.title || 'Specification' %>:</span>
+                                  <span class="font-medium text-slate-900 break-words"><%- spec.value %></span>
                                 </div>
                               <% }) %>
                             </div>
@@ -260,8 +331,8 @@
                               <i class="fas fa-info-circle text-blue-600"></i>
                               Product Description
                             </div>
-                            <div class="text-sm text-blue-800 leading-relaxed">
-                              <%= item.productId.description.substring(0, 300) %><% if (item.productId.description.length > 300) { %>...<% } %>
+                            <div class="text-sm text-blue-800 leading-relaxed break-words">
+                              <%- item.productId.description.substring(0, 300) %><% if (item.productId.description.length > 300) { %>...<% } %>
                             </div>
                           </div>
                         <% } %>
@@ -276,7 +347,7 @@
                             <div class="flex flex-wrap gap-2">
                               <% item.productId.tags.forEach(tag => { %>
                                 <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
-                                  <%= tag %>
+                                  <%- tag %>
                                 </span>
                               <% }) %>
                             </div>
@@ -290,8 +361,8 @@
                               <i class="fas fa-shield-alt text-yellow-600"></i>
                               Warranty Information
                             </div>
-                            <div class="text-sm text-yellow-800">
-                              <%= item.productId.warranty %>
+                            <div class="text-sm text-yellow-800 break-words">
+                              <%- item.productId.warranty %>
                             </div>
                           </div>
                         <% } %>
@@ -375,8 +446,8 @@
                                       </div>
                                     <% } %>
                                     <div>• Price: Rs <%= (variant.discountPrice || variant.price).toLocaleString() %></div>
-                                    <div class="font-medium <%= variant.qty > 10 ? 'text-green-600' : variant.qty > 0 ? 'text-orange-600' : 'text-red-600' %>">
-                                      • Stock: <%= variant.qty %> units (<%= variant.status.replace('_', ' ') %>)
+                                    <div class="font-medium <%= variant.stock > 10 ? 'text-green-600' : variant.stock > 0 ? 'text-orange-600' : 'text-red-600' %>">
+                                      • Stock: <%= variant.stock %> units (<%= variant.stock > 0 ? 'in stock' : 'out of stock' %>)
                                     </div>
                                   </div>
                                 </div>
@@ -403,14 +474,14 @@
           <div class="px-6 py-4 bg-slate-50 border-t rounded-b-xl">
             <div class="flex justify-between items-center">
               <div class="text-sm text-gray-600">
-                <div>Subtotal: Rs <%= (order.totalPrice - (order.discountAmt || 0)).toLocaleString() %></div>
+                <div>Subtotal: Rs <%- (order.totalPrice - (order.discountAmt || 0)).toLocaleString() %></div>
                 <% if (order.discountAmt && order.discountAmt > 0) { %>
-                  <div class="text-green-600">Discount: -Rs <%= order.discountAmt.toLocaleString() %></div>
+                  <div class="text-green-600">Discount: -Rs <%- order.discountAmt.toLocaleString() %></div>
                 <% } %>
               </div>
               <div class="text-right">
-                <div class="text-3xl font-bold text-gray-900">Rs <%= order.totalPrice.toLocaleString() %></div>
-                <div class="text-sm text-gray-500"><%= order.totalQty %> items total</div>
+                <div class="text-3xl font-bold text-gray-900">Rs <%- order.totalPrice.toLocaleString() %></div>
+                <div class="text-sm text-gray-500"><%- order.totalQty %> items total</div>
               </div>
             </div>
           </div>
@@ -534,7 +605,7 @@
                 <!-- Order Total -->
                 <tr class="bg-slate-50 border-t-2 border-slate-200">
                   <td class="py-4 text-base font-semibold text-gray-900">Order Total</td>
-                  <td class="py-4 text-xl font-bold text-gray-900">Rs <%= order.totalPrice.toLocaleString() %></td>
+                  <td class="py-4 text-xl font-bold text-gray-900">Rs <%- order.totalPrice.toLocaleString() %></td>
                 </tr>
               </tbody>
             </table>

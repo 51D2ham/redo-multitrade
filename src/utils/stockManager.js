@@ -94,15 +94,15 @@ class StockManager {
           await updatedProduct.save();
         }
 
-        // Log the restoration
+        // Log the restoration with correct stock values
         try {
           await InventoryService.logMovement(
             item.productId,
             targetVariant.sku,
             'restock',
             restoreQty,
-            previousStock,
-            newStock,
+            previousStock, // Stock before restoration
+            newStock,      // Stock after restoration
             adminId,
             orderId,
             `Stock restored due to order cancellation (Order: ${orderId})`

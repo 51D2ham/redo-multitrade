@@ -1,188 +1,232 @@
-﻿<%- include('../partials/header.ejs', { title: 'Low Stock Products' }) %>
+<%- include('../partials/header.ejs', { title: 'Low Stock Alerts' }) %>
 
-<div class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-  <div class="max-w-7xl mx-auto px-6 py-8">
+<div class="min-h-screen bg-gray-50 py-6">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     
     <!-- Header -->
-    <div class="mb-8">
-      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div>
-          <h1 class="text-2xl lg:text-3xl font-bold text-gray-900">Low Stock Products</h1>
-          <p class="text-gray-600 mt-2">Products that need immediate attention</p>
-        </div>
-        <div class="flex items-center gap-3">
-          <a href="/admin/reports/comprehensive" class="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-            <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
-          </a>
-        </div>
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+      <div>
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">⚠️ Low Stock Alerts</h1>
+        <p class="text-gray-600 mt-1">Monitor and manage inventory levels</p>
+      </div>
+      <div class="flex gap-3 mt-4 sm:mt-0">
+        <a href="/admin/reports/optimizedDashboard" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all">
+          <i class="fas fa-chart-bar mr-2"></i>Dashboard
+        </a>
+        <a href="/admin/v1/inventory/movements" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all">
+          <i class="fas fa-history mr-2"></i>Movements
+        </a>
       </div>
     </div>
 
-    <!-- KPI Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-      <div class="bg-white rounded-xl p-6 shadow-sm border hover:shadow-md transition-shadow">
+    <!-- Flash Messages -->
+    <% if (success && success.length) { %>
+      <div class="mb-6 p-4 rounded-lg bg-green-50 border border-green-200 text-green-800">
+        <% success.forEach(msg => { %>
+          <div class="flex items-center gap-2">
+            <i class="fas fa-check-circle"></i>
+            <%- msg %>
+          </div>
+        <% }) %>
+      </div>
+    <% } %>
+
+    <% if (error && error.length) { %>
+      <div class="mb-6 p-4 rounded-lg bg-red-50 border border-red-200 text-red-800">
+        <% error.forEach(msg => { %>
+          <div class="flex items-center gap-2">
+            <i class="fas fa-exclamation-circle"></i>
+            <%- msg %>
+          </div>
+        <% }) %>
+      </div>
+    <% } %>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+      <div class="bg-white rounded-xl shadow-sm border p-6">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-gray-600">Critical Stock</p>
-            <p class="text-2xl font-bold text-red-600"><%= stats?.criticalStock || 0 %></p>
-            <p class="text-sm text-red-500 mt-1">
-              <i class="fas fa-times-circle mr-1"></i>Out of stock
-            </p>
+            <p class="text-sm font-medium text-gray-600">Out of Stock</p>
+            <p class="text-3xl font-bold text-red-600"><%- (stats && stats.criticalStock) || 0 %></p>
           </div>
-          <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-            <i class="fas fa-exclamation-triangle text-red-600"></i>
+          <div class="p-3 bg-red-100 rounded-full">
+            <i class="fas fa-exclamation-triangle text-2xl text-red-600"></i>
           </div>
         </div>
       </div>
-      
-      <div class="bg-white rounded-xl p-6 shadow-sm border hover:shadow-md transition-shadow">
+
+      <div class="bg-white rounded-xl shadow-sm border p-6">
         <div class="flex items-center justify-between">
           <div>
             <p class="text-sm font-medium text-gray-600">Low Stock</p>
-            <p class="text-2xl font-bold text-yellow-600"><%= stats?.lowStock || 0 %></p>
-            <p class="text-sm text-yellow-500 mt-1">
-              <i class="fas fa-exclamation-circle mr-1"></i>Below threshold
-            </p>
+            <p class="text-3xl font-bold text-orange-600"><%- (stats && stats.lowStock) || 0 %></p>
           </div>
-          <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-            <i class="fas fa-exclamation-circle text-yellow-600"></i>
+          <div class="p-3 bg-orange-100 rounded-full">
+            <i class="fas fa-exclamation-circle text-2xl text-orange-600"></i>
           </div>
         </div>
       </div>
-      
-      <div class="bg-white rounded-xl p-6 shadow-sm border hover:shadow-md transition-shadow">
+
+      <div class="bg-white rounded-xl shadow-sm border p-6">
         <div class="flex items-center justify-between">
           <div>
             <p class="text-sm font-medium text-gray-600">Total Alerts</p>
-            <p class="text-2xl font-bold text-blue-600"><%= stats?.totalAlerts || 0 %></p>
-            <p class="text-sm text-blue-500 mt-1">
-              <i class="fas fa-clipboard-list mr-1"></i>Need attention
-            </p>
+            <p class="text-3xl font-bold text-blue-600"><%- (stats && stats.totalAlerts) || 0 %></p>
           </div>
-          <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-            <i class="fas fa-clipboard-list text-blue-600"></i>
+          <div class="p-3 bg-blue-100 rounded-full">
+            <i class="fas fa-bell text-2xl text-blue-600"></i>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Filters -->
-    <div class="bg-white rounded-xl p-6 shadow-sm border mb-8">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-lg font-semibold text-gray-900">Filter Products</h3>
-      </div>
-      <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Category</label>
-          <select name="category" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-            <option value="">All Categories</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Stock Level</label>
-          <select name="stockLevel" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-            <option value="">All Levels</option>
-            <option value="critical">Out of Stock</option>
-            <option value="low">Low Stock</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Search</label>
-          <input type="text" name="search" placeholder="Product name or SKU..." class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-        </div>
-        <div class="flex items-end">
-          <button type="submit" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-            <i class="fas fa-search mr-2"></i>Apply Filters
-          </button>
-        </div>
-      </form>
-    </div>
-
-    <!-- Products Table -->
+    <!-- Alerts Table -->
     <div class="bg-white rounded-xl shadow-sm border">
-      <div class="px-6 py-4 border-b">
-        <h3 class="text-lg font-semibold text-gray-900">Products Requiring Attention</h3>
+      <div class="px-6 py-4 border-b bg-gray-50 rounded-t-xl">
+        <h2 class="text-lg font-semibold text-gray-900">Stock Alerts</h2>
       </div>
+      
       <div class="overflow-x-auto">
-        <table class="min-w-full">
-          <thead class="bg-gray-50">
-            <tr>
-              <th class="text-left py-3 px-6 font-medium text-gray-600 text-sm">Product</th>
-              <th class="text-left py-3 px-6 font-medium text-gray-600 text-sm">Current Stock</th>
-              <th class="text-left py-3 px-6 font-medium text-gray-600 text-sm">Threshold</th>
-              <th class="text-left py-3 px-6 font-medium text-gray-600 text-sm hidden md:table-cell">Status</th>
-              <th class="text-left py-3 px-6 font-medium text-gray-600 text-sm">Action</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-200">
-            <% if (alerts && alerts.length > 0) { %>
-              <% alerts.forEach(alert => { 
-                const currentStock = alert.stock || alert.currentStock || 0;
-                const isOutOfStock = currentStock === 0;
-                const isCritical = currentStock <= 2 && currentStock > 0;
-              %>
-                <tr class="hover:bg-gray-50 transition-colors">
-                  <td class="py-4 px-6">
-                    <div class="font-medium text-gray-900"><%= alert.title || alert.productTitle || 'Unknown Product' %></div>
-                    <div class="text-sm text-gray-500">SKU: <%= alert.sku || alert.variantSku || 'N/A' %></div>
+        <% if (alerts && alerts.length > 0) { %>
+          <table class="w-full">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SKU</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Current Stock</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Threshold</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <% alerts.forEach(alert => { %>
+                <% const currentStock = alert.stock || alert.currentStock || 0; %>
+                <% const threshold = alert.threshold || 5; %>
+                <% const status = currentStock === 0 ? 'Out of Stock' : currentStock <= 2 ? 'Critical' : 'Low Stock'; %>
+                <% const statusColor = currentStock === 0 ? 'bg-red-100 text-red-800' : currentStock <= 2 ? 'bg-orange-100 text-orange-800' : 'bg-yellow-100 text-yellow-800'; %>
+                
+                <tr class="hover:bg-gray-50">
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                      <div class="flex-shrink-0 h-10 w-10">
+                        <% if (alert.thumbnail) { %>
+                          <img class="h-10 w-10 rounded-lg object-cover" src="/uploads/products/<%- alert.thumbnail %>" alt="Product">
+                        <% } else { %>
+                          <div class="h-10 w-10 rounded-lg bg-gray-200 flex items-center justify-center">
+                            <i class="fas fa-cube text-gray-400"></i>
+                          </div>
+                        <% } %>
+                      </div>
+                      <div class="ml-4">
+                        <div class="text-sm font-medium text-gray-900">
+                          <%- (alert.title || alert.productTitle || 'Unknown Product').substring(0, 40) %><%- (alert.title || alert.productTitle || '').length > 40 ? '...' : '' %>
+                        </div>
+                      </div>
+                    </div>
                   </td>
-                  <td class="py-4 px-6">
-                    <span class="text-lg font-bold <%= isOutOfStock ? 'text-red-600' : isCritical ? 'text-orange-600' : 'text-yellow-600' %>">
-                      <%= currentStock %>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-mono text-gray-900"><%- alert.sku || alert.variantSku || 'N/A' %></div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-bold <%= currentStock === 0 ? 'text-red-600' : currentStock <= 2 ? 'text-orange-600' : 'text-yellow-600' %>">
+                      <%- currentStock %> units
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-500"><%- threshold %> units</div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full <%= statusColor %>">
+                      <%- status %>
                     </span>
-                    <span class="text-sm text-gray-500 ml-1">units</span>
                   </td>
-                  <td class="py-4 px-6 text-gray-600"><%= alert.threshold || alert.thresholdQty || 5 %> units</td>
-                  <td class="py-4 px-6 hidden md:table-cell">
-                    <% if (isOutOfStock) { %>
-                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                        <i class="fas fa-times-circle mr-1"></i>Out of Stock
-                      </span>
-                    <% } else if (isCritical) { %>
-                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                        <i class="fas fa-exclamation-triangle mr-1"></i>Critical
-                      </span>
-                    <% } else { %>
-                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                        <i class="fas fa-exclamation-circle mr-1"></i>Low Stock
-                      </span>
-                    <% } %>
-                  </td>
-                  <td class="py-4 px-6">
-                    <% if (isOutOfStock) { %>
-                      <a href="/admin/v1/products/<%= alert.productId || alert._id %>/edit" class="inline-block px-3 py-1 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors">
-                        <i class="fas fa-edit mr-1"></i>Restock
-                      </a>
-                    <% } else { %>
-                      <a href="/admin/v1/products/<%= alert.productId || alert._id %>/edit" class="inline-block px-3 py-1 bg-yellow-600 text-white text-sm rounded-lg hover:bg-yellow-700 transition-colors">
-                        <i class="fas fa-edit mr-1"></i>Restock
-                      </a>
-                    <% } %>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div class="flex gap-2">
+                      <% if (alert.productId || alert._id) { %>
+                        <button onclick="restockProduct('<%- alert.productId || alert._id %>', '<%- alert.sku || alert.variantSku %>')" 
+                                class="text-blue-600 hover:text-blue-900 px-2 py-1 rounded bg-blue-50 hover:bg-blue-100 transition-all">
+                          <i class="fas fa-plus mr-1"></i>Restock
+                        </button>
+                      <% } %>
+                    </div>
                   </td>
                 </tr>
               <% }) %>
-            <% } else { %>
-              <tr>
-                <td colspan="5" class="py-12 text-center">
-                  <div class="flex flex-col items-center">
-                    <i class="fas fa-check-circle text-4xl text-green-500 mb-4"></i>
-                    <h3 class="text-lg font-medium text-gray-900 mb-2">All Good!</h3>
-                    <p class="text-gray-500">All products are well stocked</p>
-                  </div>
-                </td>
-              </tr>
-            <% } %>
-          </tbody>
-        </table>
+            </tbody>
+          </table>
+        <% } else { %>
+          <div class="text-center py-12">
+            <i class="fas fa-check-circle text-6xl text-green-500 mb-4"></i>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">All Products Well Stocked!</h3>
+            <p class="text-gray-600">No low stock alerts at this time.</p>
+          </div>
+        <% } %>
       </div>
-      <% if (alerts && alerts.length > 0) { %>
-        <div class="px-6 py-4 border-t bg-gray-50">
-          <p class="text-sm text-gray-600">Showing <%= alerts.length %> product<%= alerts.length !== 1 ? 's' : '' %> requiring attention</p>
-        </div>
-      <% } %>
     </div>
   </div>
 </div>
 
-<%- include('../partials/footer.ejs') %>
+<!-- Restock Modal -->
+<div id="restockModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+  <div class="flex items-center justify-center min-h-screen p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+      <div class="px-6 py-4 border-b">
+        <h3 class="text-lg font-medium text-gray-900">Restock Product</h3>
+      </div>
+      <form id="restockForm" method="POST" action="/admin/v1/inventory/restock">
+        <div class="px-6 py-4 space-y-4">
+          <input type="hidden" id="restockProductId" name="productId">
+          <input type="hidden" id="restockVariantSku" name="variantSku">
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Quantity to Add</label>
+            <input type="number" name="quantity" min="1" required 
+                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
+            <textarea name="notes" rows="3" 
+                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Reason for restocking..."></textarea>
+          </div>
+        </div>
+        
+        <div class="px-6 py-4 border-t bg-gray-50 flex justify-end gap-3">
+          <button type="button" onclick="closeRestockModal()" 
+                  class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-all">
+            Cancel
+          </button>
+          <button type="submit" 
+                  class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all">
+            <i class="fas fa-plus mr-2"></i>Restock
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 
+<script>
+function restockProduct(productId, variantSku) {
+  document.getElementById('restockProductId').value = productId;
+  document.getElementById('restockVariantSku').value = variantSku;
+  document.getElementById('restockModal').classList.remove('hidden');
+}
+
+function closeRestockModal() {
+  document.getElementById('restockModal').classList.add('hidden');
+  document.getElementById('restockForm').reset();
+}
+
+// Close modal on outside click
+document.getElementById('restockModal').addEventListener('click', function(e) {
+  if (e.target === this) {
+    closeRestockModal();
+  }
+});
+</script>
+
+<%- include('../partials/footer.ejs') %>

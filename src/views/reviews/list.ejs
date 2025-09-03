@@ -123,23 +123,23 @@
                 <div class="flex items-center gap-2">
                   <% if (review.status !== 'approved') { %>
                     <form method="POST" action="/admin/v1/reviews/<%= review._id %>/approve" class="inline">
-                      <button type="submit" class="px-3 py-1 text-sm bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition flex items-center gap-1">
-                        <i class="fa fa-check"></i> Approve
+                      <button type="submit" class="px-4 py-2 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition-colors text-sm font-medium border border-green-200" title="Approve Review">
+                        Approve
                       </button>
                     </form>
                   <% } %>
                   
                   <% if (review.status !== 'rejected') { %>
                     <form method="POST" action="/admin/v1/reviews/<%= review._id %>/reject" class="inline">
-                      <button type="submit" class="px-3 py-1 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition flex items-center gap-1">
-                        <i class="fa fa-times"></i> Reject
+                      <button type="submit" class="px-4 py-2 rounded-lg bg-yellow-50 text-yellow-700 hover:bg-yellow-100 transition-colors text-sm font-medium border border-yellow-200" title="Reject Review">
+                        Reject
                       </button>
                     </form>
                   <% } %>
                   
                   <form method="POST" action="/admin/v1/reviews/<%= review._id %>?_method=DELETE" class="inline">
-                    <button type="submit" class="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition flex items-center gap-1" onclick="return confirm('Are you sure you want to delete this review?')">
-                      <i class="fa fa-trash"></i> Delete
+                    <button type="submit" class="px-4 py-2 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition-colors text-sm font-medium border border-red-200" onclick="return confirm('Are you sure you want to delete this review?')" title="Delete Review">
+                      Delete
                     </button>
                   </form>
                 </div>

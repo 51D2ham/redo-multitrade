@@ -1,50 +1,90 @@
 const mongoose = require('mongoose');
 const { StatusCodes } = require('http-status-codes');
+const jwt = require('jsonwebtoken');
 const Cart = require('../models/cartModel');
 const { Product } = require('../models/productModel');
 const User = require('../models/userRegisterModel');
 const { sendOrderConfirmation } = require('../utils/orderNotification');
 const InventoryService = require('../services/inventoryService');
+const NotificationService = require('../services/notificationService');
 
 // Import models
 const { Order, CartOrder } = require('../models/orderModel');
 const ShippingAddress = require('../models/shippingAddressSchema');
 
-exports.checkout = async (req, res) => {
-  // Transaction/session removed for COD-only flow
+// Input sanitization helper
+const sanitizeInput = (input) => {
+  if (typeof input !== 'string') return input;
+  return input.replace(/[<>"'&]/g, '');
+};
 
+// Validate ObjectId helper
+const isValidObjectId = (id) => {
+  return mongoose.Types.ObjectId.isValid(id) && /^[0-9a-fA-F]{24}$/.test(id);
+};
+
+exports.checkout = async (req, res) => {
+  const session = await mongoose.startSession();
+  
   try {
+    await session.startTransaction();
+    
     const userId = req.userInfo.userId;
     const { paymentMethod = 'cod', shippingAddress, useNewAddress = true, addressId, cartItemIds } = req.body;
 
-    // Validate payment method
-    if (!['cod', 'online', 'other'].includes(paymentMethod)) {
-      return res.status(StatusCodes.BAD_REQUEST).json({
+    // Enhanced validation
+    if (!isValidObjectId(userId)) {
+      await session.abortTransaction();
+      return res.status(StatusCodes.UNAUTHORIZED).json({
         success: false,
-        message: 'Invalid payment method'
+        message: 'Invalid user session'
       });
     }
 
+    // Validate payment method
+    const validPaymentMethods = ['cod', 'online', 'card', 'paypal'];
+    if (!validPaymentMethods.includes(paymentMethod)) {
+      await session.abortTransaction();
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: 'Invalid payment method. Allowed: ' + validPaymentMethods.join(', ')
+      });
+    }
+
+    // Validate cart item IDs if provided
+    if (cartItemIds && Array.isArray(cartItemIds)) {
+      const invalidIds = cartItemIds.filter(id => !isValidObjectId(id));
+      if (invalidIds.length > 0) {
+        await session.abortTransaction();
+        return res.status(StatusCodes.BAD_REQUEST).json({
+          success: false,
+          message: 'Invalid cart item IDs provided'
+        });
+      }
+    }
+
     // Get user's cart items (all or specific items for selective checkout)
-    const cartQuery = { user: userId };
+    const cartQuery = { user: new mongoose.Types.ObjectId(userId) };
     if (cartItemIds && cartItemIds.length > 0) {
-      cartQuery._id = { $in: cartItemIds };
+      cartQuery._id = { $in: cartItemIds.map(id => new mongoose.Types.ObjectId(id)) };
     }
     
     const cartItems = await Cart.find(cartQuery)
       .populate({
         path: 'product',
-        select: 'title price thumbnail images slug variants status',
+        select: 'title price thumbnail images slug variants status totalStock',
         populate: {
           path: 'category',
           select: 'name'
         }
-      });
+      })
+      .session(session);
 
     if (!cartItems || cartItems.length === 0) {
+      await session.abortTransaction();
       return res.status(StatusCodes.BAD_REQUEST).json({
         success: false,
-        message: 'Cart is empty'
+        message: 'Cart is empty or selected items not found'
       });
     }
 
@@ -79,12 +119,12 @@ exports.checkout = async (req, res) => {
         }
         
         if (targetVariant) {
-          if (targetVariant.status === 'out_of_stock' || targetVariant.qty === 0) {
+          if (targetVariant.stock === 0) {
             isAvailable = false;
             stockMessage = `${item.product.title} is currently out of stock`;
-          } else if (targetVariant.qty < item.qty) {
+          } else if (targetVariant.stock < item.qty) {
             isAvailable = false;
-            stockMessage = `Only ${targetVariant.qty} available for ${item.product.title}, but ${item.qty} in cart`;
+            stockMessage = `Only ${targetVariant.stock} available for ${item.product.title}, but ${item.qty} in cart`;
           }
         } else if (item.variantSku) {
           isAvailable = false;
@@ -101,10 +141,12 @@ exports.checkout = async (req, res) => {
 
     // Prevent checkout if any items are out of stock
     if (outOfStockItems.length > 0) {
+      await session.abortTransaction();
       return res.status(StatusCodes.BAD_REQUEST).json({
         success: false,
         message: 'Cannot proceed to checkout. Some items are out of stock.',
         outOfStockItems,
+        availableItems: availableItems.length,
         suggestion: 'Please update your cart and try again'
       });
     }
@@ -114,6 +156,7 @@ exports.checkout = async (req, res) => {
     
     if (useNewAddress) {
       if (!shippingAddress) {
+        await session.abortTransaction();
         return res.status(StatusCodes.BAD_REQUEST).json({
           success: false,
           message: 'Shipping address is required'
@@ -121,39 +164,49 @@ exports.checkout = async (req, res) => {
       }
 
       const requiredFields = ['fullname', 'street', 'city', 'state', 'postalCode', 'country', 'phone'];
-      const missingFields = requiredFields.filter(field => !shippingAddress[field]);
+      const missingFields = requiredFields.filter(field => !shippingAddress[field] || !shippingAddress[field].toString().trim());
 
       if (missingFields.length > 0) {
+        await session.abortTransaction();
         return res.status(StatusCodes.BAD_REQUEST).json({
           success: false,
-          message: `Missing required fields: ${missingFields.join(', ')}`
+          message: `Missing required address fields: ${missingFields.join(', ')}`
         });
       }
+
+      // Sanitize address fields
+      Object.keys(shippingAddress).forEach(key => {
+        if (typeof shippingAddress[key] === 'string') {
+          shippingAddress[key] = sanitizeInput(shippingAddress[key].trim());
+        }
+      });
 
       // Create new shipping address
       const newAddress = new ShippingAddress({
         ...shippingAddress,
-        user: userId
+        user: new mongoose.Types.ObjectId(userId)
       });
-  await newAddress.save();
+      await newAddress.save({ session });
       finalShippingAddress = newAddress._id;
     } else {
-      if (!addressId) {
+      if (!addressId || !isValidObjectId(addressId)) {
+        await session.abortTransaction();
         return res.status(StatusCodes.BAD_REQUEST).json({
           success: false,
-          message: 'Address ID is required when using saved address'
+          message: 'Valid address ID is required when using saved address'
         });
       }
 
       const existingAddress = await ShippingAddress.findOne({
-        _id: addressId,
-        user: userId
-  });
+        _id: new mongoose.Types.ObjectId(addressId),
+        user: new mongoose.Types.ObjectId(userId)
+      }).session(session);
 
       if (!existingAddress) {
+        await session.abortTransaction();
         return res.status(StatusCodes.NOT_FOUND).json({
           success: false,
-          message: 'Shipping address not found'
+          message: 'Shipping address not found or does not belong to user'
         });
       }
       finalShippingAddress = addressId;
@@ -164,68 +217,78 @@ exports.checkout = async (req, res) => {
     const totalItem = availableItems.length;
     const totalQty = availableItems.reduce((sum, item) => sum + item.qty, 0);
 
-    // Create order items with product details and variant info
+    // Create order items with enhanced variant handling
     const orderItems = availableItems.map(item => {
       const orderItem = {
         productId: item.product._id,
         productTitle: item.product.title,
         productPrice: item.productPrice,
         qty: item.qty,
-        totalPrice: item.totalPrice
+        totalPrice: item.totalPrice,
+        status: 'pending' // Initialize all items as pending
       };
       
-      // Handle variant info for products with variants
+      // Enhanced variant handling for mixed order tracking
       if (item.product.variants && item.product.variants.length > 0) {
         let selectedVariant = null;
         
-        // Try to find the variant from cart first
+        // Priority 1: Use cart's variant SKU if available
         if (item.variantSku) {
           selectedVariant = item.product.variants.find(v => v.sku === item.variantSku);
         }
         
-        // If no variant found in cart, FORCE use default variant
+        // Priority 2: Use default variant if no cart variant
         if (!selectedVariant) {
           selectedVariant = item.product.variants.find(v => v.isDefault) || item.product.variants[0];
+          // Update cart item with selected variant for consistency
+          if (selectedVariant) {
+            item.variantSku = selectedVariant.sku;
+          }
         }
         
-        // ALWAYS save variant info to order for products with variants
+        // ALWAYS save complete variant info for mixed order tracking
         if (selectedVariant) {
           orderItem.variantSku = selectedVariant.sku;
           orderItem.variantDetails = {
-            color: selectedVariant.color || 'Standard',
-            size: selectedVariant.size || 'Default',
-            material: selectedVariant.material || 'Standard',
-            weight: selectedVariant.weight || 0,
-            dimensions: selectedVariant.dimensions || { length: 0, width: 0, height: 0 }
+            color: selectedVariant.color || null,
+            size: selectedVariant.size || null,
+            material: selectedVariant.material || null,
+            weight: selectedVariant.weight || null,
+            dimensions: selectedVariant.dimensions || null
           };
           
-          // Use the actual variant price instead of cart price if different
-          const variantPrice = selectedVariant.discountPrice || selectedVariant.price;
-          if (variantPrice !== item.productPrice) {
-            orderItem.productPrice = variantPrice;
-            orderItem.totalPrice = variantPrice * item.qty;
+          // Price validation and correction
+          const currentVariantPrice = selectedVariant.price;
+          if (Math.abs(currentVariantPrice - item.productPrice) > 0.01) {
+            // Update to current variant price if different
+            orderItem.productPrice = currentVariantPrice;
+            orderItem.totalPrice = currentVariantPrice * item.qty;
           }
         }
+      } else {
+        // For products without variants, ensure we have basic info
+        orderItem.variantSku = null;
+        orderItem.variantDetails = null;
       }
       
       return orderItem;
     });
 
-    // Create order
+    // Create order with enhanced validation
     const order = new Order({
       items: orderItems,
-      totalPrice,
+      totalPrice: Math.round(totalPrice * 100) / 100, // Ensure 2 decimal places
       totalItem,
       totalQty,
       discountAmt: 0,
       paymentMethod,
-      paid: paymentMethod === 'cod' ? false : true, // COD is unpaid initially
+      paid: paymentMethod === 'cod' ? false : true,
       status: 'pending',
       shippingAddress: finalShippingAddress,
-      user: userId
+      user: new mongoose.Types.ObjectId(userId)
     });
 
-  await order.save();
+    await order.save({ session });
 
     // Create cart-order relationships for available items
     const cartOrderDocs = availableItems.map(item => ({
@@ -233,12 +296,17 @@ exports.checkout = async (req, res) => {
       cart: item._id
     }));
 
-  await CartOrder.insertMany(cartOrderDocs);
+    await CartOrder.insertMany(cartOrderDocs, { session });
 
-    // Atomic stock deduction with race condition protection
+    // Enhanced atomic stock deduction with mixed order support
+    const stockUpdates = [];
+    const stockDeductions = []; // Track for inventory logging
+    
     for (const item of availableItems) {
       if (item.product.variants?.length > 0) {
         let targetVariant;
+        
+        // Use the same variant selection logic as order items
         if (item.variantSku) {
           targetVariant = item.product.variants.find(v => v.sku === item.variantSku);
         }
@@ -247,42 +315,92 @@ exports.checkout = async (req, res) => {
         }
         
         if (targetVariant) {
-          const result = await Product.updateOne(
-            { 
-              _id: item.product._id, 
-              'variants._id': targetVariant._id,
-              'variants.qty': { $gte: item.qty }
-            },
-            { $inc: { 'variants.$.qty': -item.qty } }
-          );
+          const previousStock = targetVariant.stock;
           
-          if (result.modifiedCount === 0) {
-            throw new Error(`${item.product.title} variant ${targetVariant.sku} is no longer available in requested quantity`);
-          }
+          stockUpdates.push({
+            updateOne: {
+              filter: { 
+                _id: item.product._id, 
+                'variants._id': targetVariant._id,
+                'variants.stock': { $gte: item.qty }
+              },
+              update: { 
+                $inc: { 
+                  'variants.$.stock': -item.qty,
+                  'totalStock': -item.qty
+                }
+              }
+            }
+          });
+          
+          // Track for inventory logging
+          stockDeductions.push({
+            productId: item.product._id,
+            productTitle: item.product.title,
+            variantSku: targetVariant.sku,
+            quantity: item.qty,
+            previousStock,
+            newStock: previousStock - item.qty
+          });
         }
+      }
+    }
+    
+    // Execute bulk stock updates with enhanced error handling
+    if (stockUpdates.length > 0) {
+      const bulkResult = await Product.bulkWrite(stockUpdates, { session });
+      
+      if (bulkResult.modifiedCount !== stockUpdates.length) {
+        await session.abortTransaction();
+        return res.status(StatusCodes.CONFLICT).json({
+          success: false,
+          message: 'Stock conflict detected. Some items may have been purchased by other customers. Please refresh your cart and try again.',
+          conflictedItems: stockUpdates.length - bulkResult.modifiedCount
+        });
       }
     }
 
     // Remove only the checked out items from cart
-    const itemsToRemove = { user: userId };
+    const itemsToRemove = { user: new mongoose.Types.ObjectId(userId) };
     if (cartItemIds && cartItemIds.length > 0) {
-      itemsToRemove._id = { $in: cartItemIds };
+      itemsToRemove._id = { $in: cartItemIds.map(id => new mongoose.Types.ObjectId(id)) };
     }
-  await Cart.deleteMany(itemsToRemove);
+    await Cart.deleteMany(itemsToRemove, { session });
+    
+    // Commit transaction
+    await session.commitTransaction();
 
-    // Log inventory movements (after successful transaction)
+    // Enhanced inventory logging for mixed order tracking
     try {
-      // Use a valid admin ObjectId for system actions, or fallback to null
       const systemAdminId = process.env.SYSTEM_ADMIN_ID || null;
-      await InventoryService.logSale(orderItems, order._id, systemAdminId);
+      
+      // Log stock deductions for each item
+      for (const deduction of stockDeductions) {
+        try {
+          await InventoryService.logMovement(
+            deduction.productId,
+            deduction.variantSku,
+            'sale',
+            deduction.quantity,
+            deduction.previousStock,
+            deduction.newStock,
+            systemAdminId,
+            order._id,
+            `Stock deducted for order checkout - ${deduction.productTitle} (${deduction.variantSku})`
+          );
+        } catch (itemLogError) {
+          console.error(`Failed to log stock deduction for ${deduction.productTitle}:`, itemLogError);
+        }
+      }
     } catch (logError) {
       console.error('Inventory logging failed:', logError);
       // Don't fail the order for logging errors
     }
 
-    // Keep user logged in by refreshing token (no logout after checkout)
-    const jwt = require('jsonwebtoken');
-    const user = await User.findById(req.userInfo.userId);
+    // Get user data for token and email (cached from earlier)
+    const user = await User.findById(req.userInfo.userId).select('_id email fullname profileImage tokenVersion');
+    
+    // Keep user logged in by refreshing token
     const refreshedToken = jwt.sign(
       { 
         userId: user._id, 
@@ -292,26 +410,26 @@ exports.checkout = async (req, res) => {
         tokenVersion: user.tokenVersion
       },
       process.env.JWT_SECRET_KEY,
-      { expiresIn: '5d' } // Fresh 5-day token - user stays logged in
+      { expiresIn: '5d' }
     );
 
     // Send order confirmation email (non-blocking)
-    try {
-      const NotificationService = require('../services/notificationService');
-      const user = await User.findById(req.userInfo.userId);
-      await NotificationService.sendOrderConfirmation(user.email, {
-        customerName: user.fullname,
-        orderId: order._id,
-        orderNumber: order._id.toString().slice(-8),
-        orderDate: order.createdAt.toLocaleDateString(),
-        totalPrice: order.totalPrice,
-        totalItem: order.totalItem,
-        paymentMethod: order.paymentMethod,
-        items: order.items
-      });
-    } catch (emailError) {
-      console.error('Email notification failed:', emailError);
-    }
+    setImmediate(async () => {
+      try {
+        await NotificationService.sendOrderConfirmation(user.email, {
+          customerName: user.fullname,
+          orderId: order._id,
+          orderNumber: order._id.toString().slice(-8),
+          orderDate: order.createdAt.toLocaleDateString(),
+          totalPrice: order.totalPrice,
+          totalItem: order.totalItem,
+          paymentMethod: order.paymentMethod,
+          items: order.items
+        });
+      } catch (emailError) {
+        console.error('Order confirmation email failed:', emailError.message);
+      }
+    });
 
     res.status(StatusCodes.OK).json({
       success: true,
@@ -327,12 +445,24 @@ exports.checkout = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Checkout error:', error);
+    await session.abortTransaction();
+    console.error('Checkout error:', error.message);
+    
+    // Determine appropriate error message
+    let errorMessage = 'Checkout failed. Please try again.';
+    if (error.message.includes('available')) {
+      errorMessage = error.message;
+    } else if (error.name === 'ValidationError') {
+      errorMessage = 'Invalid order data. Please check your information.';
+    }
+    
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       success: false,
-      message: 'Checkout failed. Please try again.',
+      message: errorMessage,
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
+  } finally {
+    await session.endSession();
   }
 };
 

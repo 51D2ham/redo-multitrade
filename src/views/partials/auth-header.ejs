@@ -1,32 +1,46 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= title %> - Admin Portal</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <title><%= title %> - Multitrade Admin</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .glass { backdrop-filter: blur(16px); background: rgba(255, 255, 255, 0.8); }
+    .auth-gradient { background: linear-gradient(135deg, #1e293b 0%, #334155 100%); }
+    .slide-in { animation: slideIn 0.6s ease-out; }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
 </head>
-<body class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-  <!-- Simple Header -->
-  <header class="bg-white shadow-sm">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+<body class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 font-inter antialiased">
+  
+  <!-- Header -->
+  <header class="glass border-b border-slate-200/50">
+    <div class="max-w-6xl mx-auto px-4 py-4">
       <div class="flex items-center justify-between">
+        
+        <!-- Brand -->
         <div class="flex items-center gap-3">
-          <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-            <i class="fas fa-store text-white text-sm"></i>
+          <div class="w-10 h-10 auth-gradient rounded-lg flex items-center justify-center shadow-sm">
+            <i class="fas fa-store text-white"></i>
           </div>
-          <span class="text-xl font-bold text-gray-800">Multitrade</span>
+          <div>
+            <h1 class="text-xl font-bold text-slate-800">Multitrade</h1>
+            <p class="text-sm text-slate-500">Admin Portal</p>
+          </div>
         </div>
-        <div class="text-sm text-gray-600">
-          <i class="fas fa-shield-alt mr-1"></i>
-          Admin Portal
+        
+        <!-- Security Badge -->
+        <div class="flex items-center gap-2 bg-slate-100/60 px-3 py-1.5 rounded-lg">
+          <i class="fas fa-shield-alt text-green-500 text-sm"></i>
+          <span class="text-sm font-medium text-slate-700">Secure</span>
+          <div class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
         </div>
       </div>
     </div>
   </header>
 
   <!-- Main Content -->
-  <main class="flex items-center justify-center min-h-[calc(100vh-80px)] px-4">
-    <div class="w-full max-w-md">
-
+  <main class="flex items-center justify-center min-h-[calc(100vh-120px)] px-4 py-8">
+    <div class="w-full max-w-md slide-in">

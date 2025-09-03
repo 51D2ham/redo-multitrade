@@ -1,37 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const dashboardCtrl = require('../controllers/dashboardController');
 const authMiddleware = require('../middlewares/auth');
-
-// Dashboard view route
-router.get(
-  '/reports/comprehensive',
-  authMiddleware,
-  dashboardCtrl.getMainDashboard
-);
-
-// Export routes
-router.get(
-  '/reports/comprehensive/excel',
-  authMiddleware,
-  dashboardCtrl.exportDashboardExcel
-);
-
-router.get(
-  '/reports/comprehensive/csv',
-  authMiddleware,
-  dashboardCtrl.exportDashboardCSV
-);
-
-// API route for JSON data (using dashboard controller)
-router.get(
-  '/api/reports/comprehensive',
-  authMiddleware,
-  (req, res) => {
-    // Return JSON version of dashboard data
-    dashboardCtrl.getMainDashboard(req, { ...res, render: (template, data) => res.json(data) });
-  }
-);
 
 router.get('/test', (req, res) => {
   res.json({ success: true, message: 'Test endpoint working' });

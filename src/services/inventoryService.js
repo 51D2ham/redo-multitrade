@@ -72,14 +72,18 @@ class InventoryService {
           continue;
         }
         
+        // Calculate correct stock values for logging
+        const currentStock = variant.stock || variant.qty || 0;
+        const previousStock = currentStock + item.qty; // Stock before sale
+        
         // Log the sale
         const log = await this.logMovement(
           item.productId,
           variant.sku,
           'sale',
           item.qty,
-          variant.stock + item.qty, // Previous stock (before deduction)
-          variant.stock, // Current stock (after deduction)
+          previousStock, // Stock before deduction
+          currentStock,  // Stock after deduction
           adminId,
           orderId,
           `Sale: ${item.qty} units of ${item.productTitle} (Order: ${orderId})`
@@ -114,7 +118,7 @@ class InventoryService {
         'restock',
         item.qty,
         previousStock,
-        variant.qty,
+        variant.stock, // Use correct field name
         adminId,
         order._id,
         `Restock due to order cancellation (${order._id})`
@@ -240,10 +244,22 @@ class InventoryService {
   // Get movement report
   static async getMovementReport(filters = {}) {
     try {
-      const { skip = 0, limit = 10 } = filters;
-      const movements = await InventoryLog.find({})
-        .populate('product', 'title')
+      const { skip = 0, limit = 10, productId, type, dateFrom, dateTo } = filters;
+      
+      // Build query conditions
+      const query = {};
+      if (productId) query.product = productId;
+      if (type) query.type = type;
+      if (dateFrom || dateTo) {
+        query.createdAt = {};
+        if (dateFrom) query.createdAt.$gte = new Date(dateFrom);
+        if (dateTo) query.createdAt.$lte = new Date(dateTo);
+      }
+      
+      const movements = await InventoryLog.find(query)
+        .populate('product', 'title thumbnail')
         .populate('admin', 'fullname')
+        .populate('orderId', '_id')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)

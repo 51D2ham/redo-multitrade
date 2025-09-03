@@ -41,11 +41,19 @@
                             </span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <a href="/admin/v1/parameters/spec-lists/<%= spec._id %>" class="text-blue-600 hover:text-blue-900 mr-3">View</a>
-                            <a href="/admin/v1/parameters/spec-lists/<%= spec._id %>/edit" class="text-indigo-600 hover:text-indigo-900 mr-3">Edit</a>
-                            <form method="POST" action="/admin/v1/parameters/spec-lists/<%= spec._id %>?_method=DELETE" class="inline" onsubmit="return confirm('Are you sure?')">
-                                <button type="submit" class="text-red-600 hover:text-red-900">Delete</button>
-                            </form>
+                            <div class="flex items-center justify-center gap-2">
+                                <a href="/admin/v1/parameters/spec-lists/<%= spec._id %>" class="px-4 py-2 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors text-sm font-medium border border-blue-200" title="View Spec List Details">
+                                    View
+                                </a>
+                                <a href="/admin/v1/parameters/spec-lists/<%= spec._id %>/edit" class="px-4 py-2 rounded-lg bg-gray-50 text-gray-700 hover:bg-gray-100 transition-colors text-sm font-medium border border-gray-200" title="Edit Spec List">
+                                    Edit
+                                </a>
+                                <form method="POST" action="/admin/v1/parameters/spec-lists/<%= spec._id %>?_method=DELETE" class="inline" onsubmit="return confirm('Are you sure?')">
+                                    <button type="submit" class="px-4 py-2 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition-colors text-sm font-medium border border-red-200" title="Delete Spec List">
+                                        Delete
+                                    </button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                     <% }); %>

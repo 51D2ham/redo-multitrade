@@ -190,20 +190,20 @@
                   <% } %>
                 </div>
               </div>
-              <div class="flex flex-wrap gap-2 pt-3 border-t border-gray-100">
-                <a href="/admin/v1/parameters/spec-lists/<%= specList._id %>" class="flex items-center gap-1 px-3 py-1.5 text-xs bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition">
-                  <i class="fa fa-eye"></i> View
+              <div class="flex gap-2 pt-3 border-t border-gray-100">
+                <a href="/admin/v1/parameters/spec-lists/<%= specList._id %>" class="flex-1 text-center px-3 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition text-sm font-medium border border-blue-200">
+                  View
                 </a>
-                <a href="/admin/v1/parameters/spec-lists/<%= specList._id %>/edit" class="flex items-center gap-1 px-3 py-1.5 text-xs bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition">
-                  <i class="fa fa-edit"></i> Edit
+                <a href="/admin/v1/parameters/spec-lists/<%= specList._id %>/edit" class="flex-1 text-center px-3 py-2 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition text-sm font-medium border border-gray-200">
+                  Edit
                 </a>
-                <form action="/admin/v1/parameters/spec-lists/<%= specList._id %>" method="POST" class="inline">
+                <form action="/admin/v1/parameters/spec-lists/<%= specList._id %>" method="POST" class="flex-1">
                   <input type="hidden" name="_method" value="DELETE">
                   <% if (typeof csrfToken !== 'undefined') { %>
                     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                   <% } %>
-                  <button type="submit" class="flex items-center gap-1 px-3 py-1.5 text-xs bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition" onclick="return confirmDelete()">
-                    <i class="fa fa-trash"></i> Delete
+                  <button type="submit" class="w-full px-3 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition text-sm font-medium border border-red-200" onclick="return confirmDelete()">
+                    Delete
                   </button>
                 </form>
               </div>
@@ -263,25 +263,20 @@
                     <% } %>
                   </td>
                   <td class="py-4 px-4">
-                    <div class="flex flex-wrap gap-2">
-                      <a href="/admin/v1/parameters/spec-lists/<%= specList._id %>" class="btn btn-small bg-blue-100 text-blue-700 hover:bg-blue-200 transition flex items-center px-3 py-2" title="View Details">
-                        <i class="fa fa-eye mr-1.5"></i> View
+                    <div class="flex items-center justify-center gap-2">
+                      <a href="/admin/v1/parameters/spec-lists/<%= specList._id %>" class="px-4 py-2 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors text-sm font-medium border border-blue-200" title="View Spec List Details">
+                        View
                       </a>
-                      <a href="/admin/v1/parameters/spec-lists/<%= specList._id %>/edit" class="btn btn-small bg-yellow-100 text-yellow-700 hover:bg-yellow-200 transition flex items-center px-3 py-2" title="Edit">
-                        <i class="fa fa-edit mr-1.5"></i> Edit
+                      <a href="/admin/v1/parameters/spec-lists/<%= specList._id %>/edit" class="px-4 py-2 rounded-lg bg-gray-50 text-gray-700 hover:bg-gray-100 transition-colors text-sm font-medium border border-gray-200" title="Edit Spec List">
+                        Edit
                       </a>
                       <form action="/admin/v1/parameters/spec-lists/<%= specList._id %>" method="POST" class="inline">
                         <input type="hidden" name="_method" value="DELETE">
                         <% if (typeof csrfToken !== 'undefined') { %>
                           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                         <% } %>
-                        <button 
-                          type="submit" 
-                          class="btn btn-small bg-red-100 text-red-600 hover:bg-red-200 transition flex items-center px-3 py-2"
-                          onclick="return confirmDelete()"
-                          title="Delete"
-                        >
-                          <i class="fa fa-trash mr-1.5"></i> Delete
+                        <button type="submit" class="px-4 py-2 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition-colors text-sm font-medium border border-red-200" onclick="return confirmDelete()" title="Delete Spec List">
+                          Delete
                         </button>
                       </form>
                     </div>

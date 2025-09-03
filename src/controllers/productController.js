@@ -443,6 +443,8 @@ module.exports = {
 
       // Add business fields
       if (req.body.warranty) updateData.warranty = req.body.warranty.trim();
+      if (req.body.returnPolicy) updateData.returnPolicy = req.body.returnPolicy.trim();
+      if (req.body.shippingInfo) updateData.shippingInfo = req.body.shippingInfo.trim();
       if (req.body.tags) {
         updateData.tags = req.body.tags.split(',').map(t => t.trim()).filter(t => t);
       }
@@ -518,7 +520,7 @@ module.exports = {
     }
   },
 
-  // Public API - Get all products (OPTIMIZED & LIGHTWEIGHT)
+  // Public API - Get all products
   getAllProducts: async (req, res) => {
     try {
       const page = parseInt(req.query.page) || 1;
@@ -527,263 +529,61 @@ module.exports = {
       
       const filter = { status: 'active' };
       
-      if (req.query.category && isValidObjectId(req.query.category)) filter.category = new mongoose.Types.ObjectId(req.query.category);
-      if (req.query.subCategory && isValidObjectId(req.query.subCategory)) filter.subCategory = new mongoose.Types.ObjectId(req.query.subCategory);
-      if (req.query.type && isValidObjectId(req.query.type)) filter.type = new mongoose.Types.ObjectId(req.query.type);
-      if (req.query.brand && isValidObjectId(req.query.brand)) filter.brand = new mongoose.Types.ObjectId(req.query.brand);
+      if (req.query.category && isValidObjectId(req.query.category)) filter.category = req.query.category;
+      if (req.query.brand && isValidObjectId(req.query.brand)) filter.brand = req.query.brand;
       if (req.query.featured === 'true') filter.featured = true;
       
-      // Define sort before using it
+      if (req.query.search) {
+        filter.$or = [
+          { title: { $regex: req.query.search, $options: 'i' } },
+          { description: { $regex: req.query.search, $options: 'i' } },
+          { tags: { $in: [new RegExp(req.query.search, 'i')] } }
+        ];
+      }
+      
       let sort = { createdAt: -1 };
       switch (req.query.sort) {
         case 'price_asc': sort = { 'variants.price': 1 }; break;
         case 'price_desc': sort = { 'variants.price': -1 }; break;
         case 'rating': sort = { rating: -1 }; break;
-        case 'popular': sort = { reviewCount: -1 }; break;
         case 'newest': sort = { createdAt: -1 }; break;
-        case 'oldest': sort = { createdAt: 1 }; break;
-        case 'date_desc': sort = { createdAt: -1 }; break;
-        case 'date_asc': sort = { createdAt: 1 }; break;
-      }
-      
-      // Discount filter
-      if (req.query.discount) {
-        if (req.query.discount === 'true') {
-          // Any discount
-          filter['variants.originalPrice'] = { $exists: true, $ne: null, $gt: 0 };
-          filter.$expr = {
-            $gt: [{ $arrayElemAt: ['$variants.originalPrice', 0] }, { $arrayElemAt: ['$variants.price', 0] }]
-          };
-        } else {
-          const minDiscount = parseInt(req.query.discount);
-          if (!isNaN(minDiscount) && minDiscount > 0) {
-            // Use aggregation pipeline for discount percentage calculation
-            const discountPipeline = [
-              { $match: { status: 'active' } },
-              {
-                $addFields: {
-                  discountPercent: {
-                    $cond: {
-                      if: {
-                        $and: [
-                          { $gt: [{ $arrayElemAt: ['$variants.originalPrice', 0] }, 0] },
-                          { $gt: [{ $arrayElemAt: ['$variants.price', 0] }, 0] },
-                          { $gt: [{ $arrayElemAt: ['$variants.originalPrice', 0] }, { $arrayElemAt: ['$variants.price', 0] }] }
-                        ]
-                      },
-                      then: {
-                        $multiply: [
-                          {
-                            $divide: [
-                              { $subtract: [{ $arrayElemAt: ['$variants.originalPrice', 0] }, { $arrayElemAt: ['$variants.price', 0] }] },
-                              { $arrayElemAt: ['$variants.originalPrice', 0] }
-                            ]
-                          },
-                          100
-                        ]
-                      },
-                      else: 0
-                    }
-                  }
-                }
-              },
-              { $match: { discountPercent: { $gte: minDiscount } } }
-            ];
-            
-            // Apply other filters to pipeline
-            if (req.query.category && isValidObjectId(req.query.category)) discountPipeline[0].$match.category = new mongoose.Types.ObjectId(req.query.category);
-            if (req.query.subCategory && isValidObjectId(req.query.subCategory)) discountPipeline[0].$match.subCategory = new mongoose.Types.ObjectId(req.query.subCategory);
-            if (req.query.type && isValidObjectId(req.query.type)) discountPipeline[0].$match.type = new mongoose.Types.ObjectId(req.query.type);
-            if (req.query.brand && isValidObjectId(req.query.brand)) discountPipeline[0].$match.brand = new mongoose.Types.ObjectId(req.query.brand);
-            if (req.query.featured === 'true') discountPipeline[0].$match.featured = true;
-            if (req.query.search) discountPipeline[0].$match.$text = { $search: req.query.search };
-            
-            // Date filters
-            if (req.query.dateFrom || req.query.dateTo) {
-              discountPipeline[0].$match.createdAt = {};
-              if (req.query.dateFrom) {
-                discountPipeline[0].$match.createdAt.$gte = new Date(req.query.dateFrom);
-              }
-              if (req.query.dateTo) {
-                const dateTo = new Date(req.query.dateTo);
-                dateTo.setHours(23, 59, 59, 999);
-                discountPipeline[0].$match.createdAt.$lte = dateTo;
-              }
-            }
-            
-            // Add pagination and population
-            discountPipeline.push(
-              { $sort: sort },
-              { $skip: skip },
-              { $limit: limit },
-              {
-                $lookup: {
-                  from: 'categories',
-                  localField: 'category',
-                  foreignField: '_id',
-                  as: 'category',
-                  pipeline: [{ $project: { name: 1 } }]
-                }
-              },
-              {
-                $lookup: {
-                  from: 'brands',
-                  localField: 'brand',
-                  foreignField: '_id',
-                  as: 'brand',
-                  pipeline: [{ $project: { name: 1 } }]
-                }
-              },
-              {
-                $addFields: {
-                  category: { $arrayElemAt: ['$category', 0] },
-                  brand: { $arrayElemAt: ['$brand', 0] }
-                }
-              },
-              {
-                $project: {
-                  _id: 1,
-                  title: 1,
-                  images: 1,
-                  rating: 1,
-                  reviewCount: 1,
-                  totalStock: 1,
-                  featured: 1,
-                  createdAt: 1,
-                  variants: 1,
-                  category: 1,
-                  brand: 1
-                }
-              }
-            );
-            
-            // Execute aggregation and get total count
-            const [products, totalResult] = await Promise.all([
-              Product.aggregate(discountPipeline),
-              Product.aggregate([
-                ...discountPipeline.slice(0, 2),
-                { $count: 'total' }
-              ])
-            ]);
-            
-            const total = totalResult[0]?.total || 0;
-            
-            // Get specification IDs for all products
-            const productIds = products.map(p => p._id);
-            const specifications = await ProductSpecs.find({ product: { $in: productIds } })
-              .select('product specList');
-            
-            // Group specification IDs by product
-            const specsMap = {};
-            specifications.forEach(spec => {
-              const productId = spec.product.toString();
-              if (!specsMap[productId]) specsMap[productId] = [];
-              specsMap[productId].push(spec.specList);
-            });
-            
-            // Transform to lightweight format with specification IDs
-            const lightweightProducts = products.map(product => {
-              // Calculate virtuals manually since aggregation doesn't include them
-              const defaultVariant = product.variants?.find(v => v.isDefault) || product.variants?.[0];
-              const price = defaultVariant?.price || 0;
-              const originalPrice = defaultVariant?.originalPrice || null;
-              const isOnSale = !!(originalPrice && originalPrice > price);
-              const discountPercent = isOnSale ? Math.round(((originalPrice - price) / originalPrice) * 100) : 0;
-              const thumbnail = product.images?.[0] ? `/uploads/products/${product.images[0]}` : null;
-              
-              return {
-                _id: product._id,
-                title: product.title,
-                thumbnail,
-                price,
-                originalPrice,
-                isOnSale,
-                discountPercent,
-                rating: product.rating,
-                reviewCount: product.reviewCount,
-                totalStock: product.totalStock,
-                featured: product.featured,
-                category: product.category,
-                brand: product.brand,
-                specifications: specsMap[product._id.toString()] || []
-              };
-            });
-            
-            const totalPages = Math.ceil(total / limit);
-            
-            return res.status(200).json({
-              success: true,
-              data: lightweightProducts,
-              pagination: {
-                current: page,
-                total: totalPages,
-                hasNext: page < totalPages,
-                hasPrev: page > 1,
-                totalProducts: total
-              }
-            });
-          }
-        }
-      }
-      
-      if (req.query.search) {
-        filter.$text = { $search: req.query.search };
-      }
-      
-      // Date filters
-      if (req.query.dateFrom || req.query.dateTo) {
-        filter.createdAt = {};
-        if (req.query.dateFrom) {
-          filter.createdAt.$gte = new Date(req.query.dateFrom);
-        }
-        if (req.query.dateTo) {
-          const dateTo = new Date(req.query.dateTo);
-          dateTo.setHours(23, 59, 59, 999); // End of day
-          filter.createdAt.$lte = dateTo;
-        }
       }
       
       const [products, total] = await Promise.all([
         Product.find(filter)
           .populate('category', 'name')
           .populate('brand', 'name')
-          .select('_id title images rating reviewCount totalStock featured createdAt variants')
+          .select('_id title images variants rating reviewCount totalStock featured')
           .sort(sort)
           .skip(skip)
           .limit(limit),
         Product.countDocuments(filter)
       ]);
       
-      // Get specification IDs for all products
-      const productIds = products.map(p => p._id);
-      const specifications = await ProductSpecs.find({ product: { $in: productIds } })
-        .select('product specList');
-      
-      // Group specification IDs by product
-      const specsMap = {};
-      specifications.forEach(spec => {
-        const productId = spec.product.toString();
-        if (!specsMap[productId]) specsMap[productId] = [];
-        specsMap[productId].push(spec.specList);
+      const lightweightProducts = products.map(product => {
+        const defaultVariant = product.variants?.find(v => v.isDefault) || product.variants?.[0];
+        const price = defaultVariant?.price || 0;
+        const originalPrice = defaultVariant?.originalPrice || null;
+        const isOnSale = !!(originalPrice && originalPrice > price);
+        const discountPercent = isOnSale ? Math.round(((originalPrice - price) / originalPrice) * 100) : 0;
+        const thumbnail = product.images?.[0] ? `/uploads/products/${product.images[0]}` : null;
+        
+        return {
+          _id: product._id,
+          title: product.title,
+          thumbnail,
+          price,
+          originalPrice,
+          isOnSale,
+          discountPercent,
+          rating: product.rating || 0,
+          reviewCount: product.reviewCount || 0,
+          totalStock: product.totalStock || 0,
+          featured: product.featured || false,
+          category: product.category,
+          brand: product.brand
+        };
       });
-      
-      // Transform to lightweight format with specification IDs
-      const lightweightProducts = products.map(product => ({
-        _id: product._id,
-        title: product.title,
-        thumbnail: product.thumbnail,
-        price: product.price,
-        originalPrice: product.originalPrice,
-        isOnSale: product.isOnSale,
-        discountPercent: product.discountPercent,
-        rating: product.rating,
-        reviewCount: product.reviewCount,
-        totalStock: product.totalStock,
-        featured: product.featured,
-        category: product.category,
-        brand: product.brand,
-        specifications: specsMap[product._id.toString()] || []
-      }));
       
       const totalPages = Math.ceil(total / limit);
       
@@ -803,17 +603,24 @@ module.exports = {
       res.status(500).json({
         success: false,
         message: 'Server error',
-        error: error.message
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
       });
     }
   },
 
-  // Public API - Get product by ID/slug (FULL DETAILS)
+  // Public API - Get product by ID (basic product only)
   getProductById: async (req, res) => {
     try {
       const identifier = req.params.id;
-      let filter;
       
+      if (!identifier) {
+        return res.status(400).json({
+          success: false,
+          message: 'Product ID or slug is required'
+        });
+      }
+      
+      let filter;
       if (isValidObjectId(identifier)) {
         filter = { _id: identifier, status: 'active' };
       } else {
@@ -833,58 +640,65 @@ module.exports = {
         });
       }
       
-      // Increment view count
-      await Product.findByIdAndUpdate(product._id, { $inc: { viewCount: 1 } });
+      // Increment view count (non-blocking)
+      Product.findByIdAndUpdate(product._id, { $inc: { viewCount: 1 } }).catch(err => 
+        console.error('View count update failed:', err)
+      );
       
-      const [specifications, reviews, relatedProducts] = await Promise.all([
-        ProductSpecs.find({ product: product._id }).populate('specList', 'title'),
+      const [specifications, reviews] = await Promise.all([
+        ProductSpecs.find({ product: product._id })
+          .populate('specList', 'title unit')
+          .select('specList value'),
         Review.find({ product: product._id, status: 'approved' })
           .populate('user', 'fullname')
+          .select('rating comment createdAt user')
           .sort({ createdAt: -1 })
-          .limit(20),
-        Product.find({
-          _id: { $ne: product._id },
-          $or: [{ category: product.category }, { brand: product.brand }],
-          status: 'active'
-        })
-          .populate('category', 'name')
-          .populate('brand', 'name')
-          .select('_id title images rating reviewCount')
-          .limit(8)
+          .limit(20)
       ]);
       
-      // Transform related products to lightweight format
-      const lightweightRelated = relatedProducts.map(p => ({
-        _id: p._id,
-        title: p.title,
-        thumbnail: p.thumbnail,
-        price: p.price,
-        originalPrice: p.originalPrice,
-        isOnSale: p.isOnSale,
-        rating: p.rating,
-        reviewCount: p.reviewCount,
-        category: p.category,
-        brand: p.brand
-      }));
+      // Transform product data
+      const productObj = product.toObject();
+      const productData = {
+        _id: productObj._id,
+        slug: productObj.slug,
+        title: productObj.title,
+        description: productObj.description,
+        shortDescription: productObj.shortDescription,
+        images: product.images?.map(img => `/uploads/products/${img}`) || [],
+        category: productObj.category,
+        subCategory: productObj.subCategory,
+        type: productObj.type,
+        brand: productObj.brand,
+        variants: productObj.variants,
+        rating: productObj.rating || 0,
+        reviewCount: productObj.reviewCount || 0,
+        totalStock: productObj.totalStock || 0,
+        status: productObj.status,
+        featured: productObj.featured || false,
+        warranty: productObj.warranty,
+        returnPolicy: productObj.returnPolicy,
+        shippingInfo: productObj.shippingInfo,
+        tags: productObj.tags || [],
+        createdAt: productObj.createdAt,
+        updatedAt: productObj.updatedAt,
+        specifications,
+        reviews
+      };
       
       res.status(200).json({
         success: true,
-        data: {
-          ...product.toObject(),
-          specifications,
-          reviews,
-          relatedProducts: lightweightRelated
-        }
+        data: productData
       });
     } catch (error) {
       console.error('Get product by ID error:', error);
       res.status(500).json({
         success: false,
-        message: 'Server error',
-        error: error.message
+        message: 'Server error'
       });
     }
   },
+
+
 
   // Public API - Get product filters
   getProductFilters: async (req, res) => {
@@ -906,7 +720,7 @@ module.exports = {
       res.status(500).json({
         success: false,
         message: 'Server error',
-        error: error.message
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
       });
     }
   },
@@ -923,8 +737,17 @@ module.exports = {
         });
       }
       
-      const specifications = await SpecList.find({ _id: { $in: ids } })
-        .select('_id title unit');
+      const validIds = ids.filter(id => isValidObjectId(id));
+      if (validIds.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'No valid specification IDs provided'
+        });
+      }
+      
+      const specifications = await SpecList.find({ _id: { $in: validIds } })
+        .select('_id title unit')
+        .sort({ title: 1 });
       
       res.status(200).json({
         success: true,
@@ -935,10 +758,12 @@ module.exports = {
       res.status(500).json({
         success: false,
         message: 'Server error',
-        error: error.message
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
       });
     }
   },
+
+
 
   // Upload middleware
   uploadImages: upload.array('images', 10)

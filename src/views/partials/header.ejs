@@ -1,88 +1,109 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= title %> - Admin Dashboard</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <title><%= title %> - Multitrade Admin</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" nonce="<%= cspNonce %>"></script>
   <style nonce="<%= cspNonce %>">
-    .sidebar-transition { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-    .overlay { backdrop-filter: blur(8px); }
-    .nav-item { transition: all 0.2s ease-in-out; }
-    .nav-item:hover { transform: translateX(4px); }
-    @media (max-width: 768px) {
-      .mobile-optimized { font-size: 14px; }
-      .mobile-padding { padding: 0.75rem; }
-    }
+    .glass { backdrop-filter: blur(16px); background: rgba(255, 255, 255, 0.9); }
+    .nav-item { transition: all 0.2s ease; }
+    .nav-item:hover { transform: translateX(3px); }
+    .sidebar-clean { background: white; border-right: 1px solid #e2e8f0; }
+    .notification-pulse { animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
   </style>
 </head>
-<body class="bg-gradient-to-br from-gray-50 to-blue-50 font-sans antialiased">
-  <!-- Mobile Menu Overlay -->
-  <div id="overlay" class="fixed inset-0 bg-black bg-opacity-60 z-40 hidden overlay transition-opacity duration-300"></div>
+<body class="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 font-inter antialiased">
+  
+  <!-- Mobile Overlay -->
+  <div id="overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 hidden transition-all duration-300"></div>
   
   <!-- Sidebar -->
-  <aside id="sidebar" class="fixed left-0 top-0 h-full w-72 sm:w-64 bg-white shadow-2xl z-50 transform -translate-x-full lg:translate-x-0 sidebar-transition">
+  <aside id="sidebar" class="fixed left-0 top-0 h-full w-72 sidebar-clean shadow-lg z-50 transform -translate-x-full lg:translate-x-0 transition-transform duration-200">
     <div class="flex flex-col h-full">
-      <!-- Logo -->
-      <div class="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-purple-600">
+      
+      <!-- Brand Header -->
+      <div class="flex items-center justify-between p-5 border-b border-gray-200">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 bg-white bg-opacity-20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+          <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
             <i class="fas fa-store text-white text-lg"></i>
           </div>
-          <span class="text-xl font-bold text-white">Multitrade</span>
+          <div>
+            <h1 class="text-lg font-bold text-gray-900">Multitrade</h1>
+            <p class="text-xs text-gray-500">Admin Panel</p>
+          </div>
         </div>
-        <button id="closeSidebar" class="lg:hidden text-white hover:text-gray-200 p-2 rounded-lg hover:bg-white hover:bg-opacity-20 transition-colors">
-          <i class="fas fa-times text-lg"></i>
+        <button id="closeSidebar" class="lg:hidden text-gray-500 hover:text-gray-700 p-2 rounded-lg hover:bg-gray-100 transition-all">
+          <i class="fas fa-times"></i>
         </button>
       </div>
 
       <!-- Navigation -->
-      <nav class="flex-1 p-3 sm:p-4 space-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-        <a href="/admin/v1/staff/dashboard" class="nav-item flex items-center gap-3 px-3 sm:px-4 py-3 text-gray-700 rounded-xl hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:text-blue-600 transition-all mobile-optimized">
-          <i class="fas fa-home w-5 text-center"></i>
-          <span class="font-medium">Main Dashboard</span>
+      <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
+        <!-- Core Navigation -->
+        <a href="/admin/v1/staff/dashboard" class="nav-item flex items-center gap-3 px-4 py-3 text-gray-700 rounded-xl hover:bg-blue-50 hover:text-blue-700 text-sm font-medium">
+          <i class="fas fa-tachometer-alt w-5 text-center text-blue-500"></i>
+          <span>Dashboard</span>
         </a>
-        <a href="/admin/reports/comprehensive" class="nav-item flex items-center gap-3 px-3 sm:px-4 py-3 text-gray-700 rounded-xl hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:text-blue-600 transition-all mobile-optimized">
-          <i class="fas fa-chart-bar w-5 text-center"></i>
-          <span class="font-medium">Analytics</span>
+        <a href="/admin/reports/comprehensive" class="nav-item flex items-center gap-3 px-4 py-3 text-gray-700 rounded-xl hover:bg-emerald-50 hover:text-emerald-700 text-sm font-medium">
+          <i class="fas fa-chart-line w-5 text-center text-emerald-500"></i>
+          <span>Analytics</span>
         </a>
         
+        <!-- Store Operations -->
         <div class="pt-4">
-          <p class="px-3 sm:px-4 text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Parameters</p>
-          <a href="/admin/v1/parameters" class="nav-item flex items-center gap-3 px-3 sm:px-4 py-3 text-gray-700 rounded-xl hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:text-blue-600 transition-all mobile-optimized">
-            <i class="fas fa-cog w-5 text-center"></i>
-            <span class="font-medium">Parameter Dashboard</span>
-          </a>
+          <p class="px-4 text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Store Operations</p>
+          <div class="space-y-1">
+            <a href="/admin/v1/products" class="nav-item flex items-center gap-3 px-4 py-2.5 text-gray-600 rounded-lg hover:bg-amber-50 hover:text-amber-700 text-sm">
+              <i class="fas fa-box w-4 text-center text-amber-500"></i>
+              <span>Products</span>
+            </a>
+            <a href="/admin/v1/order" class="nav-item flex items-center gap-3 px-4 py-2.5 text-gray-600 rounded-lg hover:bg-blue-50 hover:text-blue-700 text-sm">
+              <i class="fas fa-shopping-cart w-4 text-center text-blue-500"></i>
+              <span>Orders</span>
+            </a>
+            <a href="/admin/v1/customers/users" class="nav-item flex items-center gap-3 px-4 py-2.5 text-gray-600 rounded-lg hover:bg-purple-50 hover:text-purple-700 text-sm">
+              <i class="fas fa-users w-4 text-center text-purple-500"></i>
+              <span>Customers</span>
+            </a>
+            <a href="/admin/v1/reviews" class="nav-item flex items-center gap-3 px-4 py-2.5 text-gray-600 rounded-lg hover:bg-yellow-50 hover:text-yellow-700 text-sm">
+              <i class="fas fa-star w-4 text-center text-yellow-500"></i>
+              <span>Reviews</span>
+            </a>
+            <a href="/admin/inventory/low-stock" class="nav-item flex items-center gap-3 px-4 py-2.5 text-gray-600 rounded-lg hover:bg-indigo-50 hover:text-indigo-700 text-sm">
+              <i class="fas fa-warehouse w-4 text-center text-indigo-500"></i>
+              <span>Inventory</span>
+            </a>
+          </div>
         </div>
-
+        
+        <!-- System Management -->
         <div class="pt-4">
-          <p class="px-3 sm:px-4 text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Content</p>
-          <a href="/admin/v1/staff/content" class="nav-item flex items-center gap-3 px-3 sm:px-4 py-3 text-gray-700 rounded-xl hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:text-blue-600 transition-all mobile-optimized">
-            <i class="fas fa-palette w-5 text-center"></i>
-            <span class="font-medium">Content Management</span>
-          </a>
-        </div>
-
-        <div class="pt-4">
-          <p class="px-3 sm:px-4 text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Management</p>
-          <a href="/admin/v1/customers/users" class="nav-item flex items-center gap-3 px-3 sm:px-4 py-3 text-gray-700 rounded-xl hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:text-blue-600 transition-all mobile-optimized">
-            <i class="fas fa-users w-5 text-center"></i>
-            <span class="font-medium">Customers</span>
-          </a>
-          <a href="/admin/v1/order" class="nav-item flex items-center gap-3 px-3 sm:px-4 py-3 text-gray-700 rounded-xl hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:text-blue-600 transition-all mobile-optimized">
-            <i class="fas fa-shopping-cart w-5 text-center"></i>
-            <span class="font-medium">Orders</span>
-          </a>
-
+          <p class="px-4 text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">System Management</p>
+          <div class="space-y-1">
+            <a href="/admin/v1/staff/parameters" class="nav-item flex items-center gap-3 px-4 py-2.5 text-gray-600 rounded-lg hover:bg-orange-50 hover:text-orange-700 text-sm">
+              <i class="fas fa-cog w-4 text-center text-orange-500"></i>
+              <span>Parameters</span>
+            </a>
+            <a href="/admin/v1/staff/content" class="nav-item flex items-center gap-3 px-4 py-2.5 text-gray-600 rounded-lg hover:bg-teal-50 hover:text-teal-700 text-sm">
+              <i class="fas fa-palette w-4 text-center text-teal-500"></i>
+              <span>Content</span>
+            </a>
+            <a href="/admin/v1/staff" class="nav-item flex items-center gap-3 px-4 py-2.5 text-gray-600 rounded-lg hover:bg-emerald-50 hover:text-emerald-700 text-sm">
+              <i class="fas fa-user-shield w-4 text-center text-emerald-500"></i>
+              <span>Staff</span>
+            </a>
+          </div>
         </div>
       </nav>
 
       <!-- Logout -->
-      <div class="p-3 sm:p-4 border-t border-gray-200">
-        <a href="/admin/v1/staff/logout" class="flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-xl transition-colors font-medium w-full">
-          <i class="fas fa-sign-out-alt"></i>
+      <div class="p-4 border-t border-gray-200 mt-auto">
+        <a href="/admin/v1/staff/logout" class="flex items-center gap-3 px-4 py-2.5 text-red-600 hover:bg-red-50 hover:text-red-700 rounded-lg transition-all font-medium text-sm">
+          <i class="fas fa-sign-out-alt w-4 text-center text-red-500"></i>
           <span>Logout</span>
         </a>
       </div>
@@ -90,67 +111,75 @@
   </aside>
 
   <!-- Main Content -->
-  <div class="lg:ml-64 transition-all duration-300">
+  <div class="lg:ml-72 transition-all duration-200">
+    
     <!-- Top Bar -->
-    <header class="bg-white shadow-lg border-b border-gray-200 px-4 sm:px-6 py-4 sticky top-0 z-30">
+    <header class="bg-white/90 backdrop-blur-sm border-b border-slate-200/50 px-4 py-3 sticky top-0 z-30 shadow-sm">
       <div class="flex items-center justify-between">
-        <div class="flex items-center gap-4">
-          <button id="openSidebar" class="lg:hidden text-gray-500 hover:text-gray-700 p-2 rounded-lg hover:bg-gray-100 transition-colors">
-            <i class="fas fa-bars text-xl"></i>
+        <div class="flex items-center gap-3">
+          <button id="openSidebar" class="lg:hidden text-slate-600 hover:text-slate-800 p-2 rounded hover:bg-slate-100 transition-colors">
+            <i class="fas fa-bars"></i>
           </button>
           <div>
-            <h1 class="text-xl sm:text-2xl font-bold text-gray-800"><%= title %></h1>
-            <p class="text-xs sm:text-sm text-gray-500 hidden sm:block">Manage your e-commerce platform</p>
+            <h1 class="text-lg font-bold text-gray-800"><%= title %></h1>
+            <p class="text-xs text-gray-500">E-commerce Management</p>
           </div>
         </div>
-        <div class="flex items-center gap-2 sm:gap-4">
-          <!-- Order Notifications -->
+        
+        <div class="flex items-center gap-4">
+          <!-- Notifications -->
           <div class="relative">
-            <button id="notificationBtn" class="relative p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+            <button id="notificationBtn" class="relative p-3 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all">
               <i class="fas fa-bell text-lg"></i>
-              <span id="notificationBadge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
+              <span id="notificationBadge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden notification-pulse">0</span>
             </button>
             
-            <!-- Notification Dropdown -->
-            <div id="notificationDropdown" class="absolute right-0 top-12 w-72 sm:w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50 hidden">
-              <div class="p-3 sm:p-4 border-b border-gray-200">
+            <div id="notificationDropdown" class="absolute right-0 top-14 w-80 bg-white rounded-xl shadow-xl border border-gray-200 z-50 hidden">
+              <div class="p-4 border-b border-gray-100">
                 <div class="flex items-center justify-between">
-                  <h3 class="text-sm sm:text-base font-semibold text-gray-800">Recent Orders</h3>
-                  <button id="markAllRead" class="text-xs text-blue-600 hover:text-blue-800">Mark all read</button>
+                  <h3 class="font-semibold text-gray-800 flex items-center gap-2">
+                    <i class="fas fa-bell text-blue-500"></i>
+                    Recent Orders
+                  </h3>
+                  <div class="flex items-center gap-2">
+                    <button id="clearAll" class="text-xs text-red-600 hover:text-red-800 font-medium px-2 py-1 rounded hover:bg-red-50 transition-colors">Clear All</button>
+                    <button id="markAllRead" class="text-xs text-blue-600 hover:text-blue-800 font-medium px-2 py-1 rounded hover:bg-blue-50 transition-colors">Mark Read</button>
+                  </div>
                 </div>
               </div>
-              <div id="notificationList" class="max-h-64 sm:max-h-80 overflow-y-auto">
-                <div class="p-3 sm:p-4 text-center text-gray-500">
-                  <i class="fas fa-inbox text-xl sm:text-2xl mb-2"></i>
-                  <p class="text-sm sm:text-base">No new orders</p>
+              <div id="notificationList" class="max-h-72 overflow-y-auto">
+                <div class="p-6 text-center text-gray-500">
+                  <i class="fas fa-shopping-cart text-2xl mb-2 text-gray-300"></i>
+                  <p class="text-sm">No recent orders</p>
                 </div>
               </div>
-              <div class="p-2 sm:p-3 border-t border-gray-200">
-                <a href="/admin/v1/order" class="block text-center text-xs sm:text-sm text-blue-600 hover:text-blue-800 font-medium">View All Orders</a>
+              <div class="p-3 border-t border-gray-100 bg-gray-50 rounded-b-xl">
+                <a href="/admin/v1/order" class="block text-center text-sm text-blue-600 hover:text-blue-800 font-medium py-1">View All Orders</a>
               </div>
             </div>
           </div>
           
-          <div class="hidden sm:flex items-center gap-2 text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-lg">
-            <i class="fas fa-clock text-blue-500"></i>
+          <!-- Time Display -->
+          <div class="hidden sm:flex items-center gap-2 text-sm text-slate-600 bg-slate-100/60 px-3 py-1.5 rounded-lg">
+            <i class="fas fa-clock text-slate-500"></i>
             <span id="currentTime" class="font-medium"></span>
           </div>
-          <!-- Admin Profile Dropdown -->
+          
+          <!-- Profile -->
           <div class="relative">
-            <button id="profileBtn" class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center hover:shadow-lg transition-shadow">
-              <i class="fas fa-user text-white text-xs"></i>
+            <button id="profileBtn" class="w-8 h-8 bg-gradient-to-r from-slate-600 to-slate-700 rounded-lg flex items-center justify-center hover:shadow-md transition-all">
+              <i class="fas fa-user text-white text-sm"></i>
             </button>
             
-            <!-- Profile Dropdown -->
-            <div id="profileDropdown" class="absolute right-0 top-10 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-50 hidden">
-              <div class="p-3 border-b border-gray-200">
-                <p class="text-sm font-medium text-gray-800">Admin Panel</p>
-                <p class="text-xs text-gray-500">Manage your account</p>
+            <div id="profileDropdown" class="absolute right-0 top-10 w-44 bg-white rounded-lg shadow-lg border border-slate-200 z-50 hidden">
+              <div class="p-3 border-b border-slate-200">
+                <p class="font-medium text-slate-800">Admin</p>
+                <p class="text-xs text-slate-500">System</p>
               </div>
-              <div class="py-2">
-                <a href="/admin/v1/staff/change-password" class="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-                  <i class="fas fa-key text-blue-500"></i>
-                  <span>Change Password</span>
+              <div class="py-1">
+                <a href="/admin/v1/staff/change-password" class="flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+                  <i class="fas fa-key text-slate-500"></i>
+                  <span>Password</span>
                 </a>
                 <a href="/admin/v1/staff/logout" class="flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors">
                   <i class="fas fa-sign-out-alt text-red-500"></i>
@@ -164,10 +193,10 @@
     </header>
 
     <!-- Page Content -->
-    <main class="p-4 sm:p-6 min-h-screen">
+    <main class="p-6 min-h-screen">
 
 <script nonce="<%= cspNonce %>">
-// Real-time Order Notifications
+// Enhanced Order Notifications System
 class OrderNotifications {
   constructor() {
     this.lastCheck = localStorage.getItem('lastOrderCheck') || (Date.now() - 24 * 60 * 60 * 1000);
@@ -191,9 +220,10 @@ class OrderNotifications {
       dropdown.classList.toggle('hidden');
     });
 
-    markAllRead?.addEventListener('click', () => {
-      this.markAllAsRead();
-    });
+    markAllRead?.addEventListener('click', () => this.markAllAsRead());
+    
+    const clearAll = document.getElementById('clearAll');
+    clearAll?.addEventListener('click', () => this.clearAllNotifications());
 
     document.addEventListener('click', (e) => {
       if (!notificationBtn?.contains(e.target) && !dropdown?.contains(e.target)) {
@@ -212,9 +242,7 @@ class OrderNotifications {
         }
       }
     } catch (error) {
-      if (window.location.hostname === 'localhost') {
-        console.error('Failed to check for new orders:', error);
-      }
+      console.debug('Order check failed:', error.message);
     }
   }
 
@@ -225,8 +253,7 @@ class OrderNotifications {
       totalPrice: order.totalPrice,
       itemCount: order.totalItem || order.items?.length || 0,
       createdAt: order.createdAt,
-      read: false,
-      timestamp: Date.now()
+      read: false
     }));
 
     this.notifications = [...newOrders, ...this.notifications].slice(0, 10);
@@ -251,31 +278,25 @@ class OrderNotifications {
 
     if (this.notifications.length === 0) {
       list.innerHTML = `
-        <div class="p-4 text-center text-gray-500">
-          <i class="fas fa-inbox text-2xl mb-2"></i>
+        <div class="p-6 text-center text-gray-500">
+          <i class="fas fa-inbox text-3xl mb-3 text-gray-300"></i>
           <p>No new orders</p>
         </div>
       `;
     } else {
       list.innerHTML = this.notifications.map(notification => `
-        <div class="p-2 sm:p-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${notification.read ? 'opacity-60' : ''}" 
+        <div class="p-3 border-b border-gray-100/50 hover:bg-blue-50/50 cursor-pointer transition-all ${notification.read ? 'opacity-60' : ''}" 
              onclick="window.location.href='/admin/v1/order/${notification.id}'">
-          <div class="flex items-start gap-2 sm:gap-3">
-            <div class="w-6 h-6 sm:w-8 sm:h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-              <i class="fas fa-shopping-cart text-green-600 text-xs sm:text-sm"></i>
+          <div class="flex items-start gap-3">
+            <div class="w-8 h-8 bg-green-100 rounded-xl flex items-center justify-center">
+              <i class="fas fa-shopping-cart text-green-600 text-sm"></i>
             </div>
-            <div class="flex-1 min-w-0">
-              <p class="text-xs sm:text-sm font-medium text-gray-900 truncate">
-                New order from ${notification.customerName}
-              </p>
-              <p class="text-xs text-gray-500">
-                Rs ${notification.totalPrice?.toLocaleString()} • ${notification.itemCount} items
-              </p>
-              <p class="text-xs text-gray-400">
-                ${this.formatTime(notification.createdAt)}
-              </p>
+            <div class="flex-1">
+              <p class="text-sm font-medium text-gray-900">${notification.customerName}</p>
+              <p class="text-xs text-gray-500">Rs ${notification.totalPrice?.toLocaleString()} • ${notification.itemCount} items</p>
+              <p class="text-xs text-gray-400">${this.formatTime(notification.createdAt)}</p>
             </div>
-            ${!notification.read ? '<div class="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-blue-500 rounded-full flex-shrink-0"></div>' : ''}
+            ${!notification.read ? '<div class="w-2 h-2 bg-blue-500 rounded-full"></div>' : ''}
           </div>
         </div>
       `).join('');
@@ -288,12 +309,10 @@ class OrderNotifications {
     const diffMs = now - date;
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
 
     if (diffMins < 1) return 'Just now';
     if (diffMins < 60) return `${diffMins}m ago`;
     if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
     return date.toLocaleDateString();
   }
 
@@ -303,18 +322,23 @@ class OrderNotifications {
     this.updateUI();
   }
 
+  clearAllNotifications() {
+    this.notifications = [];
+    this.saveToStorage();
+    this.updateUI();
+  }
+
   showToast(count) {
     const toast = document.createElement('div');
-    toast.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 transform translate-x-full transition-transform duration-300';
+    toast.className = 'fixed top-4 right-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-3 rounded-xl shadow-lg z-50 transform translate-x-full transition-transform duration-300';
     toast.innerHTML = `
       <div class="flex items-center gap-2">
         <i class="fas fa-shopping-cart"></i>
-        <span>${count} new order${count > 1 ? 's' : ''} received!</span>
+        <span class="font-medium">${count} new order${count > 1 ? 's' : ''} received!</span>
       </div>
     `;
     
     document.body.appendChild(toast);
-    
     setTimeout(() => toast.classList.remove('translate-x-full'), 100);
     setTimeout(() => {
       toast.classList.add('translate-x-full');
@@ -329,70 +353,79 @@ class OrderNotifications {
 
   startPolling() {
     this.checkForNewOrders();
-    setInterval(() => this.checkForNewOrders(), 60000); // Check every 1 minute instead of 30 seconds
+    setInterval(() => this.checkForNewOrders(), 60000);
   }
 }
 
+// Initialize components
 document.addEventListener('DOMContentLoaded', () => {
   new OrderNotifications();
-});
-
-function updateTime() {
-  const timeElement = document.getElementById('currentTime');
-  if (timeElement) {
-    const now = new Date();
-    const newTime = now.toLocaleTimeString('en-US', { 
-      hour12: true, 
-      hour: 'numeric', 
-      minute: '2-digit' 
-    });
-    if (timeElement.textContent !== newTime) {
-      timeElement.textContent = newTime;
+  
+  // Time update
+  function updateTime() {
+    const timeElement = document.getElementById('currentTime');
+    if (timeElement) {
+      const now = new Date();
+      timeElement.textContent = now.toLocaleTimeString('en-US', { 
+        hour12: true, 
+        hour: 'numeric', 
+        minute: '2-digit' 
+      });
     }
   }
-}
+  
+  updateTime();
+  setInterval(updateTime, 30000);
+  
+  // Sidebar controls
+  const openSidebar = document.getElementById('openSidebar');
+  const closeSidebar = document.getElementById('closeSidebar');
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('overlay');
 
-setInterval(updateTime, 30000);
-updateTime();
-
-const openSidebar = document.getElementById('openSidebar');
-const closeSidebar = document.getElementById('closeSidebar');
-const sidebar = document.getElementById('sidebar');
-const overlay = document.getElementById('overlay');
-
-function showSidebar() {
-  sidebar.classList.remove('-translate-x-full');
-  overlay.classList.remove('hidden');
-  document.body.style.overflow = 'hidden';
-}
-
-function hideSidebar() {
-  sidebar.classList.add('-translate-x-full');
-  overlay.classList.add('hidden');
-  document.body.style.overflow = '';
-}
-
-openSidebar?.addEventListener('click', showSidebar);
-closeSidebar?.addEventListener('click', hideSidebar);
-overlay?.addEventListener('click', hideSidebar);
-
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') hideSidebar();
-});
-
-// Profile dropdown functionality
-const profileBtn = document.getElementById('profileBtn');
-const profileDropdown = document.getElementById('profileDropdown');
-
-profileBtn?.addEventListener('click', (e) => {
-  e.stopPropagation();
-  profileDropdown.classList.toggle('hidden');
-});
-
-document.addEventListener('click', (e) => {
-  if (!profileBtn?.contains(e.target) && !profileDropdown?.contains(e.target)) {
-    profileDropdown?.classList.add('hidden');
+  function showSidebar() {
+    sidebar.classList.remove('-translate-x-full');
+    overlay.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
   }
+
+  function hideSidebar() {
+    sidebar.classList.add('-translate-x-full');
+    overlay.classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+
+  openSidebar?.addEventListener('click', showSidebar);
+  closeSidebar?.addEventListener('click', hideSidebar);
+  overlay?.addEventListener('click', hideSidebar);
+  
+  // Profile dropdown
+  const profileBtn = document.getElementById('profileBtn');
+  const profileDropdown = document.getElementById('profileDropdown');
+
+  profileBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    profileDropdown.classList.toggle('hidden');
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!profileBtn?.contains(e.target) && !profileDropdown?.contains(e.target)) {
+      profileDropdown?.classList.add('hidden');
+    }
+  });
+  
+  // Clean navigation structure
+  
+  // Active link highlighting
+  const currentPath = window.location.pathname;
+  const navLinks = document.querySelectorAll('aside nav a');
+  
+  navLinks.forEach(link => {
+    const href = link.getAttribute('href');
+    if (href === currentPath || (currentPath.includes(href) && href !== '/' && href.length > 1)) {
+      link.classList.add('bg-blue-100', 'text-blue-700', 'font-semibold');
+      link.classList.remove('text-gray-600', 'text-gray-700');
+    }
+  });
 });
 </script>
-

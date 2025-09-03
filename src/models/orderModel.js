@@ -54,23 +54,49 @@ const orderSchema = new Schema({
   user: { type: Schema.Types.ObjectId, ref: 'User', required: true }
 }, { timestamps: true });
 
-// Pre-save middleware to track status changes
+// Enhanced pre-save middleware with validation
 orderSchema.pre('save', function(next) {
+  // Validate total calculations
+  if (this.items && this.items.length > 0) {
+    const calculatedTotal = this.items.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
+    const calculatedQty = this.items.reduce((sum, item) => sum + (item.qty || 0), 0);
+    
+    // Update totals if they don't match (with small tolerance for floating point)
+    if (Math.abs(calculatedTotal - this.totalPrice) > 0.01) {
+      this.totalPrice = Math.round(calculatedTotal * 100) / 100;
+    }
+    if (calculatedQty !== this.totalQty) {
+      this.totalQty = calculatedQty;
+    }
+    if (this.items.length !== this.totalItem) {
+      this.totalItem = this.items.length;
+    }
+  }
+  
+  // Track status changes
   if (this.isModified('status') && !this.isNew) {
+    if (!this.statusHistory) this.statusHistory = [];
     this.statusHistory.push({
       status: this.status,
       message: `Order status changed to ${this.status}`,
       updatedAt: new Date()
     });
   } else if (this.isNew) {
-    this.statusHistory.push({
+    this.statusHistory = [{
       status: 'pending',
       message: 'Order placed successfully',
       updatedAt: new Date()
-    });
+    }];
   }
+  
   next();
 });
+
+// Add indexes for better query performance
+orderSchema.index({ user: 1, createdAt: -1 });
+orderSchema.index({ status: 1, createdAt: -1 });
+orderSchema.index({ trackingNumber: 1 });
+orderSchema.index({ 'items.productId': 1 });
 
 //cartOrderSchema
 const cartOrderSchema = new Schema({

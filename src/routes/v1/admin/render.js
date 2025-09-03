@@ -52,12 +52,14 @@ const renderContentDashboard = async (req, res) => {
     const AdsPanel = require('../../../models/AdsPanelModel');
     const CompanyInfo = require('../../../models/companyInfoModel');
     const ParameterPoster = require('../../../models/parameterPosterModel');
+    const BrandCarousel = require('../../../models/brandCarouselModel');
     
-    const [heroContentCount, adsPanelCount, companyInfoCount, parameterPosterCount, heroCarousel] = await Promise.all([
+    const [heroContentCount, adsPanelCount, companyInfoCount, parameterPosterCount, brandCarouselCount, heroCarousel] = await Promise.all([
       HeroContent.countDocuments(),
       AdsPanel.countDocuments(),
       CompanyInfo.countDocuments(),
       ParameterPoster.countDocuments(),
+      BrandCarousel.countDocuments(),
       HeroContent.find().sort({ order: 1, createdAt: -1 }).limit(10)
     ]);
     
@@ -69,9 +71,12 @@ const renderContentDashboard = async (req, res) => {
         heroContent: heroContentCount,
         adsPanel: adsPanelCount,
         companyInfo: companyInfoCount,
-        parameterPoster: parameterPosterCount
+        parameterPoster: parameterPosterCount,
+        brandCarousel: brandCarouselCount
       },
-      heroCarousel: heroCarousel || []
+      heroCarousel: heroCarousel || [],
+      success: req.flash('success'),
+      error: req.flash('error')
     });
   } catch (error) {
     console.error('Content dashboard error:', error);
@@ -79,8 +84,10 @@ const renderContentDashboard = async (req, res) => {
       title: 'Content Management Center',
       username: req.session.admin?.username || null,
       fullname: req.session.admin?.fullname || null,
-      counts: { heroContent: 0, adsPanel: 0, companyInfo: 0, parameterPoster: 0 },
-      heroCarousel: []
+      counts: { heroContent: 0, adsPanel: 0, companyInfo: 0, parameterPoster: 0, brandCarousel: 0 },
+      heroCarousel: [],
+      success: req.flash('success'),
+      error: req.flash('error')
     });
   }
 };

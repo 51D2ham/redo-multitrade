@@ -86,16 +86,16 @@
                 </span>
               </td>
               <td class="py-4 px-4">
-                <div class="flex flex-wrap gap-2">
-                  <a href="/admin/v1/parameters/company-info/<%= item._id %>" class="btn btn-small bg-blue-100 text-blue-700 hover:bg-blue-200 transition flex items-center px-3 py-2">
-                    <i class="fa fa-eye mr-1.5"></i> View
+                <div class="flex items-center justify-center gap-2">
+                  <a href="/admin/v1/parameters/company-info/<%= item._id %>" class="px-4 py-2 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors text-sm font-medium border border-blue-200" title="View Company Info Details">
+                    View
                   </a>
-                  <a href="/admin/v1/parameters/company-info/<%= item._id %>/edit" class="btn btn-small bg-yellow-100 text-yellow-700 hover:bg-yellow-200 transition flex items-center px-3 py-2">
-                    <i class="fa fa-edit mr-1.5"></i> Edit
+                  <a href="/admin/v1/parameters/company-info/<%= item._id %>/edit" class="px-4 py-2 rounded-lg bg-gray-50 text-gray-700 hover:bg-gray-100 transition-colors text-sm font-medium border border-gray-200" title="Edit Company Info">
+                    Edit
                   </a>
                   <form action="/admin/v1/parameters/company-info/<%= item._id %>?_method=DELETE" method="POST" class="inline">
-                    <button type="submit" class="btn btn-small bg-red-100 text-red-600 hover:bg-red-200 transition flex items-center px-3 py-2" onclick="return confirm('Delete this company information? This action cannot be undone.')">
-                      <i class="fa fa-trash mr-1.5"></i> Delete
+                    <button type="submit" class="px-4 py-2 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition-colors text-sm font-medium border border-red-200" onclick="return confirm('Delete this company information? This action cannot be undone.')" title="Delete Company Info">
+                      Delete
                     </button>
                   </form>
                 </div>

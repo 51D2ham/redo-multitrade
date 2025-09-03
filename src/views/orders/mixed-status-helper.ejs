@@ -1,0 +1,222 @@
+<!-- Mixed Order Status Helper Component -->
+<div class="mixed-status-helper" style="display: none;">
+  <div class="alert alert-info">
+    <h6><i class="fas fa-info-circle"></i> Mixed Order Status Guide</h6>
+    <div class="row">
+      <div class="col-md-6">
+        <h6>Order Status Logic:</h6>
+        <ul class="small">
+          <li><strong>Pending:</strong> All items are pending</li>
+          <li><strong>Processing:</strong> Some/all items are processing</li>
+          <li><strong>Shipped:</strong> Some/all items are shipped</li>
+          <li><strong>Delivered:</strong> All non-cancelled items are delivered</li>
+          <li><strong>Cancelled:</strong> All items are cancelled</li>
+        </ul>
+      </div>
+      <div class="col-md-6">
+        <h6>Revenue Calculation:</h6>
+        <ul class="small">
+          <li><strong>Delivered Revenue:</strong> Only from delivered items</li>
+          <li><strong>Active Revenue:</strong> From non-cancelled items</li>
+          <li><strong>Stock:</strong> Restored when items are cancelled</li>
+          <li><strong>Sales Records:</strong> Created only for delivered items</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Order Status Summary Component -->
+<script>
+function calculateOrderStatusSummary(items) {
+  const summary = {
+    pending: 0,
+    processing: 0,
+    shipped: 0,
+    delivered: 0,
+    cancelled: 0,
+    total: items.length
+  };
+  
+  items.forEach(item => {
+    const status = item.status || 'pending';
+    if (summary.hasOwnProperty(status)) {
+      summary[status]++;
+    }
+  });
+  
+  summary.isPartial = Object.values(summary).filter(count => count > 0).length > 1;
+  summary.fulfillmentRate = summary.total > 0 ? 
+    Math.round((summary.delivered / (summary.total - summary.cancelled)) * 100) : 0;
+  
+  return summary;
+}
+
+function getOrderStatusBadge(status, count) {
+  const badges = {
+    pending: 'badge-warning',
+    processing: 'badge-info',
+    shipped: 'badge-primary',
+    delivered: 'badge-success',
+    cancelled: 'badge-danger'
+  };
+  
+  return `<span class="badge ${badges[status] || 'badge-secondary'}">${count} ${status}</span>`;
+}
+
+function displayOrderStatusSummary(orderId, items) {
+  const summary = calculateOrderStatusSummary(items);
+  const container = document.getElementById(`order-status-summary-${orderId}`);
+  
+  if (container) {
+    let html = '<div class="order-status-breakdown">';
+    
+    Object.keys(summary).forEach(status => {
+      if (typeof summary[status] === 'number' && summary[status] > 0 && status !== 'total') {
+        html += getOrderStatusBadge(status, summary[status]) + ' ';
+      }
+    });
+    
+    if (summary.isPartial) {
+      html += '<br><small class="text-muted">Mixed Status Order</small>';
+    }
+    
+    html += `<br><small class="text-success">Fulfillment: ${summary.fulfillmentRate}%</small>`;
+    html += '</div>';
+    
+    container.innerHTML = html;
+  }
+}
+
+// Revenue calculation helpers
+function calculateDeliveredRevenue(items) {
+  return items
+    .filter(item => item.status === 'delivered')
+    .reduce((sum, item) => sum + (parseFloat(item.totalPrice) || 0), 0);
+}
+
+function calculateActiveRevenue(items) {
+  return items
+    .filter(item => item.status !== 'cancelled')
+    .reduce((sum, item) => sum + (parseFloat(item.totalPrice) || 0), 0);
+}
+
+function formatCurrency(amount) {
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(amount);
+}
+
+// Stock management helpers
+function getStockImpact(item, newStatus, oldStatus) {
+  if (newStatus === 'cancelled' && oldStatus !== 'cancelled') {
+    return { type: 'restore', quantity: item.qty, message: `+${item.qty} units restored` };
+  }
+  if (oldStatus === 'cancelled' && newStatus !== 'cancelled') {
+    return { type: 'deduct', quantity: item.qty, message: `-${item.qty} units deducted` };
+  }
+  return { type: 'none', quantity: 0, message: 'No stock change' };
+}
+
+// Sales record helpers
+function getSalesImpact(item, newStatus, oldStatus) {
+  if (newStatus === 'delivered' && oldStatus !== 'delivered') {
+    return { type: 'create', message: 'Sales record will be created' };
+  }
+  if (oldStatus === 'delivered' && newStatus !== 'delivered') {
+    return { type: 'remove', message: 'Sales record will be removed' };
+  }
+  return { type: 'none', message: 'No sales record change' };
+}
+
+// Validation helpers
+function validateStatusTransition(currentStatus, newStatus) {
+  const transitions = {
+    'pending': ['processing', 'shipped', 'delivered', 'cancelled'],
+    'processing': ['shipped', 'delivered', 'cancelled'],
+    'shipped': ['delivered', 'cancelled'],
+    'delivered': [], // Final state
+    'cancelled': []  // Final state
+  };
+  
+  return transitions[currentStatus]?.includes(newStatus) || false;
+}
+
+function showStatusChangeWarning(item, newStatus) {
+  const stockImpact = getStockImpact(item, newStatus, item.status);
+  const salesImpact = getSalesImpact(item, newStatus, item.status);
+  
+  let message = `Change ${item.productTitle} from ${item.status} to ${newStatus}?\n\n`;
+  message += `Stock Impact: ${stockImpact.message}\n`;
+  message += `Sales Impact: ${salesImpact.message}`;
+  
+  return confirm(message);
+}
+</script>
+
+<style>
+.mixed-status-helper {
+  margin-bottom: 1rem;
+}
+
+.order-status-breakdown .badge {
+  margin-right: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.status-change-warning {
+  background-color: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 0.25rem;
+  padding: 0.5rem;
+  margin: 0.5rem 0;
+  font-size: 0.875rem;
+}
+
+.stock-impact {
+  color: #856404;
+  font-weight: 500;
+}
+
+.sales-impact {
+  color: #155724;
+  font-weight: 500;
+}
+
+.revenue-breakdown {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin: 0.5rem 0;
+}
+
+.revenue-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.25rem 0;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.revenue-item:last-child {
+  border-bottom: none;
+  font-weight: 600;
+}
+
+.fulfillment-progress {
+  height: 0.5rem;
+  background-color: #e9ecef;
+  border-radius: 0.25rem;
+  overflow: hidden;
+  margin: 0.5rem 0;
+}
+
+.fulfillment-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #28a745 0%, #20c997 100%);
+  transition: width 0.3s ease;
+}
+</style>

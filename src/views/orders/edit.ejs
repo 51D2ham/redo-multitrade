@@ -4,64 +4,216 @@
   <div class="max-w-4xl mx-auto px-4">
     
     <!-- Header -->
-    <div class="flex items-center gap-4 mb-6">
-      <a href="/admin/v1/order/<%= order._id %>" class="px-3 py-2 bg-white rounded-lg shadow-sm hover:shadow-md">
+    <div class="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
+      <a href="/admin/v1/order/<%- encodeURIComponent(order._id) %>" class="px-3 py-2 bg-white rounded-lg shadow-sm hover:shadow-md transition-all">
         <i class="fas fa-arrow-left mr-2"></i>Back
       </a>
       <div class="flex-1">
-        <h1 class="text-2xl font-bold">Order #<%= orderNumber %></h1>
-        <p class="text-gray-600">Rs <%= formattedTotal %> • <%= itemCount %> items</p>
+        <h1 class="text-xl sm:text-2xl font-bold">Order #<%- order._id.toString().slice(-8).toUpperCase() %></h1>
+        <p class="text-gray-600 text-sm sm:text-base">Rs <%- (order.totalPrice || 0).toLocaleString() %> • <%- (order.totalQty || 0) %> items</p>
       </div>
       <div class="text-right">
-        <span class="px-4 py-2 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-          Order: <%= statusDisplay %>
+        <span class="px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-medium bg-blue-100 text-blue-800">
+          Order: <%- (order.status || 'pending').charAt(0).toUpperCase() + (order.status || 'pending').slice(1) %>
         </span>
       </div>
     </div>
 
     <!-- Flash Messages -->
-    <% if (success && success.length) { %>
+    <% if (typeof success !== 'undefined' && success && success.length) { %>
       <div class="mb-4 p-3 bg-green-100 border border-green-200 text-green-800 rounded-lg">
-        <%= success[0] %>
+        <i class="fas fa-check-circle mr-2"></i><%- success[0] %>
       </div>
     <% } %>
-    <% if (error && error.length) { %>
+    <% if (typeof error !== 'undefined' && error && error.length) { %>
       <div class="mb-4 p-3 bg-red-100 border border-red-200 text-red-800 rounded-lg">
-        <%= error[0] %>
+        <i class="fas fa-exclamation-triangle mr-2"></i><%- error[0] %>
       </div>
     <% } %>
 
-    <!-- Status Summary -->
+    <!-- Mixed Order Status Dashboard -->
     <div class="bg-white rounded-lg shadow-sm border mb-6">
-      <div class="p-4 border-b">
-        <h2 class="text-lg font-semibold">Order Status Summary</h2>
+      <div class="p-4 border-b bg-gradient-to-r from-blue-50 to-purple-50">
+        <h2 class="text-lg font-semibold flex items-center gap-2">
+          <i class="fas fa-chart-pie text-blue-600"></i>
+          Mixed Order Analytics Dashboard
+        </h2>
+        <p class="text-sm text-gray-600 mt-1">Comprehensive analysis of item statuses, revenue impact, and smart recommendations</p>
       </div>
       <div class="p-4">
-        <div id="status-summary" class="mb-4">
-          <!-- Status counts will be loaded here -->
-        </div>
+        <% if (typeof processedItems !== 'undefined' && processedItems && processedItems.length > 0) { %>
+          <% 
+            const statusCounts = {};
+            let deliveredValue = 0, cancelledValue = 0, activeValue = 0;
+            processedItems.forEach(item => {
+              const status = (item.originalItem && item.originalItem.status) || 'pending';
+              const itemValue = (item.originalItem && item.originalItem.totalPrice) || 0;
+              statusCounts[status] = (statusCounts[status] || 0) + 1;
+              
+              if (status === 'delivered') deliveredValue += itemValue;
+              else if (status === 'cancelled') cancelledValue += itemValue;
+              else activeValue += itemValue;
+            });
+            const totalItems = processedItems.length;
+            const deliveredCount = statusCounts.delivered || 0;
+            const cancelledCount = statusCounts.cancelled || 0;
+            const fulfillmentRate = totalItems > 0 ? Math.round((deliveredCount / (totalItems - cancelledCount)) * 100) : 0;
+          %>
+          
+          <!-- Status Grid -->
+          <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
+            <% Object.entries(statusCounts).forEach(([status, count]) => { %>
+              <div class="text-center p-3 rounded-lg <%= 
+                status === 'pending' ? 'bg-yellow-50 border border-yellow-200' :
+                status === 'processing' ? 'bg-blue-50 border border-blue-200' :
+                status === 'shipped' ? 'bg-purple-50 border border-purple-200' :
+                status === 'delivered' ? 'bg-green-50 border border-green-200' :
+                'bg-red-50 border border-red-200'
+              %>">
+                <div class="text-2xl font-bold <%= 
+                  status === 'pending' ? 'text-yellow-600' :
+                  status === 'processing' ? 'text-blue-600' :
+                  status === 'shipped' ? 'text-purple-600' :
+                  status === 'delivered' ? 'text-green-600' :
+                  'text-red-600'
+                %>"><%- count %></div>
+                <div class="text-xs font-medium text-gray-600 capitalize"><%- status %></div>
+                <div class="text-xs text-gray-500"><%- Math.round((count/totalItems)*100) %>%</div>
+              </div>
+            <% }) %>
+          </div>
+          
+          <!-- Revenue Impact Analysis -->
+          <div class="bg-gradient-to-r from-gray-50 to-blue-50 rounded-lg p-4 mb-4">
+            <h3 class="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
+              <i class="fas fa-chart-line text-green-600"></i>
+              Revenue Impact Analysis
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div class="bg-white p-3 rounded-lg border border-green-200">
+                <div class="text-xs text-green-600 font-medium uppercase">Delivered Revenue</div>
+                <div class="text-lg font-bold text-green-800">Rs <%- deliveredValue.toLocaleString() %></div>
+                <div class="text-xs text-green-600"><%- deliveredCount %> items (<%- Math.round((deliveredCount/totalItems)*100) %>%)</div>
+              </div>
+              <div class="bg-white p-3 rounded-lg border border-blue-200">
+                <div class="text-xs text-blue-600 font-medium uppercase">Active Revenue</div>
+                <div class="text-lg font-bold text-blue-800">Rs <%- activeValue.toLocaleString() %></div>
+                <div class="text-xs text-blue-600"><%- (totalItems - deliveredCount - cancelledCount) %> items pending</div>
+              </div>
+              <div class="bg-white p-3 rounded-lg border border-red-200">
+                <div class="text-xs text-red-600 font-medium uppercase">Lost Revenue</div>
+                <div class="text-lg font-bold text-red-800">Rs <%- cancelledValue.toLocaleString() %></div>
+                <div class="text-xs text-red-600"><%- cancelledCount %> items (<%- Math.round((cancelledCount/totalItems)*100) %>%)</div>
+              </div>
+              <div class="bg-white p-3 rounded-lg border border-purple-200">
+                <div class="text-xs text-purple-600 font-medium uppercase">Recovery Rate</div>
+                <div class="text-lg font-bold text-purple-800"><%- Math.round(((deliveredValue + activeValue) / (order.totalPrice || 1)) * 100) %>%</div>
+                <div class="text-xs text-purple-600">Potential revenue recovery</div>
+              </div>
+            </div>
+            
+            <!-- Smart Recommendations -->
+            <div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <h4 class="text-sm font-semibold text-yellow-800 mb-2 flex items-center gap-2">
+                <i class="fas fa-lightbulb text-yellow-600"></i>
+                Smart Recommendations
+              </h4>
+              <div class="text-xs text-yellow-700 space-y-1">
+                <% if (cancelledCount > 0 && activeValue > 0) { %>
+                  <p><i class="fas fa-exclamation-triangle mr-1"></i>Focus on fulfilling remaining Rs <%- activeValue.toLocaleString() %> to minimize losses</p>
+                <% } %>
+                <% if (fulfillmentRate < 50 && activeValue > deliveredValue) { %>
+                  <p><i class="fas fa-rocket mr-1"></i>Priority: Accelerate processing to improve <%- fulfillmentRate %>% fulfillment rate</p>
+                <% } %>
+                <% if (deliveredCount > 0 && cancelledCount === 0) { %>
+                  <p><i class="fas fa-thumbs-up mr-1"></i>Excellent: No cancellations detected, maintain current service quality</p>
+                <% } %>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Fulfillment Progress -->
+          <div class="bg-white border border-gray-200 rounded-lg p-4">
+            <div class="flex justify-between items-center mb-2">
+              <span class="text-sm font-medium text-gray-700">Order Fulfillment Progress</span>
+              <span class="text-sm font-bold text-gray-900"><%- fulfillmentRate %>%</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-3">
+              <div class="bg-gradient-to-r from-green-500 to-emerald-500 h-3 rounded-full transition-all duration-500" style="width: <%- fulfillmentRate %>%"></div>
+            </div>
+            <div class="flex justify-between text-xs text-gray-500 mt-1">
+              <span><%- deliveredCount %> delivered</span>
+              <span><%- (totalItems - cancelledCount) %> total active</span>
+            </div>
+          </div>
+        <% } else { %>
+          <div class="text-center text-gray-500 py-8">
+            <i class="fas fa-exclamation-triangle text-4xl text-gray-300 mb-3"></i>
+            <p class="text-lg font-medium">No items to analyze</p>
+            <p class="text-sm">This order appears to have no items.</p>
+          </div>
+        <% } %>
       </div>
     </div>
 
-    <!-- Main Actions -->
+    <!-- Smart Actions with Eligibility Counter -->
     <div class="bg-white rounded-lg shadow-sm border mb-6">
       <div class="p-4 border-b">
         <h2 class="text-lg font-semibold">Smart Actions</h2>
-        <p class="text-sm text-gray-600 mt-1">Intelligent actions that only affect eligible items.</p>
+        <p class="text-sm text-gray-600 mt-1">Intelligent actions with real-time eligibility tracking and revenue impact.</p>
       </div>
       <div class="p-4">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-          <button data-bulk-action="processing" onclick="bulkAction('processing')" class="p-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all">
-            <i class="fas fa-play mr-2"></i>Process Eligible
+        <% if (typeof processedItems !== 'undefined' && processedItems && processedItems.length > 0) { %>
+          <% 
+            const eligibleForProcessing = processedItems.filter(item => (item.originalItem?.status || 'pending') === 'pending').length;
+            const eligibleForShipping = processedItems.filter(item => ['pending', 'processing'].includes(item.originalItem?.status || 'pending')).length;
+            const eligibleForDelivery = processedItems.filter(item => ['pending', 'processing', 'shipped'].includes(item.originalItem?.status || 'pending')).length;
+          %>
+          
+          <!-- Action Eligibility Summary -->
+          <div class="bg-gray-50 rounded-lg p-3 mb-4">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center text-xs">
+              <div class="bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                <div class="font-bold"><%- eligibleForProcessing %></div>
+                <div>Can Process</div>
+              </div>
+              <div class="bg-purple-100 text-purple-800 px-2 py-1 rounded">
+                <div class="font-bold"><%- eligibleForShipping %></div>
+                <div>Can Ship</div>
+              </div>
+              <div class="bg-green-100 text-green-800 px-2 py-1 rounded">
+                <div class="font-bold"><%- eligibleForDelivery %></div>
+                <div>Can Deliver</div>
+              </div>
+              <div class="bg-red-100 text-red-800 px-2 py-1 rounded">
+                <div class="font-bold"><%- processedItems.length %></div>
+                <div>Total Items</div>
+              </div>
+            </div>
+          </div>
+        <% } %>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <button data-bulk-action="processing" onclick="bulkAction('processing')" class="p-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm relative">
+            <i class="fas fa-play mr-2"></i><span class="hidden sm:inline">Process Eligible</span><span class="sm:hidden">Process</span>
+            <% if (typeof eligibleForProcessing !== 'undefined' && eligibleForProcessing > 0) { %>
+              <span class="absolute -top-2 -right-2 bg-yellow-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center"><%- eligibleForProcessing %></span>
+            <% } %>
           </button>
-          <button data-bulk-action="shipped" onclick="bulkAction('shipped')" class="p-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-all">
-            <i class="fas fa-truck mr-2"></i>Ship Eligible
+          <button data-bulk-action="shipped" onclick="bulkAction('shipped')" class="p-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm relative">
+            <i class="fas fa-truck mr-2"></i><span class="hidden sm:inline">Ship Eligible</span><span class="sm:hidden">Ship</span>
+            <% if (typeof eligibleForShipping !== 'undefined' && eligibleForShipping > 0) { %>
+              <span class="absolute -top-2 -right-2 bg-yellow-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center"><%- eligibleForShipping %></span>
+            <% } %>
           </button>
-          <button data-bulk-action="delivered" onclick="bulkAction('delivered')" class="p-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-all">
-            <i class="fas fa-check mr-2"></i>Deliver Eligible
+          <button data-bulk-action="delivered" onclick="bulkAction('delivered')" class="p-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm relative">
+            <i class="fas fa-check mr-2"></i><span class="hidden sm:inline">Deliver Eligible</span><span class="sm:hidden">Deliver</span>
+            <% if (typeof eligibleForDelivery !== 'undefined' && eligibleForDelivery > 0) { %>
+              <span class="absolute -top-2 -right-2 bg-yellow-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center"><%- eligibleForDelivery %></span>
+            <% } %>
           </button>
-          <button onclick="cancelOrder()" class="p-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all">
-            <i class="fas fa-times mr-2"></i>Cancel Order
+          <button onclick="confirmCancelOrder()" class="p-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm">
+            <i class="fas fa-times mr-2"></i><span class="hidden sm:inline">Cancel Order</span><span class="sm:hidden">Cancel</span>
           </button>
         </div>
       </div>
@@ -73,51 +225,65 @@
         <h2 class="text-lg font-semibold">Items</h2>
       </div>
       <div class="divide-y" id="order-items">
-        <% if (processedItems && processedItems.length > 0) { %>
+        <% if (typeof processedItems !== 'undefined' && processedItems && processedItems.length > 0) { %>
           <% processedItems.forEach((item, index) => { %>
-            <div class="p-4" data-item-status="<%= item.originalItem.status || 'pending' %>">
-              <div class="flex items-center justify-between">
+            <div class="p-4 border-l-4 <%= (item.originalItem && item.originalItem.status === 'cancelled') ? 'border-red-400 bg-red-50' : (item.originalItem && item.originalItem.status === 'delivered') ? 'border-green-400 bg-green-50' : 'border-blue-400' %>" data-item-status="<%- (item.originalItem && item.originalItem.status) || 'pending' %>">
+              <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div class="flex items-center gap-3">
-                  <div class="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden">
+                  <div class="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
                     <% if (item.imageUrl) { %>
-                      <img src="<%= item.imageUrl %>" class="w-full h-full object-cover">
+                      <img src="<%- item.imageUrl %>" alt="Product Image" class="w-full h-full object-cover" loading="lazy">
                     <% } else { %>
                       <div class="w-full h-full flex items-center justify-center text-gray-400">
-                        <i class="fas fa-cube"></i>
+                        <i class="fas fa-cube text-lg"></i>
                       </div>
                     <% } %>
                   </div>
-                  <div>
-                    <h3 class="font-medium"><%= item.title %></h3>
-                    <p class="text-sm text-gray-600"><%= item.priceDisplay %></p>
-                    <% if (item.originalItem.variantSku) { %>
-                      <p class="text-xs text-gray-500">SKU: <%= item.originalItem.variantSku %></p>
+                  <div class="min-w-0 flex-1">
+                    <h3 class="font-medium text-gray-900 truncate"><%- item.title || 'Product Title Not Available' %></h3>
+                    <p class="text-sm text-gray-600"><%- item.priceDisplay || 'Price Not Available' %></p>
+                    <% if (item.originalItem && item.originalItem.variantSku) { %>
+                      <p class="text-xs text-gray-500 font-mono">SKU: <%- item.originalItem.variantSku %></p>
                     <% } %>
+                    <p class="text-xs text-gray-500">Qty: <%- (item.originalItem && item.originalItem.qty) || 1 %></p>
                   </div>
                 </div>
-                <div class="flex items-center gap-3">
-                  <span class="px-3 py-1 rounded-full text-sm font-medium 
-                    <% if (item.originalItem.status === 'pending') { %>bg-yellow-100 text-yellow-800<% } %>
-                    <% if (item.originalItem.status === 'processing') { %>bg-blue-100 text-blue-800<% } %>
-                    <% if (item.originalItem.status === 'shipped') { %>bg-purple-100 text-purple-800<% } %>
-                    <% if (item.originalItem.status === 'delivered') { %>bg-green-100 text-green-800<% } %>
-                    <% if (item.originalItem.status === 'cancelled') { %>bg-red-100 text-red-800<% } %>">
-                    <%= item.statusDisplay %>
+                <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+                  <span class="px-3 py-1 rounded-full text-xs sm:text-sm font-medium text-center
+                    <% const status = (item.originalItem && item.originalItem.status) || 'pending'; %>
+                    <% if (status === 'pending') { %>bg-yellow-100 text-yellow-800<% } %>
+                    <% if (status === 'processing') { %>bg-blue-100 text-blue-800<% } %>
+                    <% if (status === 'shipped') { %>bg-purple-100 text-purple-800<% } %>
+                    <% if (status === 'delivered') { %>bg-green-100 text-green-800<% } %>
+                    <% if (status === 'cancelled') { %>bg-red-100 text-red-800<% } %>">
+                    <%- item.statusDisplay || status.charAt(0).toUpperCase() + status.slice(1) %>
                   </span>
-                  <% if (item.canUpdate) { %>
-                    <div class="flex gap-1">
-                      <button data-index="<%= index %>" data-action="processing" class="item-action px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-all">Process</button>
-                      <button data-index="<%= index %>" data-action="shipped" class="item-action px-2 py-1 bg-purple-500 text-white text-xs rounded hover:bg-purple-600 transition-all">Ship</button>
-                      <button data-index="<%= index %>" data-action="delivered" class="item-action px-2 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 transition-all">Deliver</button>
-                      <button data-index="<%= index %>" data-action="cancel" class="item-cancel px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 transition-all">Cancel</button>
+                  <% if (item.canUpdate && status !== 'delivered' && status !== 'cancelled') { %>
+                    <div class="flex flex-wrap gap-1 justify-center sm:justify-start">
+                      <% if (status === 'pending') { %>
+                        <button onclick="updateItemStatus(<%- index %>, 'processing')" class="item-action px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-all disabled:opacity-50">Process</button>
+                      <% } %>
+                      <% if (status === 'pending' || status === 'processing') { %>
+                        <button onclick="updateItemStatus(<%- index %>, 'shipped')" class="item-action px-2 py-1 bg-purple-500 text-white text-xs rounded hover:bg-purple-600 transition-all disabled:opacity-50">Ship</button>
+                      <% } %>
+                      <% if (status === 'shipped') { %>
+                        <button onclick="updateItemStatus(<%- index %>, 'delivered')" class="item-action px-2 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 transition-all disabled:opacity-50">Deliver</button>
+                      <% } %>
+                      <button onclick="confirmItemCancel(<%- index %>)" class="item-cancel px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 transition-all disabled:opacity-50">Cancel</button>
                     </div>
                   <% } else { %>
-                    <span class="text-xs text-gray-500">Final Status</span>
+                    <span class="text-xs text-gray-500 text-center"><%- (status === 'delivered' || status === 'cancelled') ? 'Final Status' : 'No Actions Available' %></span>
                   <% } %>
                 </div>
               </div>
             </div>
           <% }) %>
+        <% } else { %>
+          <div class="p-8 text-center text-gray-500">
+            <i class="fas fa-exclamation-triangle text-4xl mb-4 text-gray-300"></i>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">No Items Found</h3>
+            <p class="text-gray-600">This order appears to have no items to display.</p>
+          </div>
         <% } %>
       </div>
     </div>
@@ -127,46 +293,56 @@
       <div class="p-4 border-b">
         <h2 class="text-lg font-semibold">Order Details</h2>
       </div>
-      <form method="POST" action="/admin/v1/order/<%= order._id %>?_method=PUT" class="p-4 space-y-4">
+      <form method="POST" action="/admin/v1/order/<%- encodeURIComponent(order._id) %>?_method=PUT" class="p-4 space-y-4" onsubmit="return validateOrderForm()">
+        <input type="hidden" name="_token" value="<%- typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium mb-1">Order Status</label>
+            <label class="block text-sm font-medium mb-1" for="order-status">Order Status</label>
             <div class="flex gap-2">
-              <select name="status" class="flex-1 px-3 py-2 border rounded-lg" value="<%= orderStatus %>">
-                <option value="pending" <%= orderStatus === 'pending' ? 'selected' : '' %>>Pending</option>
-                <option value="processing" <%= orderStatus === 'processing' ? 'selected' : '' %>>Processing</option>
-                <option value="shipped" <%= orderStatus === 'shipped' ? 'selected' : '' %>>Shipped</option>
-                <option value="delivered" <%= orderStatus === 'delivered' ? 'selected' : '' %>>Delivered</option>
-                <option value="cancelled" <%= orderStatus === 'cancelled' ? 'selected' : '' %>>Cancelled</option>
+              <select name="status" id="order-status" class="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                <% const currentStatus = order.status || 'pending'; %>
+                <option value="pending" <%- currentStatus === 'pending' ? 'selected' : '' %>>Pending</option>
+                <option value="processing" <%- currentStatus === 'processing' ? 'selected' : '' %>>Processing</option>
+                <option value="shipped" <%- currentStatus === 'shipped' ? 'selected' : '' %>>Shipped</option>
+                <option value="delivered" <%- currentStatus === 'delivered' ? 'selected' : '' %>>Delivered</option>
+                <option value="cancelled" <%- currentStatus === 'cancelled' ? 'selected' : '' %>>Cancelled</option>
               </select>
-              <button type="button" onclick="smartOrderManager.autoCorrectStatus()" class="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm" title="Auto-correct status based on items">
+              <button type="button" onclick="autoCorrectStatus()" class="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm transition-all" title="Auto-correct status based on items">
                 <i class="fas fa-magic"></i>
               </button>
             </div>
           </div>
           <div>
-            <label class="block text-sm font-medium mb-1">Payment</label>
-            <select name="paid" class="w-full px-3 py-2 border rounded-lg">
-              <option value="false">Unpaid</option>
-              <option value="true">Paid</option>
+            <label class="block text-sm font-medium mb-1" for="payment-status">Payment Status</label>
+            <select name="paid" id="payment-status" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+              <% const isPaid = order.paid === true || order.paid === 'true'; %>
+              <option value="false" <%- !isPaid ? 'selected' : '' %>>Unpaid</option>
+              <option value="true" <%- isPaid ? 'selected' : '' %>>Paid</option>
             </select>
           </div>
         </div>
         <div>
-          <label class="block text-sm font-medium mb-1">Tracking Number</label>
-          <input type="text" name="trackingNumber" value="<%= trackingNumber %>" placeholder="Enter tracking number" class="w-full px-3 py-2 border rounded-lg">
+          <label class="block text-sm font-medium mb-1" for="tracking-number">Tracking Number</label>
+          <input type="text" name="trackingNumber" id="tracking-number" value="<%- order.trackingNumber || '' %>" placeholder="Enter tracking number" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" maxlength="50">
         </div>
         <div>
-          <label class="block text-sm font-medium mb-1">Message to Customer</label>
-          <textarea name="statusMessage" rows="2" placeholder="Optional message..." class="w-full px-3 py-2 border rounded-lg"></textarea>
+          <label class="block text-sm font-medium mb-1" for="status-message">Message to Customer</label>
+          <textarea name="statusMessage" id="status-message" rows="3" placeholder="Optional message to customer..." class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical" maxlength="500" oninput="updateCharCount()"></textarea>
+          <p class="text-xs text-gray-500 mt-1">Maximum 500 characters <span id="char-count">(0/500)</span></p>
         </div>
-        <div class="flex gap-3">
-          <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-            Update Order
+        <div class="flex flex-col sm:flex-row gap-3">
+          <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+            <i class="fas fa-save"></i>
+            <span>Update Order</span>
           </button>
-          <a href="/admin/v1/order/<%= order._id %>" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
-            Cancel
+          <a href="/admin/v1/order/<%- encodeURIComponent(order._id) %>" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all text-center flex items-center justify-center gap-2">
+            <i class="fas fa-times"></i>
+            <span>Cancel</span>
           </a>
+          <button type="button" onclick="resetForm()" class="px-4 py-2 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition-all flex items-center justify-center gap-2">
+            <i class="fas fa-undo"></i>
+            <span>Reset</span>
+          </button>
         </div>
       </form>
     </div>
@@ -174,12 +350,228 @@
 </div>
 
 <div id="order-data" 
-     data-order-id="<%= order._id %>" 
-     data-order-status="<%= orderStatus %>" 
-     data-paid-status="<%= paidStatus %>" 
-     data-order-items='<%- orderItemsJson %>' 
+     data-order-id="<%- order._id %>" 
+     data-order-status="<%- order.status || 'pending' %>" 
+     data-paid-status="<%- order.paid || false %>" 
+     data-order-items='<%- typeof orderItemsJson !== "undefined" ? orderItemsJson : "[]" %>' 
      style="display: none;"></div>
-<script src="/js/smart-order-management.js"></script>
+
+<script>
+const orderId = document.getElementById('order-data').dataset.orderId;
+
+// Form validation
+function validateOrderForm() {
+  const status = document.getElementById('order-status').value;
+  const trackingNumber = document.getElementById('tracking-number').value.trim();
+  
+  // Optional: Warn if no tracking number for shipped/delivered orders
+  if ((status === 'shipped' || status === 'delivered') && !trackingNumber) {
+    return confirm('No tracking number provided. Continue anyway?');
+  }
+  
+  return true;
+}
+
+// Update character count for status message
+function updateCharCount() {
+  const textarea = document.getElementById('status-message');
+  const counter = document.getElementById('char-count');
+  const current = textarea.value.length;
+  const max = 500;
+  
+  counter.textContent = `(${current}/${max})`;
+  counter.className = current > max * 0.9 ? 'text-red-500 font-medium' : 'text-gray-500';
+}
+
+// Initialize character count on page load
+document.addEventListener('DOMContentLoaded', function() {
+  updateCharCount();
+});
+
+// Auto-correct status
+function autoCorrectStatus() {
+  const items = JSON.parse(document.getElementById('order-data').dataset.orderItems || '[]');
+  if (items.length === 0) {
+    alert('No items found to analyze status');
+    return;
+  }
+  
+  const statuses = items.map(item => item.status || 'pending');
+  const allDelivered = statuses.filter(s => s !== 'cancelled').every(s => s === 'delivered');
+  const allCancelled = statuses.every(s => s === 'cancelled');
+  const hasShipped = statuses.some(s => s === 'shipped');
+  const hasProcessing = statuses.some(s => s === 'processing');
+  
+  let newStatus = 'pending';
+  if (allCancelled) newStatus = 'cancelled';
+  else if (allDelivered) newStatus = 'delivered';
+  else if (hasShipped) newStatus = 'shipped';
+  else if (hasProcessing) newStatus = 'processing';
+  
+  const currentStatus = document.getElementById('order-status').value;
+  if (currentStatus !== newStatus) {
+    document.getElementById('order-status').value = newStatus;
+    alert(`Status auto-corrected from '${currentStatus}' to '${newStatus}' based on item statuses`);
+  } else {
+    alert(`Status is already correct: '${currentStatus}'`);
+  }
+}
+
+// Reset form
+function resetForm() {
+  if (confirm('Are you sure you want to reset all changes?')) {
+    document.querySelector('form').reset();
+  }
+}
+
+
+
+// Bulk actions for eligible items
+function bulkAction(action) {
+  if (!confirm(`Are you sure you want to ${action} all eligible items?`)) return;
+  
+  const button = event.target;
+  const originalText = button.innerHTML;
+  button.disabled = true;
+  button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Processing...';
+  
+  const items = JSON.parse(document.getElementById('order-data').dataset.orderItems || '[]');
+  const eligibleItems = [];
+  
+  items.forEach((item, index) => {
+    const status = item.status || 'pending';
+    let eligible = false;
+    
+    if (action === 'processing' && status === 'pending') eligible = true;
+    else if (action === 'shipped' && (status === 'pending' || status === 'processing')) eligible = true;
+    else if (action === 'delivered' && (status === 'pending' || status === 'processing' || status === 'shipped')) eligible = true;
+    
+    if (eligible) {
+      eligibleItems.push({ index, status: action, statusMessage: `Bulk ${action} by admin` });
+    }
+  });
+  
+  if (eligibleItems.length === 0) {
+    alert(`No items are eligible for ${action}`);
+    button.disabled = false;
+    button.innerHTML = originalText;
+    return;
+  }
+  
+  fetch(`/admin/v1/order/${orderId}/items`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest'
+    },
+    body: JSON.stringify({
+      items: eligibleItems,
+      sendEmail: false
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      alert(`Updated ${data.updatedItems?.length || eligibleItems.length} items successfully`);
+      location.reload();
+    } else {
+      alert('Error: ' + (data.message || 'Unknown error occurred'));
+      button.disabled = false;
+      button.innerHTML = originalText;
+    }
+  })
+  .catch(error => {
+    console.error('Bulk action error:', error);
+    alert('Network error occurred. Please try again.');
+    button.disabled = false;
+    button.innerHTML = originalText;
+  });
+}
+
+// Confirm order cancellation
+function confirmCancelOrder() {
+  if (!confirm('Are you sure you want to cancel this entire order? This action cannot be undone.')) return;
+  
+  const button = event.target;
+  const originalText = button.innerHTML;
+  button.disabled = true;
+  button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Cancelling...';
+  
+  fetch(`/admin/v1/order/${orderId}/status`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest'
+    },
+    body: JSON.stringify({
+      status: 'cancelled',
+      statusMessage: 'Order cancelled by admin',
+      sendEmail: true
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      alert('Order cancelled successfully');
+      location.reload();
+    } else {
+      alert('Error: ' + (data.message || 'Failed to cancel order'));
+      button.disabled = false;
+      button.innerHTML = originalText;
+    }
+  })
+  .catch(error => {
+    console.error('Cancel order error:', error);
+    alert('Network error occurred. Please try again.');
+    button.disabled = false;
+    button.innerHTML = originalText;
+  });
+}
+
+// Confirm item cancellation
+function confirmItemCancel(index) {
+  if (confirm('Are you sure you want to cancel this item? This action cannot be undone.')) {
+    updateItemStatus(index, 'cancelled');
+  }
+}
+
+// Update item status function for direct onclick calls
+function updateItemStatus(index, action) {
+  const button = event.target;
+  const originalText = button.textContent;
+  button.disabled = true;
+  button.textContent = 'Updating...';
+  
+  fetch(`/admin/v1/order/${orderId}/items/${index}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest'
+    },
+    body: JSON.stringify({
+      status: action,
+      statusMessage: `Item ${action} by admin`,
+      sendEmail: false
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      location.reload();
+    } else {
+      alert('Error: ' + (data.message || 'Unknown error occurred'));
+      button.disabled = false;
+      button.textContent = originalText;
+    }
+  })
+  .catch(error => {
+    console.error('Network error:', error);
+    alert('Network error occurred. Please try again.');
+    button.disabled = false;
+    button.textContent = originalText;
+  });
+}
+</script>
 
 <%- include('../partials/footer.ejs') %>
 

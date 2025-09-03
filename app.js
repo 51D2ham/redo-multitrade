@@ -165,6 +165,8 @@ app.get('/', (req, res) => res.redirect('/admin/reports/comprehensive'));
 
 // Reports 
 app.use('/admin', salesReport);
+app.use('/admin/reports', require('./src/routes/reportsRoutes'));
+app.use('/admin/dashboard', require('./src/routes/dashboardRoutes'));
 
 // Error handlers
 app.use((req, res) => {

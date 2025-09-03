@@ -1,120 +1,81 @@
-﻿    </main>
+    </main>
   </div>
 
+  <!-- Footer -->
+  <footer class="lg:ml-72 bg-white/80 backdrop-blur-sm border-t border-gray-200 px-4 py-2">
+    <div class="max-w-7xl mx-auto">
+      <div class="flex items-center justify-between text-xs text-slate-500">
+        <div class="flex items-center gap-2">
+          <div class="w-4 h-4 bg-gradient-to-r from-slate-600 to-slate-700 rounded flex items-center justify-center">
+            <i class="fas fa-store text-white text-xs"></i>
+          </div>
+          <span class="font-medium text-slate-700">Multitrade</span>
+          <span>© 2024</span>
+        </div>
+        
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-1">
+            <div class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+            <span>Online</span>
+          </div>
+          <span id="footerTime"></span>
+          <span class="text-slate-600 font-medium">v1.0</span>
+        </div>
+      </div>
+    </div>
+  </footer>
+
   <script nonce="<%= cspNonce %>">
-    // Sidebar functionality with improved animations
-    const sidebarEl = document.getElementById('sidebar');
-    const overlayEl = document.getElementById('overlay');
-    const openSidebarEl = document.getElementById('openSidebar');
-    const closeSidebarEl = document.getElementById('closeSidebar');
-
-    function showSidebar() {
-      sidebarEl.classList.remove('-translate-x-full');
-      overlayEl.classList.remove('hidden');
-      document.body.classList.add('overflow-hidden', 'lg:overflow-auto');
-      // Add animation class
-      setTimeout(() => overlayEl.classList.add('opacity-100'), 10);
-    }
-
-    function hideSidebar() {
-      sidebarEl.classList.add('-translate-x-full');
-      overlayEl.classList.remove('opacity-100');
-      setTimeout(() => {
-        overlayEl.classList.add('hidden');
-        document.body.classList.remove('overflow-hidden', 'lg:overflow-auto');
-      }, 300);
-    }
-
-    openSidebarEl?.addEventListener('click', showSidebar);
-    closeSidebarEl?.addEventListener('click', hideSidebar);
-    overlayEl?.addEventListener('click', hideSidebar);
-
-    // Enhanced time display
-    function updateTime() {
-      const now = new Date();
-      const timeString = now.toLocaleTimeString('en-US', { 
-        hour12: true, 
-        hour: '2-digit', 
-        minute: '2-digit'
-      });
-      const timeElement = document.getElementById('currentTime');
-      if (timeElement && timeElement.textContent !== timeString) {
-        timeElement.textContent = timeString;
+    // Footer time update
+    function updateFooterTime() {
+      const footerTimeElement = document.getElementById('footerTime');
+      if (footerTimeElement) {
+        const now = new Date();
+        footerTimeElement.textContent = now.toLocaleString('en-US', {
+          weekday: 'short',
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
       }
     }
-
-    updateTime();
-    setInterval(updateTime, 30000);
-
-    // Enhanced active link highlighting
-    const currentPath = window.location.pathname;
-    const navLinks = document.querySelectorAll('aside nav a');
     
-    navLinks.forEach(link => {
-      const href = link.getAttribute('href');
-      if (href === currentPath || 
-          (currentPath.includes(href) && href !== '/' && href.length > 1)) {
-        link.classList.add('bg-gradient-to-r', 'from-blue-100', 'to-purple-100', 'text-blue-700', 'font-semibold', 'shadow-sm');
-        link.classList.remove('text-gray-700');
-      }
-    });
-
-    // Responsive sidebar handling
-    function handleResize() {
-      if (window.innerWidth >= 1024) {
-        hideSidebar();
-      }
-    }
-
-    window.addEventListener('resize', handleResize);
-
-    // Keyboard navigation
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        hideSidebar();
-      }
-    });
-
-    // Touch gestures for mobile
-    let touchStartX = 0;
-    let touchEndX = 0;
-
-    document.addEventListener('touchstart', (e) => {
-      touchStartX = e.changedTouches[0].screenX;
-    });
-
-    document.addEventListener('touchend', (e) => {
-      touchEndX = e.changedTouches[0].screenX;
-      handleSwipe();
-    });
-
-    function handleSwipe() {
-      const swipeThreshold = 100;
-      const diff = touchStartX - touchEndX;
-      
-      if (Math.abs(diff) > swipeThreshold) {
-        if (diff > 0 && !sidebarEl.classList.contains('-translate-x-full')) {
-          // Swipe left - close sidebar
-          hideSidebar();
-        } else if (diff < 0 && sidebarEl.classList.contains('-translate-x-full') && touchStartX < 50) {
-          // Swipe right from edge - open sidebar
-          showSidebar();
-        }
+    updateFooterTime();
+    setInterval(updateFooterTime, 60000);
+    
+    // Compact time format for footer
+    function updateFooterTime() {
+      const footerTimeElement = document.getElementById('footerTime');
+      if (footerTimeElement) {
+        const now = new Date();
+        footerTimeElement.textContent = now.toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit'
+        });
       }
     }
-
-    // Loading states for navigation
-    navLinks.forEach(link => {
-      link.addEventListener('click', function(e) {
-        if (this.href && !this.href.includes('#')) {
-          const icon = this.querySelector('i');
-          if (icon) {
-            icon.className = 'fas fa-spinner fa-spin w-5 text-center';
-          }
+    
+    // Smooth scroll to top functionality
+    window.addEventListener('scroll', () => {
+      const scrollTop = document.documentElement.scrollTop;
+      if (scrollTop > 300) {
+        if (!document.getElementById('scrollToTop')) {
+          const scrollBtn = document.createElement('button');
+          scrollBtn.id = 'scrollToTop';
+          scrollBtn.className = 'fixed bottom-6 right-6 w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 z-40';
+          scrollBtn.innerHTML = '<i class="fas fa-arrow-up"></i>';
+          scrollBtn.onclick = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+          document.body.appendChild(scrollBtn);
         }
-      });
+      } else {
+        const scrollBtn = document.getElementById('scrollToTop');
+        if (scrollBtn) {
+          scrollBtn.remove();
+        }
+      }
     });
   </script>
 </body>
 </html>
-

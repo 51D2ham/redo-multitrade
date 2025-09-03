@@ -1,75 +1,65 @@
-﻿<%
-/* Chart data setup */
-const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-let chartLabels = monthNames;
-let chartData = new Array(12).fill(0);
-let chartOrderData = new Array(12).fill(0);
-
-// Use actual data from database
-if (typeof report !== 'undefined' && report && report.monthlyTrend && Array.isArray(report.monthlyTrend)) {
-  // Create arrays for all 12 months
-  const revenueByMonth = new Array(12).fill(0);
-  const ordersByMonth = new Array(12).fill(0);
-  
-  // Fill in actual data
-  report.monthlyTrend.forEach(item => {
-    if (item && item.month && item.month >= 1 && item.month <= 12) {
-      const monthIndex = item.month - 1;
-      revenueByMonth[monthIndex] = Number(item.totalRevenue || 0);
-      ordersByMonth[monthIndex] = Number(item.totalOrders || 0);
-    }
-  });
-  
-  chartData = revenueByMonth;
-  chartOrderData = ordersByMonth;
-}
-%>
 <%- include('../partials/header.ejs', { title: 'Business Dashboard' }) %>
 
-<div class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-  <!-- Chart Data -->
-  <script type="application/json" id="chartData">
-  {
-    "labels": <%- JSON.stringify(chartLabels) %>,
-    "revenue": <%- JSON.stringify(chartData) %>,
-    "orders": <%- JSON.stringify(chartOrderData) %>
-  }
-  </script>
-
-  <div class="max-w-7xl mx-auto px-6 py-8">
+<div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
     
     <!-- Header -->
-    <div class="mb-8">
-      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div>
-          <h1 class="text-2xl lg:text-3xl font-bold text-gray-900">Business Dashboard</h1>
-          <p class="text-gray-600 mt-2">Real-time insights and analytics for your e-commerce business</p>
-        </div>
-        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          <!-- Filters Form -->
-          <form method="get" action="/admin/reports/comprehensive" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-            <input type="text" id="dateRange" name="dateRange" 
-                   class="px-3 py-2 border border-gray-300 rounded-lg text-sm w-full sm:w-auto" 
-                   placeholder="Select date range" 
-                   value="<%= startDate && endDate ? `${startDate} to ${endDate}` : '' %>">
-            <input type="hidden" name="startDate" value="<%= startDate || '' %>">
-            <input type="hidden" name="endDate" value="<%= endDate || '' %>">
-            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
-              Apply
-            </button>
-          </form>
-          <!-- Export Button -->
+    <div class="flex flex-col lg:flex-row lg:justify-between lg:items-center mb-8 gap-4">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+          <div class="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
+            <i class="fas fa-chart-line text-white text-lg"></i>
+          </div>
+          Business Dashboard
+        </h1>
+        <p class="text-gray-600 flex items-center gap-2">
+          <i class="fas fa-clock text-gray-400"></i>
+          Real-time insights and analytics • <%= new Date().toLocaleDateString() %>
+        </p>
+      </div>
+      
+      <!-- Controls -->
+      <div class="flex items-center gap-3">
+        <form method="GET" class="flex gap-2">
+          <select name="period" onchange="this.form.submit()" 
+                  class="px-4 py-2 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+            <% const currentPeriod = typeof period !== 'undefined' ? period : 'today'; %>
+            <option value="today" <%= currentPeriod === 'today' ? 'selected' : '' %>>Today</option>
+            <option value="yesterday" <%= currentPeriod === 'yesterday' ? 'selected' : '' %>>Yesterday</option>
+            <option value="week" <%= currentPeriod === 'week' ? 'selected' : '' %>>This Week</option>
+            <option value="month" <%= currentPeriod === 'month' ? 'selected' : '' %>>This Month</option>
+            <option value="quarter" <%= currentPeriod === 'quarter' ? 'selected' : '' %>>This Quarter</option>
+            <option value="year" <%= currentPeriod === 'year' ? 'selected' : '' %>>This Year</option>
+            <option value="last7days" <%= currentPeriod === 'last7days' ? 'selected' : '' %>>Last 7 Days</option>
+            <option value="last30days" <%= currentPeriod === 'last30days' ? 'selected' : '' %>>Last 30 Days</option>
+            <option value="last90days" <%= currentPeriod === 'last90days' ? 'selected' : '' %>>Last 90 Days</option>
+          </select>
+        </form>
+        
+        <div class="flex gap-3">
+          <a href="/admin/v1/order" 
+             class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all text-sm font-medium text-gray-700 shadow-sm">
+            <i class="fas fa-shopping-cart text-gray-500"></i>Orders
+          </a>
           <div class="relative">
-            <button id="exportBtn" class="w-full sm:w-auto px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 flex items-center justify-center gap-2">
-              <i class="fas fa-download"></i> Export
+            <button onclick="toggleExportMenu()" class="inline-flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all text-sm font-medium shadow-lg hover:shadow-xl">
+              <i class="fas fa-download"></i>Export <i class="fas fa-chevron-down text-xs ml-1"></i>
             </button>
-            <div id="exportMenu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-10">
+            <div id="exportMenu" class="hidden absolute right-0 mt-3 w-52 bg-white rounded-xl shadow-xl border border-gray-200 z-20 overflow-hidden">
               <div class="p-2">
-                <a href="/admin/reports/comprehensive/excel" class="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded">
-                  <i class="fas fa-file-excel text-green-600"></i> Export to Excel
+                <a href="/admin/dashboard/export/excel" class="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 rounded-lg transition-colors">
+                  <i class="fas fa-file-excel text-green-600 text-lg"></i>
+                  <div>
+                    <div class="font-medium">Excel Report</div>
+                    <div class="text-xs text-gray-500">Comprehensive data</div>
+                  </div>
                 </a>
-                <a href="/admin/reports/comprehensive/csv" class="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded">
-                  <i class="fas fa-file-csv text-blue-600"></i> Export to CSV
+                <a href="/admin/dashboard/export/csv" class="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-lg transition-colors">
+                  <i class="fas fa-file-csv text-blue-600 text-lg"></i>
+                  <div>
+                    <div class="font-medium">CSV Report</div>
+                    <div class="text-xs text-gray-500">Lightweight format</div>
+                  </div>
                 </a>
               </div>
             </div>
@@ -78,918 +68,837 @@ if (typeof report !== 'undefined' && report && report.monthlyTrend && Array.isAr
       </div>
     </div>
 
-    <!-- KPI Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      <!-- Revenue (Delivered Only) -->
-      <div class="bg-white rounded-xl p-6 shadow-sm border hover:shadow-md transition-shadow">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm font-medium text-gray-600">Delivered Revenue</p>
-            <p class="text-2xl font-bold text-gray-900">Rs <%= (report.revenueSummary?.totalRevenue || 0).toLocaleString('en-IN') %></p>
-            <div class="flex items-center gap-2 mt-1">
-              <p class="text-sm text-green-600">
-                <i class="fas fa-check-circle"></i> 
-                <%= report.revenueSummary?.totalOrders || 0 %> orders
-              </p>
-              <% if (report.revenueSummary?.cancelledValue > 0) { %>
-                <p class="text-xs text-red-500">
-                  Rs <%= report.revenueSummary.cancelledValue.toLocaleString('en-IN') %> cancelled
-                </p>
-              <% } %>
-            </div>
+    <!-- Flash Messages -->
+    <% if (success && success.length) { %>
+      <div class="mb-6 p-4 rounded-lg bg-green-50 border border-green-200 text-green-800">
+        <% success.forEach(msg => { %>
+          <div class="flex items-center gap-2">
+            <i class="fas fa-check-circle"></i>
+            <%= msg %>
           </div>
-          <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-            <i class="fas fa-rupee-sign text-blue-600"></i>
-          </div>
-        </div>
+        <% }) %>
       </div>
-
-      <!-- Revenue Efficiency -->
-      <div class="bg-white rounded-xl p-6 shadow-sm border hover:shadow-md transition-shadow">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm font-medium text-gray-600">Revenue Efficiency</p>
-            <p class="text-2xl font-bold text-gray-900"><%= ((report.salesMetrics?.revenueEfficiency || 0) * 100).toFixed(1) %>%</p>
-            <p class="text-sm text-blue-600 mt-1">
-              <i class="fas fa-chart-line"></i>
-              Delivered vs Total Value
-            </p>
-          </div>
-          <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-            <i class="fas fa-percentage text-green-600"></i>
-          </div>
-        </div>
-      </div>
-
-      <!-- Products -->
-      <div class="bg-white rounded-xl p-6 shadow-sm border hover:shadow-md transition-shadow">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm font-medium text-gray-600">Total Products</p>
-            <p class="text-2xl font-bold text-gray-900"><%= report.totalProducts || 0 %></p>
-            <p class="text-sm text-purple-600 mt-1">
-              <i class="fas fa-check-circle"></i>
-              <%= report.activeProducts || 0 %> active
-            </p>
-          </div>
-          <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-            <i class="fas fa-box text-purple-600"></i>
-          </div>
-        </div>
-      </div>
-
-      <!-- Mixed Orders -->
-      <div class="bg-white rounded-xl p-6 shadow-sm border hover:shadow-md transition-shadow">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm font-medium text-gray-600">Mixed Orders</p>
-            <p class="text-2xl font-bold text-gray-900"><%= ((report.salesMetrics?.mixedOrderRate || 0) * 100).toFixed(1) %>%</p>
-            <p class="text-sm text-yellow-600 mt-1">
-              <i class="fas fa-exclamation-triangle"></i>
-              Partial delivery/cancel
-            </p>
-          </div>
-          <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-            <i class="fas fa-exclamation-triangle text-yellow-600"></i>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Mixed Order Analytics -->
-    <% if (report.mixedOrderAnalytics && report.mixedOrderAnalytics.summary || report.revenueSummary.cancelledValue > 0) { %>
-    <div class="bg-white rounded-xl p-6 shadow-sm border mb-8">
-      <div class="flex items-center justify-between mb-6">
-        <div>
-          <h3 class="text-lg font-semibold text-gray-900">Order Fulfillment Analysis</h3>
-          <p class="text-sm text-gray-600 mt-1">Breakdown of order completion patterns</p>
-        </div>
-        <div class="text-right">
-          <p class="text-sm text-gray-600">Total Orders: <span class="font-semibold"><%= report.mixedOrderAnalytics.summary.totalOrders || 0 %></span></p>
-          <p class="text-xs text-gray-500">Fulfillment Rate: <%= ((report.salesMetrics?.fulfillmentRate || 0) * 100).toFixed(1) %>%</p>
-        </div>
-      </div>
-      
-      <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <% 
-        const orderTypes = report.mixedOrderAnalytics.summary.orderTypes || {};
-        const typeConfigs = {
-          'fully_delivered': { label: 'Fully Delivered', color: 'green', icon: 'check-circle' },
-          'fully_cancelled': { label: 'Fully Cancelled', color: 'red', icon: 'times-circle' },
-          'mixed_delivered_cancelled': { label: 'Mixed Status', color: 'yellow', icon: 'exclamation-triangle' },
-          'partially_delivered': { label: 'Partially Delivered', color: 'blue', icon: 'clock' },
-          'pending_processing': { label: 'Pending/Processing', color: 'gray', icon: 'hourglass-half' }
-        };
-        %>
-        <% Object.keys(typeConfigs).forEach(type => { %>
-          <% const count = orderTypes[type] || 0; %>
-          <% const config = typeConfigs[type]; %>
-          <div class="text-center p-4 bg-<%= config.color %>-50 rounded-lg border border-<%= config.color %>-100">
-            <div class="text-<%= config.color %>-600 mb-2">
-              <i class="fas fa-<%= config.icon %> text-2xl"></i>
-            </div>
-            <div class="text-xl font-bold text-<%= config.color %>-800"><%= count %></div>
-            <div class="text-xs text-<%= config.color %>-600 mt-1 leading-tight"><%= config.label %></div>
-          </div>
-        <% }); %>
-      </div>
-      
-      <!-- Revenue Breakdown -->
-      <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="bg-green-50 rounded-lg p-4 border border-green-100">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm text-green-600 font-medium">Delivered Revenue</p>
-              <p class="text-xl font-bold text-green-800">Rs <%= (report.mixedOrderAnalytics?.summary?.totalDeliveredValue || report.revenueSummary?.totalRevenue || 0).toLocaleString('en-IN') %></p>
-            </div>
-            <i class="fas fa-check-circle text-green-500 text-2xl"></i>
-          </div>
-        </div>
-        
-        <div class="bg-red-50 rounded-lg p-4 border border-red-100">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm text-red-600 font-medium">Cancelled Value</p>
-              <p class="text-xl font-bold text-red-800">Rs <%= (report.mixedOrderAnalytics?.summary?.totalCancelledValue || report.revenueSummary?.cancelledValue || 0).toLocaleString('en-IN') %></p>
-            </div>
-            <i class="fas fa-times-circle text-red-500 text-2xl"></i>
-          </div>
-        </div>
-        
-        <div class="bg-blue-50 rounded-lg p-4 border border-blue-100">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm text-blue-600 font-medium">Total Order Value</p>
-              <p class="text-xl font-bold text-blue-800">Rs <%= (report.mixedOrderAnalytics?.summary?.totalOrderValue || (report.revenueSummary?.totalRevenue || 0) + (report.revenueSummary?.cancelledValue || 0)).toLocaleString('en-IN') %></p>
-            </div>
-            <i class="fas fa-shopping-cart text-blue-500 text-2xl"></i>
-          </div>
-        </div>
-      </div>
-    </div>
     <% } %>
 
-    <!-- Charts and Tables -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 mb-8">
-      
-      <!-- Sales Chart -->
-      <div class="lg:col-span-2 bg-white rounded-xl p-4 lg:p-6 shadow-sm border">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <h3 class="text-lg font-semibold text-gray-900">Sales Trend</h3>
-          <div class="flex items-center gap-4">
-            <select id="trendMetric" class="text-sm border border-gray-300 rounded px-3 py-1 w-full sm:w-auto">
-              <option value="revenue">Revenue</option>
-              <option value="orders">Orders</option>
-            </select>
+    <% if (error && error.length) { %>
+      <div class="mb-6 p-4 rounded-lg bg-red-50 border border-red-200 text-red-800">
+        <% error.forEach(msg => { %>
+          <div class="flex items-center gap-2">
+            <i class="fas fa-exclamation-circle"></i>
+            <%= msg %>
           </div>
-        </div>
-        <div class="h-64 sm:h-80">
-          <canvas id="salesChart"></canvas>
+        <% }) %>
+      </div>
+    <% } %>
+
+    <!-- Key Metrics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <!-- Total Orders -->
+      <div class="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-full -mr-10 -mt-10"></div>
+        <div class="relative">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+              <i class="fas fa-shopping-cart text-white text-lg"></i>
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Total Orders</p>
+              <p class="text-2xl font-bold text-gray-900">
+                <%= (orderStats && orderStats.totalOrders) ? orderStats.totalOrders.toLocaleString() : '0' %>
+              </p>
+            </div>
+          </div>
+          <% if (orderStats && orderStats.fulfillmentRate) { %>
+            <div class="flex items-center gap-2 bg-green-50 px-3 py-2 rounded-lg">
+              <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <p class="text-sm font-medium text-green-700"><%= orderStats.fulfillmentRate %>% fulfilled</p>
+            </div>
+          <% } %>
         </div>
       </div>
 
-      <!-- Top Products -->
-      <div class="bg-white rounded-xl p-4 lg:p-6 shadow-sm border">
-        <h3 class="text-lg font-semibold text-gray-900 mb-6">Top Products</h3>
-        <script type="application/json" id="topProductsData"><%- JSON.stringify(report.topProducts || []) %></script>
-        <div class="space-y-4" id="topProductsList">
-          <% (report.topProducts || []).slice(0, 5).forEach((product, index) => { %>
-            <div class="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
-              <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <span class="text-sm font-bold text-blue-600">#<%= index + 1 %></span>
-              </div>
-              <div class="flex-1 min-w-0">
-                <p class="text-sm font-medium text-gray-900 truncate"><%= product.name %></p>
-                <p class="text-xs text-gray-500"><%= product.totalQuantity %> units sold</p>
-              </div>
-              <div class="text-right">
-                <p class="text-sm font-medium text-gray-900">Rs <%= (product.totalRevenue || 0).toLocaleString('en-IN') %></p>
-              </div>
+      <!-- Total Revenue -->
+      <div class="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-full -mr-10 -mt-10"></div>
+        <div class="relative">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg">
+              <i class="fas fa-rupee-sign text-white text-lg"></i>
             </div>
-          <% }) %>
+            <div>
+              <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Total Revenue</p>
+              <p class="text-2xl font-bold text-gray-900">
+                Rs <%= (orderStats && orderStats.totalRevenue) ? orderStats.totalRevenue.toLocaleString() : (revenueStats && revenueStats.totalRevenue) ? revenueStats.totalRevenue.toLocaleString() : '0' %>
+              </p>
+            </div>
+          </div>
+          <% 
+            const growthRate = (revenueStats && revenueStats.growthRate !== undefined) ? revenueStats.growthRate : 0;
+            const hasGrowthData = revenueStats && revenueStats.growthRate !== undefined;
+          %>
+          <% if (hasGrowthData) { %>
+            <div class="flex items-center gap-2 bg-<%= growthRate >= 0 ? 'green' : 'red' %>-50 px-3 py-2 rounded-lg">
+              <i class="fas fa-<%= growthRate >= 0 ? 'arrow-up' : 'arrow-down' %> text-<%= growthRate >= 0 ? 'green' : 'red' %>-600 text-sm"></i>
+              <p class="text-sm font-medium text-<%= growthRate >= 0 ? 'green' : 'red' %>-700">
+                <%= growthRate >= 0 ? '+' : '' %><%= growthRate %>% vs last period
+              </p>
+            </div>
+          <% } else { %>
+            <div class="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-lg">
+              <i class="fas fa-info-circle text-gray-600 text-sm"></i>
+              <p class="text-sm font-medium text-gray-700">No comparison data</p>
+            </div>
+          <% } %>
         </div>
-        <% if ((report.topProducts || []).length > 5) { %>
-          <div class="mt-4 text-center">
-            <button onclick="toggleTopProducts()" id="topProductsBtn" class="text-sm text-blue-600 hover:text-blue-700">
-              Show <%= (report.topProducts || []).length - 5 %> more products
-            </button>
+      </div>
+
+      <!-- Active Products -->
+      <div class="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-purple-500/10 to-purple-600/10 rounded-full -mr-10 -mt-10"></div>
+        <div class="relative">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+              <i class="fas fa-box text-white text-lg"></i>
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Active Products</p>
+              <p class="text-2xl font-bold text-gray-900">
+                <%= (productStats && productStats.activeProducts) ? productStats.activeProducts.toLocaleString() : '0' %>
+              </p>
+            </div>
+          </div>
+          <% if (inventoryAlerts && inventoryAlerts.lowStock && inventoryAlerts.lowStock.length > 0) { %>
+            <div class="flex items-center gap-2 bg-orange-50 px-3 py-2 rounded-lg">
+              <i class="fas fa-exclamation-triangle text-orange-600 text-sm"></i>
+              <p class="text-sm font-medium text-orange-700"><%= inventoryAlerts.lowStock.length %> low stock alerts</p>
+            </div>
+          <% } %>
+        </div>
+      </div>
+
+      <!-- Stock Value -->
+      <div class="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-indigo-500/10 to-indigo-600/10 rounded-full -mr-10 -mt-10"></div>
+        <div class="relative">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+              <i class="fas fa-warehouse text-white text-lg"></i>
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Stock Value</p>
+              <p class="text-2xl font-bold text-gray-900">
+                Rs <%= (productStats && productStats.stockValue) ? productStats.stockValue.toLocaleString() : '0' %>
+              </p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 bg-blue-50 px-3 py-2 rounded-lg">
+            <i class="fas fa-chart-pie text-blue-600 text-sm"></i>
+            <p class="text-sm font-medium text-blue-700">Total inventory value</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+      <!-- Sales Trend Chart -->
+      <div class="lg:col-span-2 bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-lg transition-shadow">
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h3 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+              <i class="fas fa-chart-line text-blue-600"></i>
+              Sales Trend
+            </h3>
+            <p class="text-sm text-gray-500 mt-1">
+              <%= new Date(dateRange.startDate).toLocaleDateString() %> - <%= new Date(dateRange.endDate).toLocaleDateString() %>
+            </p>
+          </div>
+          <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2 bg-blue-50 px-3 py-2 rounded-lg">
+              <div class="w-3 h-3 bg-blue-500 rounded-full"></div>
+              <span class="text-sm font-medium text-blue-700">Revenue</span>
+            </div>
+            <div class="flex items-center gap-2 bg-green-50 px-3 py-2 rounded-lg">
+              <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+              <span class="text-sm font-medium text-green-700">Orders</span>
+            </div>
+          </div>
+        </div>
+        
+        <% if (salesTrend && salesTrend.length > 0) { %>
+          <div class="h-80">
+            <canvas id="salesTrendChart"></canvas>
+          </div>
+        <% } else { %>
+          <div class="h-80 flex items-center justify-center text-gray-400">
+            <div class="text-center">
+              <i class="fas fa-chart-line text-5xl mb-4"></i>
+              <p class="text-lg font-medium">No sales data available</p>
+              <p class="text-sm">Data will appear once orders are placed</p>
+            </div>
           </div>
         <% } %>
+      </div>
 
-        <!-- Top Variants -->
-        <div class="mt-6">
-          <h4 class="text-sm font-medium text-gray-700 mb-3">Top Variants</h4>
-          <script type="application/json" id="topVariantsData"><%- JSON.stringify(report.variantSummary?.byQuantity || []) %></script>
-          <div class="space-y-3">
-            <% (report.variantSummary?.byQuantity || []).slice(0,5).forEach((v, idx) => { 
-                 const priceEvents = (report.priceChangeEvents || []).find(p => p.variantSku === v.variantSku);
-                 const lastPriceEvent = priceEvents && priceEvents.events && priceEvents.events.length ? priceEvents.events[priceEvents.events.length - 1] : null;
-            %>
-              <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-                <div>
-                  <p class="text-sm font-medium text-gray-900"><%= v.productTitle || 'Unknown' %></p>
-                  <p class="text-xs text-gray-500">SKU: <%= v.variantSku || 'N/A' %></p>
-                </div>
-                <div class="text-right">
-                  <p class="text-sm font-medium text-gray-900"><%= v.totalQuantity || 0 %> units</p>
-                  <p class="text-xs text-gray-500">Rs <%= (v.totalRevenue || 0).toLocaleString('en-IN') %></p>
-                  <% if (lastPriceEvent) { %>
-                    <p class="text-xs mt-1 <%= lastPriceEvent.delta > 0 ? 'text-green-600' : 'text-red-600' %>">Price change: <%= lastPriceEvent.delta > 0 ? '+' : '' %><%= lastPriceEvent.delta.toLocaleString('en-IN') %> (<%= lastPriceEvent.percent ? lastPriceEvent.percent.toFixed(1) + '%' : '—' %>)</p>
-                  <% } %>
-                </div>
-              </div>
-            <% }) %>
-            <% if ((report.variantSummary?.byQuantity || []).length > 5) { %>
-              <div class="mt-2 text-center">
-                <button onclick="toggleTopVariants()" id="topVariantsBtn" class="text-sm text-blue-600 hover:text-blue-700">Show more</button>
-              </div>
-            <% } %>
-          </div>
+      <!-- Order Status Distribution -->
+      <div class="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-lg transition-shadow">
+        <div class="mb-6">
+          <h3 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+            <i class="fas fa-chart-pie text-purple-600"></i>
+            Order Status
+          </h3>
+          <p class="text-sm text-gray-500 mt-1">Current period breakdown</p>
         </div>
+        
+        <% if (orderStatusAnalytics && orderStatusAnalytics.raw && orderStatusAnalytics.raw.length > 0) { %>
+          <!-- Mixed Order Alert -->
+          <% 
+            const mixedOrders = (recentOrders || []).filter(order => {
+              if (!order.items || order.items.length <= 1) return false;
+              const statuses = order.items.map(item => item.status || 'pending');
+              return new Set(statuses).size > 1;
+            });
+          %>
+          <% if (mixedOrders.length > 0) { %>
+            <div class="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+              <div class="flex items-center gap-2 text-orange-800">
+                <i class="fas fa-exclamation-triangle text-orange-600"></i>
+                <span class="text-sm font-medium"><%= mixedOrders.length %> Mixed Status Orders</span>
+              </div>
+              <p class="text-xs text-orange-600 mt-1">Orders with items in different statuses require attention</p>
+            </div>
+          <% } %>
+          
+          <div class="space-y-4">
+            <% ['delivered', 'shipped', 'processing', 'pending', 'cancelled'].forEach(status => { %>
+              <% const statusData = orderStatusAnalytics[status]; %>
+              <% if (statusData && statusData.count > 0) { %>
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-3">
+                    <div class="w-3 h-3 rounded-full <%= 
+                      status === 'pending' ? 'bg-yellow-500' :
+                      status === 'processing' ? 'bg-blue-500' :
+                      status === 'shipped' ? 'bg-purple-500' :
+                      status === 'delivered' ? 'bg-green-500' :
+                      'bg-red-500'
+                    %>"></div>
+                    <span class="text-sm font-medium text-gray-700 capitalize"><%= status %></span>
+                  </div>
+                  <div class="text-right">
+                    <div class="text-sm font-semibold text-gray-900">
+                      <%= statusData.count %>
+                    </div>
+                    <div class="text-xs text-gray-500">
+                      Rs <%= statusData.revenue.toLocaleString() %>
+                    </div>
+                  </div>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                  <div class="h-2 rounded-full <%= 
+                    status === 'pending' ? 'bg-yellow-500' :
+                    status === 'processing' ? 'bg-blue-500' :
+                    status === 'shipped' ? 'bg-purple-500' :
+                    status === 'delivered' ? 'bg-green-500' :
+                    'bg-red-500'
+                  %>" style="width: <%= Math.min(100, (statusData.count / (orderStats?.totalOrders || 1)) * 100) %>%"></div>
+                </div>
+              <% } %>
+            <% }) %>
+          </div>
+        <% } else { %>
+          <div class="h-64 flex items-center justify-center text-gray-400">
+            <div class="text-center">
+              <i class="fas fa-chart-pie text-4xl mb-3"></i>
+              <p class="font-medium">No order data</p>
+              <p class="text-xs">Orders will appear here</p>
+            </div>
+          </div>
+        <% } %>
       </div>
     </div>
 
-    <!-- Recent Activity & Low Stock -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 mb-8">
-      
-      <!-- Recent Orders -->
-      <div class="bg-white rounded-xl p-4 lg:p-6 shadow-sm border">
-        <div class="flex items-center justify-between mb-6">
-          <h3 class="text-lg font-semibold text-gray-900">Recent Orders</h3>
-          <a href="/admin/v1/order" class="text-sm text-blue-600 hover:text-blue-700">View all →</a>
+    <!-- Top Performance Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+      <!-- Top Products -->
+      <div class="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-lg transition-all duration-300">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <i class="fas fa-trophy text-yellow-500"></i>
+              Top Products
+            </h3>
+            <p class="text-xs text-gray-500 mt-1">Best performing items</p>
+          </div>
+          <a href="/admin/v1/products" class="text-xs text-blue-600 hover:text-blue-700 font-medium">View All</a>
         </div>
-        <script type="application/json" id="recentOrdersData"><%- JSON.stringify(report.recentOrders || []) %></script>
-        <div class="space-y-3" id="recentOrdersList">
-          <% if (report.recentOrders && report.recentOrders.length > 0) { %>
-            <% report.recentOrders.slice(0, 5).forEach(order => { %>
-              <div class="flex items-start sm:items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                <div class="w-8 h-8 sm:w-10 sm:h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <i class="fas fa-receipt text-green-600 text-sm"></i>
+        
+        <div class="space-y-2">
+          <% if (topProducts && topProducts.length > 0) { %>
+            <% topProducts.slice(0, 3).forEach((product, index) => { %>
+              <div class="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
+                <div class="w-6 h-6 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center text-white text-xs font-bold">
+                  <%= index + 1 %>
                 </div>
                 <div class="flex-1 min-w-0">
-                  <p class="text-sm font-medium text-gray-900 truncate">Order #<%= (order._id || '').toString().slice(-6) %></p>
-                  <p class="text-xs text-gray-500"><%= order.customerName || 'Customer' %></p>
-                  <p class="text-xs text-gray-400 sm:hidden"><%= new Date(order.createdAt).toLocaleDateString() %></p>
-                </div>
-                <div class="text-right flex-shrink-0">
-                  <p class="text-sm font-medium text-green-600">Rs <%= (order.totalAmount || order.totalPrice || 0).toLocaleString('en-IN') %></p>
-                  <p class="text-xs text-gray-500"><%= order.items?.length || order.totalItem || 0 %> items</p>
-                  <p class="text-xs text-gray-400 hidden sm:block"><%= new Date(order.createdAt).toLocaleDateString() %></p>
+                  <p class="font-medium text-gray-900 text-xs truncate">
+                    <%= product.productTitle || 'Unknown Product' %>
+                  </p>
+                  <div class="flex items-center gap-3 mt-1">
+                    <span class="text-xs text-gray-500"><%= product.totalSold || 0 %> sold</span>
+                    <span class="text-xs font-medium text-green-600">Rs <%= (product.totalRevenue || 0).toLocaleString() %></span>
+                  </div>
                 </div>
               </div>
             <% }) %>
-            <% if (report.recentOrders.length > 5) { %>
-              <div class="mt-4 text-center">
-                <button onclick="toggleRecentOrders()" id="recentOrdersBtn" class="text-sm text-blue-600 hover:text-blue-700">
-                  Show <%= report.recentOrders.length - 5 %> more orders
-                </button>
-              </div>
-            <% } %>
           <% } else { %>
-            <div class="text-center py-8">
-              <i class="fas fa-shopping-bag text-4xl text-gray-300 mb-4"></i>
-              <p class="text-gray-500">No recent orders</p>
+            <div class="text-center py-8 text-gray-400">
+              <i class="fas fa-chart-bar text-2xl mb-2"></i>
+              <p class="text-xs">No sales data</p>
             </div>
           <% } %>
         </div>
       </div>
 
-      <!-- Low Stock Alerts -->
-      <div class="bg-white rounded-xl p-4 lg:p-6 shadow-sm border">
-        <div class="flex items-center justify-between mb-6">
-          <h3 class="text-lg font-semibold text-gray-900">Low Stock Alerts</h3>
-          <a href="/admin/inventory/low-stock" class="text-sm text-red-600 hover:text-red-700">View all →</a>
+      <!-- Top Categories -->
+      <div class="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-lg transition-all duration-300">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <i class="fas fa-tags text-purple-500"></i>
+              Top Categories
+            </h3>
+            <p class="text-xs text-gray-500 mt-1">Best performing categories</p>
+          </div>
+          <a href="/admin/v1/parameters/categories" class="text-xs text-blue-600 hover:text-blue-700 font-medium">View All</a>
         </div>
-        <script type="application/json" id="lowStockData"><%- JSON.stringify(report.lowStockAlerts || []) %></script>
-        <div class="space-y-4" id="lowStockList">
-          <% if (report.lowStockAlerts && report.lowStockAlerts.length > 0) { %>
-            <% report.lowStockAlerts.slice(0, 5).forEach(alert => { %>
-              <div class="flex items-center space-x-4 p-3 bg-red-50 rounded-lg">
-                <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                  <i class="fas fa-exclamation-triangle text-red-600"></i>
+        
+        <div class="space-y-2">
+          <% if (topCategories && topCategories.length > 0) { %>
+            <% topCategories.slice(0, 3).forEach((category, index) => { %>
+              <div class="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
+                <div class="w-6 h-6 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center text-white text-xs font-bold">
+                  <%= index + 1 %>
                 </div>
                 <div class="flex-1 min-w-0">
-                  <p class="text-sm font-medium text-gray-900 truncate"><%= alert.title || alert.productTitle || 'Product' %></p>
-                  <p class="text-xs text-gray-500">SKU: <%= alert.sku || alert.variantSku || 'N/A' %></p>
-                </div>
-                <div class="text-right">
-                  <p class="text-sm font-bold text-red-600"><%= alert.stock || alert.remainingStock || alert.currentStock || 0 %></p>
-                  <p class="text-xs text-gray-500">units left</p>
+                  <p class="font-medium text-gray-900 text-xs truncate"><%= category.categoryName || 'Unknown' %></p>
+                  <div class="flex items-center gap-3 mt-1">
+                    <span class="text-xs text-gray-500"><%= category.totalSold || 0 %> items</span>
+                    <span class="text-xs font-medium text-green-600">Rs <%= (category.totalRevenue || 0).toLocaleString() %></span>
+                  </div>
                 </div>
               </div>
             <% }) %>
-            <% if (report.lowStockAlerts.length > 5) { %>
-              <div class="mt-4 text-center">
-                <button onclick="toggleLowStock()" id="lowStockBtn" class="text-sm text-red-600 hover:text-red-700">
-                  Show <%= report.lowStockAlerts.length - 5 %> more alerts
-                </button>
-              </div>
-            <% } %>
           <% } else { %>
-            <div class="text-center py-8">
-              <i class="fas fa-check-circle text-4xl text-green-500 mb-4"></i>
-              <p class="text-gray-500">All products are well stocked</p>
+            <div class="text-center py-8 text-gray-400">
+              <i class="fas fa-tags text-2xl mb-2"></i>
+              <p class="text-xs">No category data</p>
+            </div>
+          <% } %>
+        </div>
+      </div>
+
+      <!-- Top Brands -->
+      <div class="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-lg transition-all duration-300">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <i class="fas fa-award text-orange-500"></i>
+              Top Brands
+            </h3>
+            <p class="text-xs text-gray-500 mt-1">Best performing brands</p>
+          </div>
+          <a href="/admin/v1/parameters/brands" class="text-xs text-blue-600 hover:text-blue-700 font-medium">View All</a>
+        </div>
+        
+        <div class="space-y-2">
+          <% if (topBrands && topBrands.length > 0) { %>
+            <% topBrands.slice(0, 3).forEach((brand, index) => { %>
+              <div class="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
+                <div class="w-6 h-6 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center text-white text-xs font-bold">
+                  <%= index + 1 %>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="font-medium text-gray-900 text-xs truncate"><%= brand.brandName || 'Unknown Brand' %></p>
+                  <div class="flex items-center gap-3 mt-1">
+                    <span class="text-xs text-gray-500"><%= brand.totalSold || 0 %> items</span>
+                    <span class="text-xs font-medium text-green-600">Rs <%= (brand.totalRevenue || 0).toLocaleString() %></span>
+                  </div>
+                </div>
+              </div>
+            <% }) %>
+          <% } else { %>
+            <div class="text-center py-8 text-gray-400">
+              <i class="fas fa-award text-2xl mb-2"></i>
+              <p class="text-xs">No brand data</p>
             </div>
           <% } %>
         </div>
       </div>
     </div>
 
-    <!-- Sales Overview & Inventory Stats -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 mb-8">
-      
-      <!-- Sales Overview -->
-      <div class="bg-white rounded-xl p-4 lg:p-6 shadow-sm border">
-        <h3 class="text-lg font-semibold text-gray-900 mb-6">Sales Overview</h3>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div class="bg-blue-50 rounded-lg p-4 text-center">
-            <p class="text-sm text-blue-600 mb-2">Items Sold</p>
-            <p class="text-xl lg:text-2xl font-bold text-blue-800"><%= report.salesMetrics?.totalItemsSold || 0 %></p>
-          </div>
-          <div class="bg-green-50 rounded-lg p-4 text-center">
-            <p class="text-sm text-green-600 mb-2">Unique Products</p>
-            <p class="text-xl lg:text-2xl font-bold text-green-800"><%= report.salesMetrics?.uniqueProductCount || 0 %></p>
-          </div>
+    <!-- Secondary Analytics -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <!-- Top SubCategories -->
+      <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+        <div class="flex items-center justify-between mb-6">
+          <h3 class="text-lg font-semibold text-gray-800">📋 Top SubCategories</h3>
+          <a href="/admin/v1/parameters/subcategories" class="text-sm text-blue-600 hover:text-blue-800">View All</a>
         </div>
-        <div class="mt-4 p-4 bg-purple-50 rounded-lg">
-          <div class="flex justify-between items-center">
-            <span class="text-sm text-purple-600">Stock Value</span>
-            <span class="text-base lg:text-lg font-bold text-purple-800">Rs <%= (report.stockValue || 0).toLocaleString('en-IN') %></span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Inventory Stats -->
-      <div class="bg-white rounded-xl p-4 lg:p-6 shadow-sm border">
-        <h3 class="text-lg font-semibold text-gray-900 mb-6">Inventory Status</h3>
+        
         <div class="space-y-4">
-          <div class="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-            <div class="flex items-center gap-3">
-              <div class="w-3 h-3 bg-green-500 rounded-full"></div>
-              <span class="text-sm font-medium text-gray-700">In Stock</span>
+          <% if (topSubCategories && topSubCategories.length > 0) { %>
+            <% topSubCategories.slice(0, 5).forEach((subcat, index) => { %>
+              <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
+                    <span class="text-sm font-bold text-indigo-600"><%= index + 1 %></span>
+                  </div>
+                  <div>
+                    <p class="font-medium text-gray-900 text-sm"><%= subcat.subCategoryName || 'Unknown' %></p>
+                    <p class="text-xs text-gray-500"><%= subcat.totalSold || 0 %> items</p>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <p class="text-sm font-semibold text-gray-900">
+                    Rs <%= (subcat.totalRevenue || 0).toLocaleString() %>
+                  </p>
+                </div>
+              </div>
+            <% }) %>
+          <% } else { %>
+            <div class="text-center py-8 text-gray-500">
+              <i class="fas fa-list text-3xl mb-2"></i>
+              <p>No subcategory sales data</p>
             </div>
-            <span class="text-lg font-bold text-green-600"><%= report.inStockVariants || 0 %></span>
-          </div>
-          <div class="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
-            <div class="flex items-center gap-3">
-              <div class="w-3 h-3 bg-yellow-500 rounded-full"></div>
-              <span class="text-sm font-medium text-gray-700">Low Stock</span>
-            </div>
-            <span class="text-lg font-bold text-yellow-600"><%= report.lowStockVariants || 0 %></span>
-          </div>
-          <div class="flex items-center justify-between p-3 bg-red-50 rounded-lg">
-            <div class="flex items-center gap-3">
-              <div class="w-3 h-3 bg-red-500 rounded-full"></div>
-              <span class="text-sm font-medium text-gray-700">Out of Stock</span>
-            </div>
-            <span class="text-lg font-bold text-red-600"><%= report.outOfStockVariants || 0 %></span>
-          </div>
+          <% } %>
         </div>
       </div>
-    </div>
 
-    <!-- Low Stock Threshold Section -->
-    <div class="bg-white rounded-xl p-4 lg:p-6 shadow-sm border mb-8">
-      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
-        <div>
-          <h3 class="text-lg font-semibold text-gray-900">Low Stock Management</h3>
-          <p class="text-sm text-gray-600">Products below their individual threshold levels</p>
-        </div>
-        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-          <label class="text-sm text-gray-600">Global Threshold:</label>
-          <div class="flex items-center gap-2">
-            <input type="number" id="globalThreshold" value="5" min="0" max="100" 
-                   class="w-20 px-2 py-1 border border-gray-300 rounded text-sm">
-            <button onclick="updateGlobalThreshold()" 
-                    class="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700">
-              Update
-            </button>
-          </div>
-        </div>
-      </div>
-      
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-        <!-- Low Stock Summary -->
-        <div class="bg-gradient-to-r from-red-50 to-orange-50 rounded-lg p-4">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm text-red-600 font-medium">Critical Items</p>
-              <p class="text-2xl font-bold text-red-700"><%= (report.lowStockAlerts || []).filter(item => (item.stock || item.currentStock || 0) === 0).length %></p>
-              <p class="text-xs text-red-500">Out of stock</p>
-            </div>
-            <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-              <i class="fas fa-exclamation-triangle text-red-600"></i>
-            </div>
-          </div>
+      <!-- Top Types -->
+      <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+        <div class="flex items-center justify-between mb-6">
+          <h3 class="text-lg font-semibold text-gray-800">🔖 Top Types</h3>
+          <a href="/admin/v1/parameters/types" class="text-sm text-blue-600 hover:text-blue-800">View All</a>
         </div>
         
-        <div class="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg p-4">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm text-yellow-600 font-medium">Low Stock</p>
-              <p class="text-2xl font-bold text-yellow-700"><%= (report.lowStockAlerts || []).filter(item => (item.stock || item.currentStock || 0) > 0).length %></p>
-              <p class="text-xs text-yellow-500">Below threshold</p>
+        <div class="space-y-4">
+          <% if (topTypes && topTypes.length > 0) { %>
+            <% topTypes.slice(0, 5).forEach((type, index) => { %>
+              <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 bg-pink-100 rounded-full flex items-center justify-center">
+                    <span class="text-sm font-bold text-pink-600"><%= index + 1 %></span>
+                  </div>
+                  <div>
+                    <p class="font-medium text-gray-900 text-sm"><%= type.typeName || 'Unknown' %></p>
+                    <p class="text-xs text-gray-500"><%= type.totalSold || 0 %> items</p>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <p class="text-sm font-semibold text-gray-900">
+                    Rs <%= (type.totalRevenue || 0).toLocaleString() %>
+                  </p>
+                </div>
+              </div>
+            <% }) %>
+          <% } else { %>
+            <div class="text-center py-8 text-gray-500">
+              <i class="fas fa-tag text-3xl mb-2"></i>
+              <p>No type sales data</p>
             </div>
-            <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-              <i class="fas fa-exclamation-circle text-yellow-600"></i>
-            </div>
-          </div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+
+    <!-- SubCategories and Types -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <!-- Recent Movements -->
+      <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+        <div class="flex items-center justify-between mb-6">
+          <h3 class="text-lg font-semibold text-gray-800">📈 Recent Movements</h3>
+          <a href="/admin/inventory/movements" class="text-sm text-blue-600 hover:text-blue-800">View All</a>
         </div>
         
-        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm text-blue-600 font-medium">Total Alerts</p>
-              <p class="text-2xl font-bold text-blue-700"><%= (report.lowStockAlerts || []).length %></p>
-              <p class="text-xs text-blue-500">Need attention</p>
+        <div class="space-y-4">
+          <% if (recentInventoryMovements && recentInventoryMovements.length > 0) { %>
+            <% recentInventoryMovements.slice(0, 5).forEach((movement, index) => { %>
+              <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 bg-<%= movement.type === 'sale' ? 'red' : movement.type === 'restock' ? 'green' : 'blue' %>-100 rounded-full flex items-center justify-center">
+                    <span class="text-sm font-bold text-<%= movement.type === 'sale' ? 'red' : movement.type === 'restock' ? 'green' : 'blue' %>-600"><%= index + 1 %></span>
+                  </div>
+                  <div>
+                    <p class="font-medium text-gray-900 text-sm"><%= (movement.productTitle || movement.product?.title || 'Unknown Product').substring(0, 20) %><%= (movement.productTitle || movement.product?.title || 'Unknown Product').length > 20 ? '...' : '' %></p>
+                    <p class="text-xs text-gray-500"><%= movement.type.charAt(0).toUpperCase() + movement.type.slice(1) %> • <%= movement.variantSku || 'N/A' %></p>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <p class="text-sm font-semibold text-gray-900">
+                    <%= movement.type === 'sale' ? '-' : '+' %><%= movement.quantity || 0 %> units
+                  </p>
+                </div>
+              </div>
+            <% }) %>
+          <% } else { %>
+            <div class="text-center py-8 text-gray-500">
+              <i class="fas fa-history text-3xl mb-2"></i>
+              <p>No recent movements</p>
             </div>
-            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <i class="fas fa-clipboard-list text-blue-600"></i>
-            </div>
-          </div>
+          <% } %>
         </div>
       </div>
-      
-      <!-- Low Stock Items Table -->
-      <div class="mt-6">
-        <div class="overflow-x-auto">
-          <table class="min-w-full">
-            <thead>
-              <tr class="border-b border-gray-200">
-                <th class="text-left py-3 px-2 lg:px-4 font-medium text-gray-600 text-sm">Product</th>
-                <th class="text-left py-3 px-2 lg:px-4 font-medium text-gray-600 text-sm hidden sm:table-cell">SKU</th>
-                <th class="text-left py-3 px-2 lg:px-4 font-medium text-gray-600 text-sm">Stock</th>
-                <th class="text-left py-3 px-2 lg:px-4 font-medium text-gray-600 text-sm hidden md:table-cell">Status</th>
-                <th class="text-left py-3 px-2 lg:px-4 font-medium text-gray-600 text-sm">Action</th>
-              </tr>
-            </thead>
-            <tbody id="lowStockTableBody">
-              <% if (report.lowStockAlerts && report.lowStockAlerts.length > 0) { %>
-                <% report.lowStockAlerts.slice(0, 10).forEach(alert => { 
-                  const currentStock = alert.stock || alert.currentStock || alert.remainingStock || 0;
-                  const isOutOfStock = currentStock === 0;
-                  const isCritical = currentStock <= 2;
-                %>
-                  <tr class="border-b border-gray-100 hover:bg-gray-50">
-                    <td class="py-3 px-2 lg:px-4">
-                      <div class="font-medium text-gray-900 text-sm lg:text-base truncate"><%= alert.title || alert.productTitle || 'Unknown Product' %></div>
-                      <div class="text-xs text-gray-500 sm:hidden">SKU: <%= alert.sku || alert.variantSku || 'N/A' %></div>
-                    </td>
-                    <td class="py-3 px-2 lg:px-4 text-sm text-gray-600 hidden sm:table-cell"><%= alert.sku || alert.variantSku || 'N/A' %></td>
-                    <td class="py-3 px-2 lg:px-4">
-                      <span class="text-base lg:text-lg font-bold <%= isOutOfStock ? 'text-red-600' : isCritical ? 'text-orange-600' : 'text-yellow-600' %>">
-                        <%= currentStock %>
-                      </span>
-                      <span class="text-xs lg:text-sm text-gray-500 block lg:inline">units</span>
-                    </td>
-                    <td class="py-3 px-2 lg:px-4 hidden md:table-cell">
-                      <% if (isOutOfStock) { %>
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                          <i class="fas fa-times-circle mr-1"></i> Out of Stock
-                        </span>
-                      <% } else if (isCritical) { %>
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                          <i class="fas fa-exclamation-triangle mr-1"></i> Critical
-                        </span>
-                      <% } else { %>
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                          <i class="fas fa-exclamation-circle mr-1"></i> Low Stock
-                        </span>
-                      <% } %>
-                    </td>
-                    <td class="py-3 px-2 lg:px-4">
-                      <a href="/admin/v1/products/<%= alert.productId || alert._id %>/edit" 
-                         class="inline-block px-2 lg:px-3 py-1 bg-yellow-600 text-white text-xs rounded hover:bg-yellow-700 text-center">
-                        <i class="fas fa-edit mr-1"></i>Restock
-                      </a>
-                    </td>
-                  </tr>
-                <% }) %>
-                <% if (report.lowStockAlerts.length > 10) { %>
-                  <tr>
-                    <td colspan="5" class="py-4 text-center">
-                      <button onclick="toggleLowStockTable()" class="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
-                        View all <%= report.lowStockAlerts.length %> items →
-                      </button>
-                    </td>
-                  </tr>
-                <% } %>
-              <% } else { %>
-                <tr>
-                  <td colspan="5" class="py-8 text-center">
-                    <div class="flex flex-col items-center">
-                      <i class="fas fa-check-circle text-4xl text-green-500 mb-2"></i>
-                      <p class="text-gray-500">All products are above their threshold levels</p>
-                    </div>
-                  </td>
-                </tr>
-              <% } %>
-            </tbody>
-          </table>
+
+      <!-- Inventory Alerts -->
+      <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+        <div class="flex items-center justify-between mb-6">
+          <h3 class="text-lg font-semibold text-gray-800">⚠️ Inventory Alerts</h3>
+          <a href="/admin/inventory/low-stock" class="text-sm text-blue-600 hover:text-blue-800">View All</a>
+        </div>
+        
+        <div class="space-y-4">
+          <% 
+            const inventoryAlertsList = [];
+            if (inventoryAlerts && inventoryAlerts.outOfStock) {
+              inventoryAlerts.outOfStock.forEach(product => {
+                if (product.variants && product.variants.length > 0) {
+                  product.variants.forEach(variant => {
+                    const stock = variant.stock || 0;
+                    if (stock === 0) {
+                      inventoryAlertsList.push({
+                        title: product.title,
+                        stock: stock,
+                        status: 'critical',
+                        sku: variant.sku
+                      });
+                    }
+                  });
+                } else {
+                  inventoryAlertsList.push({
+                    title: product.title,
+                    stock: 0,
+                    status: 'critical',
+                    sku: 'N/A'
+                  });
+                }
+              });
+            }
+            if (inventoryAlerts && inventoryAlerts.lowStock) {
+              inventoryAlerts.lowStock.forEach(product => {
+                if (product.variants && product.variants.length > 0) {
+                  product.variants.forEach(variant => {
+                    const stock = variant.stock || 0;
+                    const threshold = variant.lowStockAlert || 5;
+                    if (stock > 0 && stock <= threshold) {
+                      inventoryAlertsList.push({
+                        title: product.title,
+                        stock: stock,
+                        status: 'low',
+                        sku: variant.sku,
+                        threshold: threshold
+                      });
+                    }
+                  });
+                } else {
+                  const stock = product.stock || product.currentStock || 0;
+                  if (stock > 0 && stock <= 5) {
+                    inventoryAlertsList.push({
+                      title: product.title,
+                      stock: stock,
+                      status: 'low',
+                      sku: 'N/A',
+                      threshold: 5
+                    });
+                  }
+                }
+              });
+            }
+            inventoryAlertsList.sort((a, b) => {
+              if (a.status === 'critical' && b.status !== 'critical') return -1;
+              if (b.status === 'critical' && a.status !== 'critical') return 1;
+              return a.stock - b.stock;
+            });
+          %>
+          
+          <% if (inventoryAlertsList.length > 0) { %>
+            <% inventoryAlertsList.slice(0, 5).forEach((alert, index) => { %>
+              <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 bg-<%= alert.status === 'critical' ? 'red' : 'orange' %>-100 rounded-full flex items-center justify-center">
+                    <span class="text-sm font-bold text-<%= alert.status === 'critical' ? 'red' : 'orange' %>-600"><%= index + 1 %></span>
+                  </div>
+                  <div>
+                    <p class="font-medium text-gray-900 text-sm"><%= (alert.title || 'Unknown Product').substring(0, 20) %><%= (alert.title || 'Unknown Product').length > 20 ? '...' : '' %></p>
+                    <p class="text-xs text-gray-500"><%= alert.status === 'critical' ? 'Out of Stock' : 'Low Stock' %> • <%= alert.sku || 'N/A' %></p>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <p class="text-sm font-semibold text-<%= alert.status === 'critical' ? 'red' : 'orange' %>-700">
+                    <%= alert.stock %> units
+                  </p>
+                </div>
+              </div>
+            <% }) %>
+          <% } else { %>
+            <div class="text-center py-8 text-gray-500">
+              <i class="fas fa-check-circle text-3xl mb-2 text-green-500"></i>
+              <p class="text-green-600">All products well stocked!</p>
+            </div>
+          <% } %>
         </div>
       </div>
     </div>
 
-    <!-- Recent Movements -->
-    <div class="bg-white rounded-xl p-4 lg:p-6 shadow-sm border mb-8">
-      <div class="flex items-center justify-between mb-6">
-        <h3 class="text-lg font-semibold text-gray-900">Recent Inventory Movements</h3>
-        <a href="/admin/inventory/movements" class="text-sm text-blue-600 hover:text-blue-700">View all →</a>
+    <!-- Activity & Alerts Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Recent Orders -->
+      <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+        <div class="flex items-center justify-between mb-6">
+          <h3 class="text-lg font-semibold text-gray-800">🛒 Recent Orders</h3>
+          <a href="/admin/v1/order" class="text-sm text-blue-600 hover:text-blue-800">View All</a>
+        </div>
+        
+        <div class="space-y-4">
+          <% if (recentOrders && recentOrders.length > 0) { %>
+            <% recentOrders.slice(0, 5).forEach((order, index) => { %>
+              <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                    <span class="text-sm font-bold text-green-600"><%= index + 1 %></span>
+                  </div>
+                  <div>
+                    <p class="font-medium text-gray-900 text-sm">#<%= order._id.toString().slice(-6).toUpperCase() %></p>
+                    <p class="text-xs text-gray-500"><%= order.user?.fullname || 'Guest' %> • <%= order.items?.length || 0 %> items</p>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <p class="text-sm font-semibold text-gray-900">
+                    Rs <%= (order.totalPrice || 0).toLocaleString() %>
+                  </p>
+                  <span class="inline-flex px-2 py-1 rounded-full text-xs font-medium <%= 
+                    order.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                    order.status === 'processing' ? 'bg-blue-100 text-blue-700' :
+                    order.status === 'shipped' ? 'bg-purple-100 text-purple-700' :
+                    order.status === 'delivered' ? 'bg-green-100 text-green-700' :
+                    'bg-red-100 text-red-700'
+                  %>">
+                    <%= order.status %>
+                  </span>
+                </div>
+              </div>
+            <% }) %>
+          <% } else { %>
+            <div class="text-center py-8 text-gray-500">
+              <i class="fas fa-shopping-cart text-3xl mb-2"></i>
+              <p>No recent orders</p>
+            </div>
+          <% } %>
+        </div>
       </div>
-      <div class="overflow-x-auto">
-        <table class="min-w-full">
-          <thead>
-            <tr class="border-b border-gray-200">
-              <th class="text-left py-3 px-2 lg:px-4 font-medium text-gray-600 text-sm">Product</th>
-              <th class="text-left py-3 px-2 lg:px-4 font-medium text-gray-600 text-sm hidden sm:table-cell">SKU</th>
-              <th class="text-left py-3 px-2 lg:px-4 font-medium text-gray-600 text-sm">Movement</th>
-              <th class="text-left py-3 px-2 lg:px-4 font-medium text-gray-600 text-sm hidden md:table-cell">Date</th>
-            </tr>
-          </thead>
-          <tbody id="recentMovementsBody">
-            <% if (report.recentMovements && report.recentMovements.length > 0) { %>
-              <% report.recentMovements.slice(0, 5).forEach(movement => { %>
-                <tr class="border-b border-gray-100 hover:bg-gray-50">
-                  <td class="py-3 px-2 lg:px-4">
-                    <div class="font-medium text-gray-900 text-sm lg:text-base">
-                      <% 
-                        let productName = 'Product Not Available';
-                        if (movement.productTitle) {
-                          productName = movement.productTitle;
-                        } else if (movement.product && movement.product.title) {
-                          productName = movement.product.title;
-                        }
-                      %>
-                      <%= productName %>
-                    </div>
-                    <div class="text-xs text-gray-500 sm:hidden">SKU: <%= movement.variantSku || 'N/A' %></div>
-                  </td>
-                  <td class="py-3 px-2 lg:px-4 text-sm text-gray-600 hidden sm:table-cell"><%= movement.variantSku || 'N/A' %></td>
-                  <td class="py-3 px-2 lg:px-4">
-                    <span class="inline-flex items-center px-2 lg:px-2.5 py-0.5 rounded-full text-xs font-medium <%= movement.type === 'sale' ? 'bg-red-100 text-red-800' : movement.type === 'restock' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800' %>">
-                      <% if (movement.type === 'sale') { %>
-                        <i class="fas fa-minus mr-1"></i><%= movement.quantity %> sold
-                      <% } else if (movement.type === 'restock') { %>
-                        <i class="fas fa-plus mr-1"></i><%= movement.quantity %> added
-                      <% } else { %>
-                        <%= movement.quantity %> <%= movement.type %>
-                      <% } %>
-                    </span>
-                    <div class="text-xs text-gray-500 md:hidden mt-1"><%= new Date(movement.createdAt).toLocaleDateString() %></div>
-                  </td>
-                  <td class="py-3 px-2 lg:px-4 text-sm text-gray-600 hidden md:table-cell"><%= new Date(movement.createdAt).toLocaleDateString() %></td>
-                </tr>
-              <% }) %>
-              <% if (report.recentMovements.length > 5) { %>
-                <tr>
-                  <td colspan="4" class="py-4 text-center">
-                    <button onclick="toggleRecentMovements()" class="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
-                      View all movements →
-                    </button>
-                  </td>
-                </tr>
-              <% } %>
-            <% } else { %>
-              <tr>
-                <td colspan="4" class="py-8 text-center text-gray-500">No recent movements</td>
-              </tr>
-            <% } %>
-          </tbody>
-        </table>
-      </div>
-    </div>
 
+
+    </div>
   </div>
 </div>
 
-<!-- Scripts -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <script>
-  // Initialize date picker
-  flatpickr('#dateRange', {
-    mode: 'range',
-    dateFormat: 'Y-m-d',
-    maxDate: 'today',
-    onChange: function(selectedDates) {
-      if (selectedDates.length === 2) {
-        const start = selectedDates[0].toISOString().split('T')[0];
-        const end = selectedDates[1].toISOString().split('T')[0];
-        document.querySelector('input[name="startDate"]').value = start;
-        document.querySelector('input[name="endDate"]').value = end;
-      }
-    }
-  });
-
-  // Export menu toggle
-  document.getElementById('exportBtn').addEventListener('click', () => {
-    document.getElementById('exportMenu').classList.toggle('hidden');
-  });
-
-  // Close export menu on outside click
-  document.addEventListener('click', (e) => {
-    const exportMenu = document.getElementById('exportMenu');
-    const exportBtn = document.getElementById('exportBtn');
-    if (!exportMenu.contains(e.target) && !exportBtn.contains(e.target)) {
-      exportMenu.classList.add('hidden');
-    }
-  });
-
-  // Initialize sales chart
-  let salesChart;
-  function initSalesChart() {
-    const canvas = document.getElementById('salesChart');
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
-    
-    // Get chart data
-    let chartData, chartLabels, revenueData, orderData;
-    try {
-      const dataElement = document.getElementById('chartData');
-      if (dataElement) {
-        chartData = JSON.parse(dataElement.textContent);
-        chartLabels = chartData.labels || ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-        revenueData = chartData.revenue || new Array(12).fill(0);
-        orderData = chartData.orders || new Array(12).fill(0);
-      } else {
-        throw new Error('Chart data not found');
-      }
-    } catch (e) {
-      chartLabels = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-      revenueData = new Array(12).fill(0);
-      orderData = new Array(12).fill(0);
-    }
-    
-    if (salesChart) salesChart.destroy();
-
-    salesChart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: chartLabels,
-        datasets: [{
-          label: 'Revenue (Rs )',
-          data: revenueData,
-          borderColor: '#3b82f6',
-          backgroundColor: 'rgba(59, 130, 246, 0.1)',
-          borderWidth: 2,
-          fill: true,
-          tension: 0.3
-        }, {
-          label: 'Orders',
-          data: orderData,
-          borderColor: '#10b981',
-          backgroundColor: 'rgba(16, 185, 129, 0.1)',
-          borderWidth: 2,
-          fill: false,
-          tension: 0.3,
-          hidden: true
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: 'rgba(255, 255, 255, 0.95)',
-            titleColor: '#1f2937',
-            bodyColor: '#4b5563',
-            borderColor: '#e5e7eb',
-            borderWidth: 1,
-            callbacks: {
-              label: function(context) {
-                return context.datasetIndex === 0 
-                  ? `Revenue: Rs ${context.parsed.y.toLocaleString('en-IN')}`
-                  : `Orders: ${context.parsed.y} orders`;
-              }
-            }
-          }
-        },
-        scales: {
-          x: { grid: { display: false } },
-          y: {
-            beginAtZero: true,
-            grid: { color: '#f3f4f6' },
-            ticks: {
-              callback: function(value) {
-                return 'Rs ' + value.toLocaleString('en-IN');
-              }
-            }
-          }
-        }
-      }
-    });
-
-    // Handle metric selector
-    document.getElementById('trendMetric')?.addEventListener('change', function(e) {
-      const showRevenue = e.target.value === 'revenue';
-      salesChart.data.datasets[0].hidden = !showRevenue;
-      salesChart.data.datasets[1].hidden = showRevenue;
-      
-      // Update Y-axis formatting
-      if (showRevenue) {
-        salesChart.options.scales.y.ticks.callback = function(value) {
-          return 'Rs ' + value.toLocaleString('en-IN');
-        };
-      } else {
-        salesChart.options.scales.y.ticks.callback = function(value) {
-          return value.toString();
-        };
-      }
-      
-      salesChart.update();
-    });
-  }
-
-  // Pagination state
-  let currentPage = {
-    topProducts: 1,
-    recentOrders: 1,
-    lowStock: 1,
-    lowStockTable: 1,
-    recentMovements: 1
-  };
+  <% if (salesTrend && salesTrend.length > 0) { %>
+  // Sales Trend Chart
+  const salesTrendCtx = document.getElementById('salesTrendChart').getContext('2d');
+  const salesTrendData = <%- JSON.stringify(salesTrend || []) %>;
   
-  const itemsPerPage = {
-    topProducts: 5,
-    recentOrders: 5,
-    lowStock: 5,
-    lowStockTable: 10,
-    recentMovements: 5
-  };
-
-  // Pagination functions
-  function toggleTopProducts() {
-    const allData = JSON.parse(document.getElementById('topProductsData').textContent || '[]');
-    const container = document.getElementById('topProductsList');
-    const btn = document.getElementById('topProductsBtn');
-    
-    if (currentPage.topProducts === 1) {
-      // Show all
-      let html = '';
-      allData.forEach((product, index) => {
-        html += `
-          <div class="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
-            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <span class="text-sm font-bold text-blue-600">#${index + 1}</span>
-            </div>
-            <div class="flex-1 min-w-0">
-              <p class="text-sm font-medium text-gray-900 truncate">${product.name}</p>
-              <p class="text-xs text-gray-500">${product.totalQuantity} units sold</p>
-            </div>
-            <div class="text-right">
-              <p class="text-sm font-medium text-gray-900">Rs ${(product.totalRevenue || 0).toLocaleString('en-IN')}</p>
-            </div>
-          </div>`;
-      });
-      container.innerHTML = html;
-      btn.textContent = 'Show less';
-      currentPage.topProducts = 2;
-    } else {
-      location.reload();
-    }
-  }
-
-  function toggleRecentOrders() {
-    const allData = JSON.parse(document.getElementById('recentOrdersData').textContent || '[]');
-    const container = document.getElementById('recentOrdersList');
-    const btn = document.getElementById('recentOrdersBtn');
-    
-    if (currentPage.recentOrders === 1) {
-      let html = '';
-      allData.forEach(order => {
-        const date = new Date(order.createdAt).toLocaleDateString();
-        html += `
-          <div class="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
-            <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-              <i class="fas fa-receipt text-green-600"></i>
-            </div>
-            <div class="flex-1 min-w-0">
-              <p class="text-sm font-medium text-gray-900">Order #${order.orderId || order._id}</p>
-              <p class="text-xs text-gray-500">${order.customerName || 'Customer'} • ${date}</p>
-            </div>
-            <div class="text-right">
-              <p class="text-sm font-medium text-green-600">Rs ${(order.totalAmount || 0).toLocaleString('en-IN')}</p>
-              <p class="text-xs text-gray-500">${order.items?.length || 0} items</p>
-            </div>
-          </div>`;
-      });
-      container.innerHTML = html;
-      btn.textContent = 'Show less';
-      currentPage.recentOrders = 2;
-    } else {
-      location.reload();
-    }
-  }
-
-  function toggleLowStock() {
-    const allData = JSON.parse(document.getElementById('lowStockData').textContent || '[]');
-    const container = document.getElementById('lowStockList');
-    const btn = document.getElementById('lowStockBtn');
-    
-    if (currentPage.lowStock === 1) {
-      let html = '';
-      allData.forEach(alert => {
-        const currentStock = alert.stock || alert.currentStock || alert.remainingStock || 0;
-        html += `
-          <div class="flex items-center space-x-4 p-3 bg-red-50 rounded-lg">
-            <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-              <i class="fas fa-exclamation-triangle text-red-600"></i>
-            </div>
-            <div class="flex-1 min-w-0">
-              <p class="text-sm font-medium text-gray-900 truncate">${alert.title || alert.productTitle || 'Product'}</p>
-              <p class="text-xs text-gray-500">SKU: ${alert.sku || alert.variantSku || 'N/A'}</p>
-            </div>
-            <div class="text-right">
-              <p class="text-sm font-bold text-red-600">${currentStock}</p>
-              <p class="text-xs text-gray-500">units left</p>
-            </div>
-          </div>`;
-      });
-      container.innerHTML = html;
-      btn.textContent = 'Show less';
-      currentPage.lowStock = 2;
-    } else {
-      location.reload();
-    }
-  }
-
-  function toggleTopVariants() {
-    const allData = JSON.parse(document.getElementById('topVariantsData').textContent || '[]');
-    const container = document.querySelector('#topProductsList + .mt-6 .space-y-3') || document.querySelector('#topProductsList').parentNode;
-    const btn = document.getElementById('topVariantsBtn');
-    if (!container) return location.reload();
-    if (!allData || allData.length === 0) return;
-    if (currentPage.topVariants !== 1) return location.reload();
-    let html = '';
-    allData.forEach((v, idx) => {
-      html += `
-        <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-          <div>
-            <p class="text-sm font-medium text-gray-900">${v.productTitle || 'Unknown'}</p>
-            <p class="text-xs text-gray-500">SKU: ${v.variantSku || 'N/A'}</p>
-          </div>
-          <div class="text-right">
-            <p class="text-sm font-medium text-gray-900">${v.totalQuantity || 0} units</p>
-            <p class="text-xs text-gray-500">Rs ${(v.totalRevenue || 0).toLocaleString('en-IN')}</p>
-          </div>
-        </div>`;
-    });
-    container.innerHTML = html;
-    if (btn) btn.textContent = 'Show less';
-    currentPage.topVariants = 2;
-  }
-
-  function toggleLowStockTable() {
-    location.href = '/admin/inventory/low-stock';
-  }
-
-  function toggleRecentMovements() {
-    location.href = '/admin/inventory/movements';
-  }
-
-  // Global threshold update
-  function updateGlobalThreshold() {
-    const threshold = document.getElementById('globalThreshold').value;
-    if (threshold && threshold > 0) {
-      fetch('/api/v1/inventory/update-global-threshold', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
+  new Chart(salesTrendCtx, {
+    type: 'line',
+    data: {
+      labels: salesTrendData.map(item => {
+        const date = new Date(item._id);
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      }),
+      datasets: [{
+        label: 'Revenue',
+        data: salesTrendData.map(item => item.revenue || 0),
+        borderColor: '#3B82F6',
+        backgroundColor: function(context) {
+          const chart = context.chart;
+          const {ctx, chartArea} = chart;
+          if (!chartArea) return null;
+          const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+          gradient.addColorStop(0, 'rgba(59, 130, 246, 0.05)');
+          gradient.addColorStop(1, 'rgba(59, 130, 246, 0.3)');
+          return gradient;
         },
-        body: JSON.stringify({ threshold: parseInt(threshold) })
-      })
-      .then(response => {
-        console.log('Response status:', response.status);
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        borderWidth: 4,
+        tension: 0.4,
+        fill: true,
+        pointBackgroundColor: '#3B82F6',
+        pointBorderColor: '#ffffff',
+        pointBorderWidth: 3,
+        pointRadius: 6,
+        pointHoverRadius: 8,
+        pointHoverBorderWidth: 4
+      }, {
+        label: 'Orders',
+        data: salesTrendData.map(item => item.orders || 0),
+        borderColor: '#10B981',
+        backgroundColor: 'transparent',
+        borderWidth: 4,
+        tension: 0.4,
+        fill: false,
+        pointBackgroundColor: '#10B981',
+        pointBorderColor: '#ffffff',
+        pointBorderWidth: 3,
+        pointRadius: 6,
+        pointHoverRadius: 8,
+        pointHoverBorderWidth: 4,
+        yAxisID: 'y1'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        intersect: false,
+        mode: 'index'
+      },
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          backgroundColor: 'rgba(17, 24, 39, 0.95)',
+          titleColor: '#ffffff',
+          bodyColor: '#ffffff',
+          borderColor: 'rgba(59, 130, 246, 0.3)',
+          borderWidth: 2,
+          cornerRadius: 12,
+          displayColors: true,
+          padding: 12,
+          titleFont: {
+            size: 14,
+            weight: 'bold'
+          },
+          bodyFont: {
+            size: 13
+          },
+          callbacks: {
+            title: function(context) {
+              return context[0].label;
+            },
+            label: function(context) {
+              if (context.datasetIndex === 0) {
+                const value = context.parsed.y;
+                let formattedValue;
+                if (value >= 10000000) {
+                  formattedValue = 'Rs ' + (value / 10000000).toFixed(2) + ' Cr';
+                } else if (value >= 100000) {
+                  formattedValue = 'Rs ' + (value / 100000).toFixed(2) + ' L';
+                } else if (value >= 1000) {
+                  formattedValue = 'Rs ' + (value / 1000).toFixed(0) + 'K';
+                } else {
+                  formattedValue = 'Rs ' + value.toLocaleString('en-IN');
+                }
+                return '💰 Revenue: ' + formattedValue;
+              } else {
+                return '📦 Orders: ' + context.parsed.y;
+              }
+            }
+          }
         }
-        return response.json();
-      })
-      .then(data => {
-        console.log('Response data:', data);
-        if (data.success) {
-          alert('Global threshold updated successfully!');
-          location.reload();
-        } else {
-          alert('Failed to update threshold: ' + (data.message || 'Unknown error'));
+      },
+      scales: {
+        x: {
+          grid: {
+            display: false
+          },
+          border: {
+            display: false
+          },
+          ticks: {
+            color: '#6B7280',
+            font: {
+              size: 12,
+              weight: '500'
+            },
+            maxTicksLimit: 8,
+            padding: 8
+          }
+        },
+        y: {
+          type: 'linear',
+          display: true,
+          position: 'left',
+          grid: {
+            color: 'rgba(107, 114, 128, 0.08)',
+            drawBorder: false,
+            lineWidth: 1
+          },
+          border: {
+            display: false
+          },
+          ticks: {
+            color: '#6B7280',
+            font: {
+              size: 12,
+              weight: '500'
+            },
+            padding: 8,
+            callback: function(value) {
+              if (value >= 10000000) {
+                return 'Rs ' + (value / 10000000).toFixed(1) + 'Cr';
+              } else if (value >= 100000) {
+                return 'Rs ' + (value / 100000).toFixed(1) + 'L';
+              } else if (value >= 1000) {
+                return 'Rs ' + (value / 1000).toFixed(0) + 'K';
+              }
+              return 'Rs ' + value.toLocaleString('en-IN');
+            }
+          }
+        },
+        y1: {
+          type: 'linear',
+          display: true,
+          position: 'right',
+          grid: {
+            drawOnChartArea: false,
+            display: false
+          },
+          border: {
+            display: false
+          },
+          ticks: {
+            color: '#6B7280',
+            font: {
+              size: 12,
+              weight: '500'
+            },
+            padding: 8,
+            stepSize: 1,
+            callback: function(value) {
+              return Math.floor(value) === value ? value : '';
+            }
+          }
         }
-      })
-      .catch(error => {
-        console.error('Full error:', error);
-        alert('Error updating threshold: ' + error.message);
-      });
-    } else {
-      alert('Please enter a valid threshold value (greater than 0)');
+      }
     }
+  });
+  <% } %>
+  
+  // Export menu toggle
+  function toggleExportMenu() {
+    const menu = document.getElementById('exportMenu');
+    menu.classList.toggle('hidden');
   }
-
-  // Initialize chart
-  document.addEventListener('DOMContentLoaded', initSalesChart);
+  
+  // Close menu when clicking outside
+  document.addEventListener('click', function(event) {
+    const menu = document.getElementById('exportMenu');
+    const button = event.target.closest('button');
+    if (!button || !button.onclick) {
+      menu.classList.add('hidden');
+    }
+  });
 </script>
 
 <%- include('../partials/footer.ejs') %>
-

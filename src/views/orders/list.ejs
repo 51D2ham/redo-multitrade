@@ -10,11 +10,11 @@
         <p class="text-gray-600 text-sm sm:text-base">Manage and track all customer orders efficiently</p>
       </div>
       <div class="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
-        <a href="/admin/v1/staff/dashboard" class="w-full sm:w-auto px-4 py-2.5 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-all hover:shadow-md text-center">
-          <i class="fas fa-chart-bar mr-2 text-blue-600"></i>Dashboard
+        <a href="/admin/v1/staff/dashboard" class="w-full sm:w-auto px-4 py-2.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-center font-medium">
+          Dashboard
         </a>
-        <a href="/admin/v1/order/export" class="w-full sm:w-auto px-4 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all hover:shadow-lg text-center">
-          <i class="fas fa-download mr-2"></i>Export Orders
+        <a href="/admin/v1/order/export" class="w-full sm:w-auto px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-center font-medium">
+          Export Orders
         </a>
       </div>
     </div>
@@ -43,77 +43,72 @@
     <% } %>
 
     <!-- Filters -->
-    <div class="bg-white rounded-2xl shadow-lg border border-gray-100 mb-6 sm:mb-8 overflow-hidden">
-      <div class="bg-gradient-to-r from-blue-50 to-purple-50 px-4 sm:px-6 py-4 border-b">
-        <h3 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
-          <i class="fas fa-filter text-blue-600"></i>
-          Filter Orders
-        </h3>
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-8">
+      <div class="px-6 py-4 border-b border-gray-100">
+        <h3 class="text-lg font-semibold text-gray-900">Filter & Search Orders</h3>
+        <p class="text-sm text-gray-500 mt-1">Use filters to find specific orders quickly</p>
       </div>
-      <div class="p-4 sm:p-6">
+      <div class="p-6">
         <form method="GET" action="/admin/v1/order" class="space-y-6">
-          <!-- Main Filters -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+          <!-- Search Bar -->
+          <div class="flex flex-col sm:flex-row gap-4">
+            <div class="flex-1">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Search Orders</label>
+              <input type="text" name="search" placeholder="Order ID, Customer name, Email, Tracking number..." value="<%= filters.search || '' %>" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+            </div>
+            <div class="flex items-end gap-3">
+              <button type="submit" class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                Search
+              </button>
+              <a href="/admin/v1/order" class="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors" title="Clear All Filters">
+                Clear
+              </a>
+            </div>
+          </div>
+          
+          <!-- Filter Grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
             <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-2">Status</label>
-              <select name="status" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+              <select name="status" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-colors">
                 <option value="">All Statuses</option>
-                <option value="pending" <%= filters.status === "pending" ? "selected" : "" %>>🟡 Pending</option>
-                <option value="processing" <%= filters.status === "processing" ? "selected" : "" %>>🔵 Processing</option>
-                <option value="shipped" <%= filters.status === "shipped" ? "selected" : "" %>>🟣 Shipped</option>
-                <option value="delivered" <%= filters.status === "delivered" ? "selected" : "" %>>🟢 Delivered</option>
-                <option value="cancelled" <%= filters.status === "cancelled" ? "selected" : "" %>>🔴 Cancelled</option>
+                <option value="pending" <%= filters.status === "pending" ? "selected" : "" %>>Pending</option>
+                <option value="processing" <%= filters.status === "processing" ? "selected" : "" %>>Processing</option>
+                <option value="shipped" <%= filters.status === "shipped" ? "selected" : "" %>>Shipped</option>
+                <option value="delivered" <%= filters.status === "delivered" ? "selected" : "" %>>Delivered</option>
+                <option value="cancelled" <%= filters.status === "cancelled" ? "selected" : "" %>>Cancelled</option>
               </select>
             </div>
             
             <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-2">Payment</label>
-              <select name="paymentMethod" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Payment Method</label>
+              <select name="paymentMethod" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-colors">
                 <option value="">All Methods</option>
-                <option value="cod" <%= filters.paymentMethod === "cod" ? "selected" : "" %>>💵 Cash on Delivery</option>
-                <option value="card" <%= filters.paymentMethod === "card" ? "selected" : "" %>>💳 Card</option>
-                <option value="online" <%= filters.paymentMethod === "online" ? "selected" : "" %>>🌐 Online</option>
+                <option value="cod" <%= filters.paymentMethod === "cod" ? "selected" : "" %>>Cash on Delivery</option>
+                <option value="card" <%= filters.paymentMethod === "card" ? "selected" : "" %>>Card Payment</option>
+                <option value="online" <%= filters.paymentMethod === "online" ? "selected" : "" %>>Online Payment</option>
               </select>
             </div>
 
             <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-2">Sort By</label>
-              <select name="sortBy" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all">
-                <option value="priority" <%= (filters.sortBy || 'priority') === "priority" ? "selected" : "" %>>⭐ Priority</option>
-                <option value="date_desc" <%= filters.sortBy === "date_desc" ? "selected" : "" %>>📅 Newest First</option>
-                <option value="date_asc" <%= filters.sortBy === "date_asc" ? "selected" : "" %>>📅 Oldest First</option>
-                <option value="amount_desc" <%= filters.sortBy === "amount_desc" ? "selected" : "" %>>💰 Highest Amount</option>
-                <option value="amount_asc" <%= filters.sortBy === "amount_asc" ? "selected" : "" %>>💰 Lowest Amount</option>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
+              <select name="sortBy" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-colors">
+                <option value="priority" <%= (filters.sortBy || 'priority') === "priority" ? "selected" : "" %>>Priority</option>
+                <option value="date_desc" <%= filters.sortBy === "date_desc" ? "selected" : "" %>>Newest First</option>
+                <option value="date_asc" <%= filters.sortBy === "date_asc" ? "selected" : "" %>>Oldest First</option>
+                <option value="amount_desc" <%= filters.sortBy === "amount_desc" ? "selected" : "" %>>Highest Amount</option>
+                <option value="amount_asc" <%= filters.sortBy === "amount_asc" ? "selected" : "" %>>Lowest Amount</option>
               </select>
             </div>
 
             <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-2">From Date</label>
-              <input type="date" name="dateFrom" value="<%= filters.dateFrom || '' %>" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+              <label class="block text-sm font-medium text-gray-700 mb-2">From Date</label>
+              <input type="date" name="dateFrom" value="<%= filters.dateFrom || '' %>" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
             </div>
 
             <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-2">To Date</label>
-              <input type="date" name="dateTo" value="<%= filters.dateTo || '' %>" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
-            </div>
-
-            <div class="flex items-end">
-              <button type="submit" class="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all hover:shadow-lg font-semibold">
-                <i class="fas fa-search mr-2"></i>Apply Filters
-              </button>
-            </div>
-          </div>
-          
-          <!-- Search Bar -->
-          <div class="flex flex-col sm:flex-row gap-4">
-            <div class="flex-1">
-              <label class="block text-sm font-semibold text-gray-700 mb-2">Search Orders</label>
-              <input type="text" name="search" placeholder="🔍 Order ID, Customer name/email, Tracking number..." value="<%= filters.search || '' %>" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
-            </div>
-            <div class="flex items-end gap-2">
-              <a href="/admin/v1/order" class="px-4 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all hover:shadow-md" title="Clear All Filters">
-                <i class="fas fa-times mr-2"></i>Clear
-              </a>
+              <label class="block text-sm font-medium text-gray-700 mb-2">To Date</label>
+              <input type="date" name="dateTo" value="<%= filters.dateTo || '' %>" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
             </div>
           </div>
         </form>
@@ -123,17 +118,16 @@
     <!-- Orders Display -->
     <div class="space-y-4">
       <!-- Desktop Table View -->
-      <div class="hidden lg:block bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-        <div class="bg-gradient-to-r from-gray-50 to-blue-50 px-6 py-4 border-b">
-          <h3 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
-            <i class="fas fa-list text-blue-600"></i>
-            Orders List
-          </h3>
+      <div class="hidden lg:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100">
+          <h3 class="text-lg font-semibold text-gray-900">Orders List</h3>
+          <p class="text-sm text-gray-500 mt-1">Manage and track customer orders</p>
         </div>
         <div class="overflow-x-auto">
           <table class="w-full">
             <thead class="bg-gray-50 border-b">
               <tr>
+                <th class="px-4 py-4 text-center text-sm font-semibold text-gray-900 w-16">#</th>
                 <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Order</th>
                 <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Customer</th>
                 <th class="px-6 py-4 text-left text-sm font-semibold text-gray-900">Shipping Address</th>
@@ -146,17 +140,28 @@
             <tbody class="divide-y divide-gray-200">
               <% if (!orders || !orders.length) { %>
                 <tr>
-                  <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                  <td colspan="8" class="px-6 py-12 text-center text-gray-500">
                     <div class="flex flex-col items-center gap-3">
-                      <i class="fas fa-shopping-cart text-4xl text-gray-300"></i>
+                      <div class="text-4xl text-gray-300">📦</div>
                       <p class="text-lg font-medium">No orders found</p>
                       <p class="text-sm">Try adjusting your filters or check back later</p>
                     </div>
                   </td>
                 </tr>
               <% } else { %>
-              <% orders.forEach((order) => { %>
+              <% orders.forEach((order, index) => { %>
+                <% 
+                  const itemsPerPage = limit || 10;
+                  const orderNumber = (currentPage - 1) * itemsPerPage + index + 1;
+                %>
                 <tr class="hover:bg-gray-50 transition-colors <%= order.status === 'cancelled' ? 'bg-red-50 text-gray-400' : '' %>">
+                  <!-- Row Number -->
+                  <td class="px-4 py-4 text-center">
+                    <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-800 text-sm font-semibold">
+                      <%= orderNumber %>
+                    </span>
+                  </td>
+                  
                   <!-- Order Info -->
                   <td class="px-6 py-4">
                     <div class="flex flex-col gap-1">
@@ -201,8 +206,59 @@
                       <span class="font-semibold text-lg text-gray-900">Rs <%= order.totalPrice.toLocaleString() %></span>
                       <span class="text-sm text-gray-500"><%= order.totalItem %> items (<%= order.totalQty %> qty)</span>
                       <span class="text-xs text-gray-400 capitalize"><%= order.paymentMethod %></span>
+                      
+                      <!-- Mixed Status & Revenue Impact Indicators -->
                       <% if (order.items && order.items.length > 0) { %>
-                        <% const variantItems = order.items.filter(item => item.variantSku); %>
+                        <% 
+                          const itemStatuses = order.items.reduce((acc, item) => {
+                            const status = item.status || 'pending';
+                            acc[status] = (acc[status] || 0) + 1;
+                            return acc;
+                          }, {});
+                          const statusCount = Object.keys(itemStatuses).length;
+                          const deliveredCount = itemStatuses.delivered || 0;
+                          const cancelledCount = itemStatuses.cancelled || 0;
+                          const activeCount = order.items.length - cancelledCount;
+                          
+                          // Calculate revenue impact
+                          let deliveredRevenue = 0, cancelledRevenue = 0;
+                          order.items.forEach(item => {
+                            const itemRevenue = item.totalPrice || 0;
+                            if (item.status === 'delivered') deliveredRevenue += itemRevenue;
+                            else if (item.status === 'cancelled') cancelledRevenue += itemRevenue;
+                          });
+                          const fulfillmentRate = activeCount > 0 ? Math.round((deliveredCount / activeCount) * 100) : 0;
+                        %>
+                        
+                        <% if (statusCount > 1) { %>
+                          <div class="text-xs bg-gradient-to-r from-orange-100 to-red-100 text-orange-800 px-2 py-1 rounded-full mt-1 inline-flex items-center gap-1 border border-orange-200">
+                            <i class="fas fa-exclamation-triangle text-orange-600"></i>
+                            Mixed Status Order
+                          </div>
+                          
+                          <!-- Revenue Impact for Mixed Orders -->
+                          <div class="mt-2 grid grid-cols-2 gap-1 text-xs">
+                            <% if (deliveredRevenue > 0) { %>
+                              <div class="bg-green-50 text-green-700 px-2 py-1 rounded border border-green-200">
+                                <i class="fas fa-check-circle mr-1"></i>Rs <%= deliveredRevenue.toLocaleString() %>
+                              </div>
+                            <% } %>
+                            <% if (cancelledRevenue > 0) { %>
+                              <div class="bg-red-50 text-red-700 px-2 py-1 rounded border border-red-200">
+                                <i class="fas fa-times-circle mr-1"></i>Rs <%= cancelledRevenue.toLocaleString() %>
+                              </div>
+                            <% } %>
+                          </div>
+                        <% } %>
+                        
+                        <% if (deliveredCount > 0 && deliveredCount < order.items.length) { %>
+                          <div class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full mt-1 inline-flex items-center gap-1">
+                            <i class="fas fa-chart-pie mr-1"></i>
+                            <%= fulfillmentRate %>% fulfilled (<%= deliveredCount %>/<%= activeCount %>)
+                          </div>
+                        <% } %>
+                        
+                        <% const variantItems = order.items.filter(item => item.variantSku && item.variantSku.trim() !== ''); %>
                         <% if (variantItems.length > 0) { %>
                           <div class="text-xs text-blue-600 mt-1">
                             <i class="fas fa-layer-group mr-1"></i><%= variantItems.length %> variant(s)
@@ -272,15 +328,24 @@
             <p class="text-sm text-gray-500">Try adjusting your filters or check back later</p>
           </div>
         <% } else { %>
-          <% orders.forEach((order) => { %>
+          <% orders.forEach((order, index) => { %>
+            <% 
+              const itemsPerPage = limit || 10;
+              const orderNumber = (currentPage - 1) * itemsPerPage + index + 1;
+            %>
             <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-4 <%= order.status === 'cancelled' ? 'bg-red-50 border-red-200' : '' %>">
               <!-- Order Header -->
               <div class="flex justify-between items-start mb-4">
-                <div>
-                  <h3 class="font-mono text-lg font-bold text-blue-600">#<%= order._id.toString().slice(-8).toUpperCase() %></h3>
-                  <% if (order.trackingNumber) { %>
-                    <p class="text-sm text-gray-500">Track: <%= order.trackingNumber %></p>
-                  <% } %>
+                <div class="flex items-center gap-3">
+                  <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-blue-100 text-blue-800 text-sm font-bold">
+                    <%= orderNumber %>
+                  </span>
+                  <div>
+                    <h3 class="font-mono text-lg font-bold text-blue-600">#<%= order._id.toString().slice(-8).toUpperCase() %></h3>
+                    <% if (order.trackingNumber) { %>
+                      <p class="text-sm text-gray-500">Track: <%= order.trackingNumber %></p>
+                    <% } %>
+                  </div>
                 </div>
                 <div class="flex flex-col gap-2">
                   <span class="inline-flex px-3 py-1 rounded-full text-xs font-medium <%= 
@@ -312,11 +377,54 @@
                   <p class="text-sm text-blue-600 font-medium">Total Amount</p>
                   <p class="text-xl font-bold text-blue-800">Rs <%= order.totalPrice.toLocaleString() %></p>
                   <p class="text-xs text-blue-600"><%= order.totalItem %> items (<%= order.totalQty %> qty)</p>
+                  
+                  <!-- Mixed Status Indicators for Mobile -->
                   <% if (order.items && order.items.length > 0) { %>
-                    <% const variantItems = order.items.filter(item => item.variantSku); %>
+                    <% 
+                      const itemStatuses = order.items.reduce((acc, item) => {
+                        const status = item.status || 'pending';
+                        acc[status] = (acc[status] || 0) + 1;
+                        return acc;
+                      }, {});
+                      const statusCount = Object.keys(itemStatuses).length;
+                      const deliveredCount = itemStatuses.delivered || 0;
+                      const cancelledCount = itemStatuses.cancelled || 0;
+                      
+                      // Calculate revenue impact for mobile
+                      let deliveredRevenue = 0, cancelledRevenue = 0;
+                      order.items.forEach(item => {
+                        const itemRevenue = item.totalPrice || 0;
+                        if (item.status === 'delivered') deliveredRevenue += itemRevenue;
+                        else if (item.status === 'cancelled') cancelledRevenue += itemRevenue;
+                      });
+                    %>
+                    
+                    <% if (statusCount > 1) { %>
+                      <div class="mt-2">
+                        <p class="text-xs bg-gradient-to-r from-orange-200 to-red-200 text-orange-800 px-2 py-1 rounded-full inline-flex items-center gap-1">
+                          <i class="fas fa-exclamation-triangle mr-1"></i>Mixed Status Order
+                        </p>
+                        
+                        <!-- Revenue Impact Summary for Mobile -->
+                        <div class="mt-1 flex gap-1">
+                          <% if (deliveredRevenue > 0) { %>
+                            <span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+                              ✓ Rs <%= deliveredRevenue.toLocaleString() %>
+                            </span>
+                          <% } %>
+                          <% if (cancelledRevenue > 0) { %>
+                            <span class="text-xs bg-red-100 text-red-700 px-2 py-1 rounded">
+                              ✗ Rs <%= cancelledRevenue.toLocaleString() %>
+                            </span>
+                          <% } %>
+                        </div>
+                      </div>
+                    <% } %>
+                    
+                    <% const variantItems = order.items.filter(item => item.variantSku && item.variantSku.trim() !== ''); %>
                     <% if (variantItems.length > 0) { %>
                       <p class="text-xs text-blue-700 mt-1">
-                        <i class="fas fa-layer-group mr-1"></i><%= variantItems.length %> variant(s) ordered
+                        <i class="fas fa-layer-group mr-1"></i><%= variantItems.length %> variant(s)
                       </p>
                     <% } %>
                   <% } %>
@@ -325,6 +433,30 @@
                   <p class="text-sm text-green-600 font-medium">Order Date</p>
                   <p class="text-sm font-bold text-green-800"><%= new Date(order.createdAt).toLocaleDateString() %></p>
                   <p class="text-xs text-green-600"><%= new Date(order.createdAt).toLocaleTimeString() %></p>
+                  
+                  <!-- Fulfillment Status for Mobile -->
+                  <% if (order.items && order.items.length > 0) { %>
+                    <% 
+                      const deliveredCount = order.items.filter(item => item.status === 'delivered').length;
+                      const cancelledCount = order.items.filter(item => item.status === 'cancelled').length;
+                      const activeCount = order.items.length - cancelledCount;
+                      const fulfillmentRate = activeCount > 0 ? Math.round((deliveredCount / activeCount) * 100) : 0;
+                    %>
+                    <% if (deliveredCount > 0 || cancelledCount > 0) { %>
+                      <div class="mt-1">
+                        <% if (deliveredCount > 0) { %>
+                          <p class="text-xs text-green-700">
+                            <i class="fas fa-check-circle mr-1"></i><%= fulfillmentRate %>% fulfilled (<%= deliveredCount %>/<%= activeCount %>)
+                          </p>
+                        <% } %>
+                        <% if (cancelledCount > 0) { %>
+                          <p class="text-xs text-red-700">
+                            <i class="fas fa-times-circle mr-1"></i><%= cancelledCount %> cancelled
+                          </p>
+                        <% } %>
+                      </div>
+                    <% } %>
+                  <% } %>
                 </div>
               </div>
 
@@ -383,7 +515,14 @@
           
           <!-- Previous -->
           <% if (currentPage > 1) { %>
-            <a href="?page=<%= currentPage - 1 %>&<%= Object.entries(filters || {}).filter(([k,v]) => v).map(([k,v]) => `${k}=${encodeURIComponent(v)}`).join('&') %>&limit=<%= limit || 10 %>" 
+            <% 
+              const filterParams = Object.entries(filters || {})
+                .filter(([k,v]) => v && v.toString().trim() !== '')
+                .map(([k,v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+                .join('&');
+              const prevUrl = `?page=${currentPage - 1}${filterParams ? '&' + filterParams : ''}&limit=${limit || 10}`;
+            %>
+            <a href="<%= prevUrl %>" 
                class="px-4 py-2 rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">
               <i class="fas fa-chevron-left mr-1"></i>Previous
             </a>
@@ -391,7 +530,14 @@
           
           <!-- Page numbers -->
           <% for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) { %>
-            <a href="?page=<%= i %>&<%= Object.entries(filters || {}).filter(([k,v]) => v).map(([k,v]) => `${k}=${encodeURIComponent(v)}`).join('&') %>&limit=<%= limit || 10 %>" 
+            <% 
+              const filterParams = Object.entries(filters || {})
+                .filter(([k,v]) => v && v.toString().trim() !== '')
+                .map(([k,v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+                .join('&');
+              const pageUrl = `?page=${i}${filterParams ? '&' + filterParams : ''}&limit=${limit || 10}`;
+            %>
+            <a href="<%= pageUrl %>" 
                class="px-4 py-2 rounded-lg <%= i === currentPage ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50' %> transition-colors">
               <%= i %>
             </a>
@@ -399,7 +545,14 @@
           
           <!-- Next -->
           <% if (currentPage < totalPages) { %>
-            <a href="?page=<%= currentPage + 1 %>&<%= Object.entries(filters || {}).filter(([k,v]) => v).map(([k,v]) => `${k}=${encodeURIComponent(v)}`).join('&') %>&limit=<%= limit || 10 %>" 
+            <% 
+              const filterParams = Object.entries(filters || {})
+                .filter(([k,v]) => v && v.toString().trim() !== '')
+                .map(([k,v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+                .join('&');
+              const nextUrl = `?page=${currentPage + 1}${filterParams ? '&' + filterParams : ''}&limit=${limit || 10}`;
+            %>
+            <a href="<%= nextUrl %>" 
                class="px-4 py-2 rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">
               Next<i class="fas fa-chevron-right ml-1"></i>
             </a>

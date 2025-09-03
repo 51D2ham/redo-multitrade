@@ -80,6 +80,106 @@ module.exports = {
     }
   },
 
+  /**
+   * @desc    Get products by category (public)
+   * @route   GET /api/v1/categories/:categoryId/products
+   * @access  Public
+   */
+  getProductsByCategory: async (req, res) => {
+    try {
+      const { categoryId } = req.params;
+      const page = parseInt(req.query.page) || 1;
+      const limit = Math.min(parseInt(req.query.limit) || 20, 50);
+      const skip = (page - 1) * limit;
+      
+      // Validate ObjectId
+      if (!/^[0-9a-fA-F]{24}$/.test(categoryId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid category ID'
+        });
+      }
+      
+      const { Product } = require('../models/productModel');
+      
+      const filter = { category: categoryId, status: 'active' };
+      
+      // Add sorting
+      let sort = { createdAt: -1 };
+      switch (req.query.sort) {
+        case 'price_asc': sort = { 'variants.price': 1 }; break;
+        case 'price_desc': sort = { 'variants.price': -1 }; break;
+        case 'rating': sort = { rating: -1 }; break;
+        case 'newest': sort = { createdAt: -1 }; break;
+      }
+      
+      const [products, total, category] = await Promise.all([
+        Product.find(filter)
+          .populate('brand', 'name')
+          .select('_id title images variants rating reviewCount totalStock')
+          .sort(sort)
+          .skip(skip)
+          .limit(limit),
+        Product.countDocuments(filter),
+        Category.findById(categoryId).select('name')
+      ]);
+      
+      if (!category) {
+        return res.status(404).json({
+          success: false,
+          message: 'Category not found'
+        });
+      }
+      
+      const categoryProducts = products.map(product => {
+        const defaultVariant = product.variants?.find(v => v.isDefault) || product.variants?.[0];
+        const price = defaultVariant?.price || 0;
+        const originalPrice = defaultVariant?.originalPrice || null;
+        const isOnSale = !!(originalPrice && originalPrice > price);
+        const discountPercent = isOnSale ? Math.round(((originalPrice - price) / originalPrice) * 100) : 0;
+        const thumbnail = product.images?.[0] ? `/uploads/products/${product.images[0]}` : null;
+        
+        return {
+          _id: product._id,
+          title: product.title,
+          thumbnail,
+          price,
+          originalPrice,
+          isOnSale,
+          discountPercent,
+          rating: product.rating || 0,
+          reviewCount: product.reviewCount || 0,
+          totalStock: product.totalStock || 0,
+          brand: product.brand
+        };
+      });
+      
+      const totalPages = Math.ceil(total / limit);
+      
+      res.status(200).json({
+        success: true,
+        data: {
+          category,
+          products: categoryProducts
+        },
+        pagination: {
+          current: page,
+          total: totalPages,
+          hasNext: page < totalPages,
+          hasPrev: page > 1,
+          totalProducts: total
+        }
+      });
+    } catch (error) {
+      console.error('Get products by category error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Server error',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  },
+
   // ========================
   // ADMIN DASHBOARD CONTROLLERS
   // ========================

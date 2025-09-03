@@ -46,6 +46,52 @@ A comprehensive e-commerce platform built with Node.js, Express, MongoDB, and EJ
 - **Validation**: Custom middleware
 - **Session Store**: MongoDB (connect-mongo)
 
+## Technical Specifications
+
+### System Requirements
+- **Node.js**: v16.0.0 or higher
+- **MongoDB**: v4.4 or higher
+- **Memory**: Minimum 2GB RAM (4GB recommended)
+- **Storage**: 10GB available space
+- **OS**: Windows 10/11, macOS 10.15+, Ubuntu 18.04+
+
+### Performance Metrics
+- **Concurrent Users**: Up to 1000 simultaneous users
+- **Database Connections**: Pool size of 10-50 connections
+- **File Upload**: Maximum 5MB per image, 20MB total per request
+- **Session Timeout**: 24 hours for admin, 7 days for customers
+- **API Rate Limiting**: 100 requests per minute per IP
+
+### Security Features
+- **Password Hashing**: bcrypt with salt rounds 12
+- **JWT Tokens**: RS256 algorithm with 24h expiry
+- **Session Security**: HTTP-only cookies with CSRF protection
+- **Input Validation**: Comprehensive sanitization and validation
+- **File Upload Security**: MIME type validation and size limits
+- **SQL Injection Protection**: Mongoose ODM with parameterized queries
+
+### Database Design
+- **Collections**: 15+ optimized collections
+- **Indexing**: Strategic indexes on frequently queried fields
+- **Relationships**: Efficient referencing with population
+- **Data Validation**: Schema-level validation with Mongoose
+- **Backup Strategy**: Automated daily backups recommended
+
+### API Architecture
+- **REST Endpoints**: 50+ RESTful API endpoints
+- **Response Format**: Consistent JSON responses
+- **Error Handling**: Standardized error codes and messages
+- **Pagination**: Cursor-based pagination for large datasets
+- **Filtering**: Advanced query parameters for data filtering
+- **Sorting**: Multi-field sorting capabilities
+
+### Scalability Features
+- **Horizontal Scaling**: Load balancer ready
+- **Caching**: Redis integration ready
+- **CDN Support**: Static asset optimization
+- **Database Sharding**: MongoDB sharding compatible
+- **Microservices Ready**: Modular architecture for service separation
+
 ## Installation
 
 ### Prerequisites

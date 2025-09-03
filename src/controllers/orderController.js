@@ -4,6 +4,8 @@ const ShippingAddress = require('../models/shippingAddressSchema');
 const { sendOrderStatusUpdate } = require('../utils/orderNotification');
 const { Parser } = require('json2csv');
 const { StatusCodes } = require('http-status-codes');
+const MixedOrderStockService = require('../services/mixedOrderStockService');
+const MixedOrderReportingService = require('../services/mixedOrderReportingService');
 
 // Status transition validation - Enhanced with better logic
 const validateStatusTransition = (currentStatus, newStatus) => {
@@ -285,7 +287,7 @@ exports.getOrderDetails = async (req, res) => {
       order.items = order.items.map(item => {
         const enhancedItem = {
           ...item,
-          productImage: item.productId?.thumbnail || item.productId?.images?.[0],
+          productImage: item.productId?.images?.[0] ? `/uploads/products/${item.productId.images[0]}` : null,
           brand: item.productId?.brand?.name || 'Unknown Brand',
           category: item.productId?.category?.name || 'Unknown Category',
           variants: item.productId?.variants || []
@@ -354,7 +356,7 @@ exports.getOrderDetails = async (req, res) => {
       order.items = order.items.map(item => {
         const enhancedItem = {
           ...item,
-          productImage: item.productId?.thumbnail || item.productId?.images?.[0],
+          productImage: item.productId?.images?.[0] ? `/uploads/products/${item.productId.images[0]}` : null,
           brand: item.productId?.brand?.name || 'Unknown Brand',
           category: item.productId?.category?.name || 'Unknown Category',
           variants: item.productId?.variants || []
@@ -479,7 +481,7 @@ exports.renderEditOrder = async (req, res) => {
     const processedItems = [];
     if (order.items?.length > 0) {
       order.items.forEach((item, index) => {
-        const imageUrl = item.productId?.thumbnail || item.productId?.images?.[0] || null;
+        const imageUrl = item.productId?.images?.[0] ? `/uploads/products/${item.productId.images[0]}` : null;
         const title = item.productTitle || 'Unknown Product';
         const price = (item.productPrice || 0).toLocaleString();
         const qty = item.qty || 1;
@@ -586,24 +588,22 @@ exports.updateOrder = async (req, res) => {
       
       const oldStatus = order.status;
       
-      // Handle stock restoration for cancellation
+      // Enhanced stock handling for mixed orders
       if (status === 'cancelled' && oldStatus !== 'cancelled') {
-        const StockManager = require('../utils/stockManager');
         try {
-          const restoreResult = await StockManager.restoreStock(
-            order.items,
-            id,
+          const stockResult = await MixedOrderStockService.handleMixedOrderStock(
+            order,
             req.session?.admin?.id
           );
           
-          if (!restoreResult.success) {
-            console.error('Stock restoration errors:', restoreResult.errors);
-            req.flash('error', 'Failed to restore stock during cancellation: ' + restoreResult.errors.join(', '));
+          if (!stockResult.success) {
+            console.warn('Mixed order stock handling errors:', stockResult.errors.join(', '));
+            req.flash('error', 'Failed to handle stock during cancellation: ' + stockResult.errors.join(', '));
             return res.redirect(`/admin/v1/order/${id}/edit`);
           }
-        } catch (restockError) {
-          console.error('Stock restoration failed:', restockError);
-          req.flash('error', 'Failed to restore stock during cancellation');
+        } catch (stockError) {
+          console.warn('Mixed order stock handling failed:', stockError.message);
+          req.flash('error', 'Failed to handle stock during cancellation');
           return res.redirect(`/admin/v1/order/${id}/edit`);
         }
       }
@@ -640,13 +640,38 @@ exports.updateOrder = async (req, res) => {
               try {
                 const restoreResult = await StockManager.restoreStock([existingItem], id, req.session?.admin?.id);
                 if (!restoreResult.success) {
-                  console.error('Item stock restoration errors:', restoreResult.errors);
-                  // don't block other updates; record flash message later
+                  console.warn('Item stock restoration errors:', restoreResult.errors.map(e => sanitizeInput(e)).join(', '));
                   req.flash('error', 'Some item stock restorations failed: ' + restoreResult.errors.join(', '));
                 }
               } catch (e) {
-                console.error('Item stock restoration failed:', e);
+                console.warn('Item stock restoration failed:', sanitizeInput(e.message));
                 req.flash('error', 'Failed to restore stock for cancelled item');
+              }
+            }
+
+            // Record sales for delivered items
+            if (newItemStatus === 'delivered' && existingItem.status !== 'delivered') {
+              try {
+                const SalesService = require('../services/salesService');
+                const salesResult = await SalesService.recordSalesForDeliveredItems(id, req.session?.admin?.id);
+                if (!salesResult.success) {
+                  console.error('Sales recording failed:', salesResult.error);
+                }
+              } catch (salesError) {
+                console.error('Sales recording failed:', salesError);
+              }
+            }
+
+            // Remove sales record if item is cancelled
+            if (newItemStatus === 'cancelled' && existingItem.status !== 'cancelled') {
+              try {
+                const SalesService = require('../services/salesService');
+                const removalResult = await SalesService.removeSalesForCancelledItems(id, existingItem.productId, existingItem.variantSku);
+                if (!removalResult.success) {
+                  console.error('Sales removal failed:', removalResult.error);
+                }
+              } catch (salesError) {
+                console.error('Sales removal failed:', salesError);
               }
             }
 
@@ -675,6 +700,19 @@ exports.updateOrder = async (req, res) => {
     // Update other fields
     if (trackingNumber !== undefined) order.trackingNumber = trackingNumber;
     if (estimatedDelivery) order.estimatedDelivery = new Date(estimatedDelivery);
+
+    // Recalculate order status based on item statuses after updates
+    const newCalculatedStatus = calculateOrderStatus(order.items);
+    if (newCalculatedStatus !== order.status && validateStatusTransition(order.status, newCalculatedStatus)) {
+      order.status = newCalculatedStatus;
+      if (!order.statusHistory) order.statusHistory = [];
+      order.statusHistory.push({
+        status: newCalculatedStatus,
+        message: `Order auto-updated to ${newCalculatedStatus} based on item statuses`,
+        updatedBy: req.session?.admin?.id,
+        updatedAt: new Date()
+      });
+    }
 
     await order.save();
 
@@ -947,6 +985,14 @@ const calculateOrderStatus = (items) => {
   
   // All non-cancelled items delivered = order delivered
   if (delivered + cancelled === total && delivered > 0) return 'delivered';
+  
+  // Mixed delivery status: partially delivered
+  if (delivered > 0 && (pending > 0 || processing > 0 || shipped > 0)) {
+    // If some items are delivered but others are still in progress
+    if (shipped > 0) return 'shipped'; // Prioritize shipped status
+    if (processing > 0) return 'processing';
+    return 'processing'; // Default for mixed active states
+  }
   
   // Any item shipped (and none pending/processing) = order shipped
   if (shipped > 0 && pending === 0 && processing === 0) return 'shipped';
