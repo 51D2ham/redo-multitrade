@@ -15,7 +15,7 @@ module.exports = {
   getAllPublicCategories: async (req, res) => {
     try {
       const categories = await Category.find()
-        .select('name slug createdAt')
+        .select('name slug')
         .sort({ name: 1 });
 
       res.status(200).json({
@@ -116,13 +116,23 @@ module.exports = {
       const [products, total, category] = await Promise.all([
         Product.find(filter)
           .populate('brand', 'name')
-          .select('_id title images variants rating reviewCount totalStock')
+          .select('_id title images variants rating reviewCount totalStock featured')
           .sort(sort)
           .skip(skip)
           .limit(limit),
         Product.countDocuments(filter),
         Category.findById(categoryId).select('name')
       ]);
+      
+      // Get specs for all products
+      const { ProductSpecs } = require('../models/productModel');
+      const productIds = products.map(p => p._id);
+      const productSpecs = await ProductSpecs.find({ 
+        product: { $in: productIds } 
+      })
+      .populate('specList', 'title')
+      .select('product specList value')
+      .sort({ 'specList.title': 1 });
       
       if (!category) {
         return res.status(404).json({
@@ -139,6 +149,21 @@ module.exports = {
         const discountPercent = isOnSale ? Math.round(((originalPrice - price) / originalPrice) * 100) : 0;
         const thumbnail = product.images?.[0] ? `/uploads/products/${product.images[0]}` : null;
         
+        // Get specs for this product (prioritized)
+        const specPriority = ['RAM', 'Storage', 'Display', 'Processor', 'Battery', 'Camera', 'OS', 'Size', 'Weight'];
+        const specs = productSpecs
+          .filter(spec => spec.product.toString() === product._id.toString())
+          .sort((a, b) => {
+            const aIndex = specPriority.findIndex(p => a.specList?.title?.toLowerCase().includes(p.toLowerCase()));
+            const bIndex = specPriority.findIndex(p => b.specList?.title?.toLowerCase().includes(p.toLowerCase()));
+            return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
+          })
+          .slice(0, 3)
+          .map(spec => ({
+            title: spec.specList?.title || 'Unknown',
+            value: spec.value
+          }));
+        
         return {
           _id: product._id,
           title: product.title,
@@ -150,7 +175,13 @@ module.exports = {
           rating: product.rating || 0,
           reviewCount: product.reviewCount || 0,
           totalStock: product.totalStock || 0,
-          brand: product.brand
+          featured: product.featured || false,
+          category: {
+            _id: category._id,
+            name: category.name
+          },
+          brand: product.brand,
+          specs: specs
         };
       });
       

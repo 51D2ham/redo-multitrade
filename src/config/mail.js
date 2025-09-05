@@ -19,13 +19,13 @@ if (hasSmtpCreds) {
         // Non-fatal verify: log status, but do not throw
         transporter.verify((err, success) => {
             if (err) {
-                console.warn('Warning: mail server verify failed:', err && err.message ? err.message : err);
+                console.warn('Warning: mail server verify failed:', err && err.message ? encodeURIComponent(err.message) : 'Unknown error');
             } else {
                 console.log('Mail server is ready to send messages...');
             }
         });
     } catch (e) {
-        console.error('Failed to initialize mail transporter:', e && e.message ? e.message : e);
+        console.error('Failed to initialize mail transporter:', e && e.message ? encodeURIComponent(e.message) : 'Unknown error');
         transporter = null;
     }
 } else {
@@ -55,7 +55,7 @@ const sendMail = async (to, subject, html) => {
         const info = await transporter.sendMail(mailOptions);
         return { success: true, info };
     } catch (err) {
-        console.error('sendMail error:', err && err.message ? err.message : err);
+        console.error('sendMail error:', err && err.message ? encodeURIComponent(err.message) : 'Unknown error');
         return { success: false, error: err && err.message ? err.message : String(err) };
     }
 };

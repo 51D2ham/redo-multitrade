@@ -100,14 +100,11 @@
             id="subCategory"
             name="subCategory"
             class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+            disabled
           >
-            <option value="">Select Sub Category (Optional)</option>
-            <% if (subCategories && subCategories.length > 0) { %>
-              <% subCategories.forEach(subCat => { %>
-                <option value="<%= subCat._id %>"><%= subCat.name %></option>
-              <% }); %>
-            <% } %>
+            <option value="">Select Category First</option>
           </select>
+          <p class="text-sm text-gray-500 mt-1">Select a category first to see subcategories</p>
         </div>
       </div>
 
@@ -118,14 +115,11 @@
             id="type"
             name="type"
             class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+            disabled
           >
-            <option value="">Select Type (Optional)</option>
-            <% if (types && types.length > 0) { %>
-              <% types.forEach(type => { %>
-                <option value="<%= type._id %>"><%= type.name %></option>
-              <% }); %>
-            <% } %>
+            <option value="">Select Sub Category First</option>
           </select>
+          <p class="text-sm text-gray-500 mt-1">Select a subcategory first to see types</p>
         </div>
 
         <div>
@@ -183,11 +177,11 @@ const brandSelect = document.getElementById('brand');
 categorySelect.addEventListener('change', function() {
   const selectedCategoryId = this.value;
   
-  // Clear and reset subcategory dropdown
-  subCategorySelect.innerHTML = '<option value="">Select Sub Category (Optional)</option>';
-  
   if (selectedCategoryId) {
-    // Filter subcategories for selected category
+    // Enable and populate subcategory dropdown
+    subCategorySelect.disabled = false;
+    subCategorySelect.innerHTML = '<option value="">Select Sub Category (Optional)</option>';
+    
     const filteredSubCategories = allSubCategories.filter(sub => 
       sub.category && sub.category.toString() === selectedCategoryId
     );
@@ -198,6 +192,10 @@ categorySelect.addEventListener('change', function() {
       option.textContent = sub.name;
       subCategorySelect.appendChild(option);
     });
+  } else {
+    // Disable and reset subcategory dropdown
+    subCategorySelect.disabled = true;
+    subCategorySelect.innerHTML = '<option value="">Select Category First</option>';
   }
   
   // Reset dependent dropdowns
@@ -208,11 +206,11 @@ categorySelect.addEventListener('change', function() {
 subCategorySelect.addEventListener('change', function() {
   const selectedSubCategoryId = this.value;
   
-  // Clear and reset type dropdown
-  typeSelect.innerHTML = '<option value="">Select Type (Optional)</option>';
-  
   if (selectedSubCategoryId) {
-    // Filter types for selected subcategory
+    // Enable and populate type dropdown
+    typeSelect.disabled = false;
+    typeSelect.innerHTML = '<option value="">Select Type (Optional)</option>';
+    
     const filteredTypes = allTypes.filter(type => 
       type.subCategory && type.subCategory.toString() === selectedSubCategoryId
     );
@@ -223,12 +221,17 @@ subCategorySelect.addEventListener('change', function() {
       option.textContent = type.name;
       typeSelect.appendChild(option);
     });
+  } else {
+    // Disable and reset type dropdown
+    typeSelect.disabled = true;
+    typeSelect.innerHTML = '<option value="">Select Sub Category First</option>';
   }
 });
 
 // Helper functions to reset dropdowns
 function resetTypeDropdown() {
-  typeSelect.innerHTML = '<option value="">Select Type (Optional)</option>';
+  typeSelect.disabled = true;
+  typeSelect.innerHTML = '<option value="">Select Sub Category First</option>';
 }
 </script>
 

@@ -1,7 +1,6 @@
 const { Product, ProductSpecs, Review } = require('../models/productModel');
 const { Category, SubCategory, Type, Brand } = require('../models/parametersModel');
 const SpecList = require('../models/specListModel');
-const mongoose = require('mongoose');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -23,7 +22,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: 5 * 1024 * 1024, files: 10 },
   fileFilter: (req, file, cb) => {
     const allowedTypes = /jpeg|jpg|png|webp/;
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
@@ -48,7 +47,164 @@ const generateSlug = (title) => {
 };
 
 const isValidObjectId = (id) => {
+  if (typeof id !== 'string') return false;
   return /^[0-9a-fA-F]{24}$/.test(id);
+};
+
+const sanitizeInput = (input) => {
+  if (typeof input !== 'string') return input;
+  return input.replace(/[<>"'&]/g, (match) => {
+    const entities = { '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#x27;', '&': '&amp;' };
+    return entities[match];
+  }).trim();
+};
+
+// Common filter builder
+const buildProductFilter = (query) => {
+  const filter = { status: 'active' };
+  
+  // ID-based filters
+  if (query.category && isValidObjectId(query.category)) filter.category = query.category;
+  if (query.brand && isValidObjectId(query.brand)) filter.brand = query.brand;
+  if (query.subcategory && isValidObjectId(query.subcategory)) filter.subCategory = query.subcategory;
+  if (query.type && isValidObjectId(query.type)) filter.type = query.type;
+  
+  // Boolean filters
+  if (query.featured === 'true') filter.featured = true;
+  
+  // Stock filter
+  if (query.stock === 'instock') filter.totalStock = { $gt: 0 };
+  if (query.stock === 'outofstock') filter.totalStock = 0;
+  
+  // Price range filter
+  if (query.minPrice || query.maxPrice) {
+    const priceFilter = {};
+    if (query.minPrice) priceFilter.$gte = parseFloat(query.minPrice);
+    if (query.maxPrice) priceFilter.$lte = parseFloat(query.maxPrice);
+    filter['variants.price'] = priceFilter;
+  }
+  
+  // Date filters
+  if (query.newArrivals === 'true') {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    filter.createdAt = { $gte: thirtyDaysAgo };
+  }
+  
+  if (query.fromDate || query.toDate) {
+    const dateFilter = {};
+    if (query.fromDate) dateFilter.$gte = new Date(query.fromDate);
+    if (query.toDate) {
+      const toDate = new Date(query.toDate);
+      toDate.setHours(23, 59, 59, 999);
+      dateFilter.$lte = toDate;
+    }
+    filter.createdAt = dateFilter;
+  }
+  
+  // Search filter
+  if (query.search) {
+    const searchTerm = sanitizeInput(query.search);
+    filter.$or = [
+      { title: { $regex: searchTerm, $options: 'i' } },
+      { description: { $regex: searchTerm, $options: 'i' } },
+      { tags: { $in: [new RegExp(searchTerm, 'i')] } }
+    ];
+  }
+  
+  return filter;
+};
+
+// Common sort builder
+const buildSort = (sortParam) => {
+  const sortOptions = {
+    price_asc: { 'variants.price': 1 },
+    price_desc: { 'variants.price': -1 },
+    rating: { rating: -1 },
+    newest: { createdAt: -1 },
+    oldest: { createdAt: 1 },
+    name_asc: { title: 1 },
+    name_desc: { title: -1 },
+    featured: { featured: -1, createdAt: -1 }
+  };
+  return sortOptions[sortParam] || { createdAt: -1 };
+};
+
+// Transform product to lightweight format
+const transformToLightweight = (product, allSpecs = []) => {
+  const defaultVariant = product.variants?.find(v => v.isDefault) || product.variants?.[0];
+  const price = defaultVariant?.price || 0;
+  const originalPrice = defaultVariant?.originalPrice || null;
+  const isOnSale = !!(originalPrice && originalPrice > price);
+  const discountPercent = isOnSale ? Math.round(((originalPrice - price) / originalPrice) * 100) : 0;
+  const thumbnail = product.images?.[0] ? `/uploads/products/${product.images[0]}` : null;
+  
+  // Get specs for this product (prioritized by importance)
+  const specPriority = ['Noise Cancellation', 'Driver Size', 'Frequency Response', 'Battery Life', 'Connectivity', 'RAM', 'Storage', 'Display', 'Processor'];
+  
+  const productSpecs = allSpecs
+    .filter(spec => spec.product.toString() === product._id.toString())
+    .sort((a, b) => {
+      const aIndex = specPriority.findIndex(p => a.specList?.title?.toLowerCase().includes(p.toLowerCase()));
+      const bIndex = specPriority.findIndex(p => b.specList?.title?.toLowerCase().includes(p.toLowerCase()));
+      return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
+    })
+    .slice(0, 3)
+    .map(spec => ({
+      title: spec.specList?.title || 'Unknown',
+      value: spec.value
+    }));
+  
+  // Debug: Log if this specific product has specs
+  if (process.env.NODE_ENV === 'development' && product._id.toString() === '68b6d3d0fc2ecc6ac6f28f8b') {
+    const { sanitizeForLog } = require('../middlewares/security');
+    console.log('Sony product specs:', sanitizeForLog(JSON.stringify(productSpecs)));
+    console.log('All specs for Sony:', sanitizeForLog(JSON.stringify(allSpecs.filter(spec => spec.product.toString() === product._id.toString()))));
+  }
+  
+  return {
+    _id: product._id,
+    title: product.title,
+    thumbnail,
+    price,
+    originalPrice,
+    isOnSale,
+    discountPercent,
+    rating: product.rating || 0,
+    reviewCount: product.reviewCount || 0,
+    totalStock: product.totalStock || 0,
+    featured: product.featured || false,
+    category: product.category,
+    brand: product.brand,
+    specs: productSpecs
+  };
+};
+
+// Process variants helper
+const processVariants = (variantsData) => {
+  const variants = [];
+  if (variantsData) {
+    for (let i = 0; variantsData[i]; i++) {
+      const variant = variantsData[i];
+      if (variant.sku && variant.price && variant.stock !== undefined) {
+        variants.push({
+          _id: variant._id || undefined,
+          sku: variant.sku,
+          price: parseFloat(variant.price),
+          originalPrice: variant.originalPrice ? parseFloat(variant.originalPrice) : undefined,
+          stock: parseInt(variant.stock),
+          lowStockAlert: parseInt(variant.lowStockAlert) || 5,
+          color: variant.color || '',
+          size: variant.size || '',
+          material: variant.material || '',
+          weight: variant.weight ? parseFloat(variant.weight) : undefined,
+          dimensions: variant.dimensions || '',
+          isDefault: variant.isDefault === 'true' || i === 0
+        });
+      }
+    }
+  }
+  return variants;
 };
 
 module.exports = {
@@ -64,7 +220,6 @@ module.exports = {
       if (req.query.category) filter.category = req.query.category;
       if (req.query.brand) filter.brand = req.query.brand;
       
-      // Enhanced search
       if (req.query.search) {
         const searchTerm = req.query.search.trim();
         filter.$or = [
@@ -75,19 +230,13 @@ module.exports = {
         ];
       }
       
-      // Stock filter
       if (req.query.stock) {
-        switch (req.query.stock) {
-          case 'instock':
-            filter.totalStock = { $gt: 5 };
-            break;
-          case 'lowstock':
-            filter.totalStock = { $gte: 1, $lte: 5 };
-            break;
-          case 'outofstock':
-            filter.totalStock = 0;
-            break;
-        }
+        const stockFilters = {
+          instock: { $gt: 5 },
+          lowstock: { $gte: 1, $lte: 5 },
+          outofstock: 0
+        };
+        filter.totalStock = stockFilters[req.query.stock];
       }
       
       const [products, total, categories, brands] = await Promise.all([
@@ -178,45 +327,15 @@ module.exports = {
         return res.redirect('/admin/v1/products/new');
       }
 
-      // Generate slug
       let slug = generateSlug(title);
       const existingProduct = await Product.findOne({ slug });
       if (existingProduct) {
         slug = `${slug}-${Date.now()}`;
       }
 
-      // Handle images
-      const images = [];
-      if (req.files && req.files.length > 0) {
-        req.files.forEach(file => {
-          images.push(file.filename);
-        });
-      }
+      const images = req.files ? req.files.map(file => file.filename) : [];
+      const variants = processVariants(req.body.variants);
 
-      // Process variants
-      const variants = [];
-      if (req.body.variants) {
-        for (let i = 0; req.body.variants[i]; i++) {
-          const variant = req.body.variants[i];
-          if (variant.sku && variant.price && variant.stock !== undefined) {
-            variants.push({
-              sku: variant.sku,
-              price: parseFloat(variant.price),
-              originalPrice: variant.originalPrice ? parseFloat(variant.originalPrice) : undefined,
-              stock: parseInt(variant.stock),
-              lowStockAlert: parseInt(variant.lowStockAlert) || 5,
-              color: variant.color || '',
-              size: variant.size || '',
-              material: variant.material || '',
-              weight: variant.weight ? parseFloat(variant.weight) : undefined,
-              dimensions: variant.dimensions || '',
-              isDefault: variant.isDefault === 'true' || i === 0
-            });
-          }
-        }
-      }
-
-      // Create product
       const productData = {
         slug,
         title: title.trim(),
@@ -233,7 +352,6 @@ module.exports = {
         admin: req.user._id
       };
 
-      // Add business fields
       if (req.body.warranty) productData.warranty = req.body.warranty.trim();
       if (req.body.tags) {
         productData.tags = req.body.tags.split(',').map(t => t.trim()).filter(t => t);
@@ -241,7 +359,6 @@ module.exports = {
 
       const product = await Product.create(productData);
 
-      // Add specifications
       if (req.body.specifications) {
         const specs = [];
         for (let i = 0; req.body.specifications[i]; i++) {
@@ -322,7 +439,7 @@ module.exports = {
         SubCategory.find().sort({ name: 1 }),
         Type.find().sort({ name: 1 }),
         Brand.find().sort({ name: 1 }),
-        SpecList.find().sort({ title: 1 }),
+        SpecList.find({ status: 'active' }).populate('category', 'name').populate('subCategory', 'name').populate('type', 'name').populate('brand', 'name').sort({ title: 1 }),
         ProductSpecs.find({ product: req.params.id }).populate('specList', 'title')
       ]);
 
@@ -366,14 +483,11 @@ module.exports = {
 
       const { title, description, shortDescription, category, subCategory, type, brand, status, featured } = req.body;
 
-      // Handle images
       let images = [...product.images];
       
-      // Remove deleted images
       if (req.body.removedImages) {
         try {
           const removedImages = JSON.parse(req.body.removedImages);
-          // Delete files from filesystem
           removedImages.forEach(filename => {
             const filePath = path.join(__dirname, '../uploads/products', filename);
             if (fs.existsSync(filePath)) {
@@ -386,13 +500,11 @@ module.exports = {
         }
       }
       
-      // Add new images
       if (req.files && req.files.length > 0) {
         const newImages = req.files.map(file => file.filename);
         images = [...images, ...newImages];
       }
 
-      // Update slug if title changed
       let slug = product.slug;
       if (title !== product.title) {
         slug = generateSlug(title);
@@ -402,29 +514,7 @@ module.exports = {
         }
       }
 
-      // Process variants
-      const variants = [];
-      if (req.body.variants) {
-        for (let i = 0; req.body.variants[i]; i++) {
-          const variant = req.body.variants[i];
-          if (variant.sku && variant.price && variant.stock !== undefined) {
-            variants.push({
-              _id: variant._id || undefined,
-              sku: variant.sku,
-              price: parseFloat(variant.price),
-              originalPrice: variant.originalPrice ? parseFloat(variant.originalPrice) : undefined,
-              stock: parseInt(variant.stock),
-              lowStockAlert: parseInt(variant.lowStockAlert) || 5,
-              color: variant.color || '',
-              size: variant.size || '',
-              material: variant.material || '',
-              weight: variant.weight ? parseFloat(variant.weight) : undefined,
-              dimensions: variant.dimensions || '',
-              isDefault: variant.isDefault === 'true' || i === 0
-            });
-          }
-        }
-      }
+      const variants = processVariants(req.body.variants);
 
       const updateData = {
         slug,
@@ -441,7 +531,6 @@ module.exports = {
         featured: featured === 'true'
       };
 
-      // Add business fields
       if (req.body.warranty) updateData.warranty = req.body.warranty.trim();
       if (req.body.returnPolicy) updateData.returnPolicy = req.body.returnPolicy.trim();
       if (req.body.shippingInfo) updateData.shippingInfo = req.body.shippingInfo.trim();
@@ -451,7 +540,6 @@ module.exports = {
 
       await Product.findByIdAndUpdate(req.params.id, updateData);
 
-      // Update specifications
       await ProductSpecs.deleteMany({ product: req.params.id });
       if (req.body.specifications) {
         const specs = [];
@@ -495,7 +583,6 @@ module.exports = {
         return res.redirect('/admin/v1/products');
       }
 
-      // Delete product images from filesystem
       if (product.images && product.images.length > 0) {
         product.images.forEach(filename => {
           const filePath = path.join(__dirname, '../uploads/products', filename);
@@ -505,7 +592,6 @@ module.exports = {
         });
       }
 
-      // Delete related data
       await Promise.all([
         ProductSpecs.deleteMany({ product: req.params.id }),
         Review.deleteMany({ product: req.params.id })
@@ -527,27 +613,8 @@ module.exports = {
       const limit = Math.min(parseInt(req.query.limit) || 20, 50);
       const skip = (page - 1) * limit;
       
-      const filter = { status: 'active' };
-      
-      if (req.query.category && isValidObjectId(req.query.category)) filter.category = req.query.category;
-      if (req.query.brand && isValidObjectId(req.query.brand)) filter.brand = req.query.brand;
-      if (req.query.featured === 'true') filter.featured = true;
-      
-      if (req.query.search) {
-        filter.$or = [
-          { title: { $regex: req.query.search, $options: 'i' } },
-          { description: { $regex: req.query.search, $options: 'i' } },
-          { tags: { $in: [new RegExp(req.query.search, 'i')] } }
-        ];
-      }
-      
-      let sort = { createdAt: -1 };
-      switch (req.query.sort) {
-        case 'price_asc': sort = { 'variants.price': 1 }; break;
-        case 'price_desc': sort = { 'variants.price': -1 }; break;
-        case 'rating': sort = { rating: -1 }; break;
-        case 'newest': sort = { createdAt: -1 }; break;
-      }
+      const filter = buildProductFilter(req.query);
+      const sort = buildSort(req.query.sort);
       
       const [products, total] = await Promise.all([
         Product.find(filter)
@@ -560,30 +627,35 @@ module.exports = {
         Product.countDocuments(filter)
       ]);
       
-      const lightweightProducts = products.map(product => {
-        const defaultVariant = product.variants?.find(v => v.isDefault) || product.variants?.[0];
-        const price = defaultVariant?.price || 0;
-        const originalPrice = defaultVariant?.originalPrice || null;
-        const isOnSale = !!(originalPrice && originalPrice > price);
-        const discountPercent = isOnSale ? Math.round(((originalPrice - price) / originalPrice) * 100) : 0;
-        const thumbnail = product.images?.[0] ? `/uploads/products/${product.images[0]}` : null;
-        
-        return {
-          _id: product._id,
-          title: product.title,
-          thumbnail,
-          price,
-          originalPrice,
-          isOnSale,
-          discountPercent,
-          rating: product.rating || 0,
-          reviewCount: product.reviewCount || 0,
-          totalStock: product.totalStock || 0,
-          featured: product.featured || false,
-          category: product.category,
-          brand: product.brand
-        };
-      });
+      // Get specs for all products
+      const productIds = products.map(p => p._id);
+      const productSpecs = await ProductSpecs.find({ 
+        product: { $in: productIds } 
+      })
+      .populate('specList', 'title')
+      .select('product specList value');
+      
+      // Debug: Log specs found
+      if (process.env.NODE_ENV === 'development') {
+        const { sanitizeForLog } = require('../middlewares/security');
+        console.log('ProductSpecs found:', productSpecs.length);
+        console.log('Sample spec:', sanitizeForLog(JSON.stringify(productSpecs[0])));
+      } // Sort by spec title
+      let lightweightProducts = products.map(product => transformToLightweight(product, productSpecs));
+      
+      // Post-filter for discount
+      if (req.query.discount) {
+        if (req.query.discount === 'true') {
+          lightweightProducts = lightweightProducts.filter(product => product.isOnSale);
+        } else {
+          const discountPercent = parseInt(req.query.discount);
+          if (!isNaN(discountPercent) && discountPercent >= 0 && discountPercent <= 100) {
+            lightweightProducts = lightweightProducts.filter(product => 
+              product.isOnSale && product.discountPercent >= discountPercent
+            );
+          }
+        }
+      }
       
       const totalPages = Math.ceil(total / limit);
       
@@ -608,7 +680,7 @@ module.exports = {
     }
   },
 
-  // Public API - Get product by ID (basic product only)
+  // Public API - Get product by ID
   getProductById: async (req, res) => {
     try {
       const identifier = req.params.id;
@@ -640,7 +712,6 @@ module.exports = {
         });
       }
       
-      // Increment view count (non-blocking)
       Product.findByIdAndUpdate(product._id, { $inc: { viewCount: 1 } }).catch(err => 
         console.error('View count update failed:', err)
       );
@@ -656,7 +727,6 @@ module.exports = {
           .limit(20)
       ]);
       
-      // Transform product data
       const productObj = product.toObject();
       const productData = {
         _id: productObj._id,
@@ -698,21 +768,23 @@ module.exports = {
     }
   },
 
-
-
   // Public API - Get product filters
   getProductFilters: async (req, res) => {
     try {
-      const [categories, brands] = await Promise.all([
-        Category.find().sort({ name: 1 }),
-        Brand.find().sort({ name: 1 })
+      const [categories, brands, subcategories, types] = await Promise.all([
+        Category.find().select('name slug').sort({ name: 1 }),
+        Brand.find().select('name slug').sort({ name: 1 }),
+        SubCategory.find().select('name slug category').populate('category', 'name').sort({ name: 1 }),
+        Type.find().select('name slug category subCategory').populate('category', 'name').populate('subCategory', 'name').sort({ name: 1 })
       ]);
       
       res.status(200).json({
         success: true,
         data: {
           categories,
-          brands
+          brands,
+          subcategories,
+          types
         }
       });
     } catch (error) {
@@ -762,8 +834,6 @@ module.exports = {
       });
     }
   },
-
-
 
   // Upload middleware
   uploadImages: upload.array('images', 10)

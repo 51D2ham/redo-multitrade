@@ -41,7 +41,7 @@
   <% } %>
 
   <div class="bg-white rounded-xl shadow-md p-8 mb-10 border border-gray-100">
-    <form action="/admin/v1/parameters/spec-lists/<%= specList._id %>" method="POST" class="space-y-6">
+    <form action="/admin/v1/parameters/spec-lists/<%= specList._id %>?_method=PUT" method="POST" class="space-y-6">
       <input type="hidden" name="_method" value="PUT">
       
       <div>
@@ -217,14 +217,29 @@ document.addEventListener('DOMContentLoaded', function() {
 // Filter subcategories based on selected category
 categorySelect.addEventListener('change', function() {
   const selectedCategoryId = this.value;
-  filterSubCategories(selectedCategoryId);
+  
+  if (selectedCategoryId) {
+    subCategorySelect.disabled = false;
+    filterSubCategories(selectedCategoryId);
+  } else {
+    subCategorySelect.disabled = true;
+    subCategorySelect.innerHTML = '<option value="">Select Category First</option>';
+  }
+  
   resetTypeDropdown();
 });
 
 // Filter types based on selected subcategory
 subCategorySelect.addEventListener('change', function() {
   const selectedSubCategoryId = this.value;
-  filterTypes(selectedSubCategoryId);
+  
+  if (selectedSubCategoryId) {
+    typeSelect.disabled = false;
+    filterTypes(selectedSubCategoryId);
+  } else {
+    typeSelect.disabled = true;
+    typeSelect.innerHTML = '<option value="">Select Sub Category First</option>';
+  }
 });
 
 // Helper functions
@@ -269,7 +284,8 @@ function filterTypes(subCategoryId, selectedTypeId = '') {
 }
 
 function resetTypeDropdown() {
-  typeSelect.innerHTML = '<option value="">Select Type (Optional)</option>';
+  typeSelect.disabled = true;
+  typeSelect.innerHTML = '<option value="">Select Sub Category First</option>';
 }
 </script>
 

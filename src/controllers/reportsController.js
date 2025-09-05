@@ -11,7 +11,14 @@ const moment = require('moment-timezone');
 // Input sanitization helper
 const sanitizeInput = (input) => {
   if (typeof input !== 'string') return input;
-  return input.replace(/[<>\"'&\r\n\t]/g, '').trim();
+  return input.replace(/[<>\"'&\r\n\t${}]/g, '').trim();
+};
+
+// Secure date validation
+const validateDateInput = (dateInput) => {
+  if (!dateInput) return null;
+  const date = new Date(sanitizeInput(dateInput.toString()));
+  return (date instanceof Date && !isNaN(date)) ? date : null;
 };
 
 // Validate date helper
@@ -980,7 +987,8 @@ exports.exportReports = async (req, res) => {
     res.end();
 
   } catch (error) {
-    console.error('Export reports error:', sanitizeInput(error.message));
+    const { sanitizeForLog } = require('../middlewares/security');
+    console.error('Export reports error:', sanitizeForLog(error.message));
     req.flash('error', 'Failed to export report');
     res.redirect('/admin/reports/comprehensive');
   }

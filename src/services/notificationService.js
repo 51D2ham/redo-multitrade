@@ -7,14 +7,14 @@ class NotificationService {
       const result = await sendMail(recipient, subject, html);
       
       if (result.success) {
-        console.log(`✅ ${type} notification sent to ${recipient}`);
+        console.log(`✅ ${encodeURIComponent(type)} notification sent to ${encodeURIComponent(recipient)}`);
         return { success: true, messageId: result.info?.messageId };
       } else {
-        console.error(`❌ Failed to send ${type} notification to ${recipient}:`, result.error);
+        console.error(`❌ Failed to send ${encodeURIComponent(type)} notification to ${encodeURIComponent(recipient)}:`, encodeURIComponent(result.error || 'Unknown error'));
         return { success: false, error: result.error };
       }
     } catch (error) {
-      console.error(`❌ Notification service error for ${type}:`, error.message);
+      console.error(`❌ Notification service error for ${encodeURIComponent(type)}:`, encodeURIComponent(error.message || 'Unknown error'));
       return { success: false, error: error.message };
     }
   }

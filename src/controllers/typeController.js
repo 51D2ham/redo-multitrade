@@ -249,17 +249,23 @@ const typeController = {
   getAllPublicTypes: async (req, res) => {
     try {
       const types = await Type.find({ isActive: true })
-        .select('name slug isActive isFeatured category subCategory createdAt')
+        .select('name slug category subCategory')
         .populate('category', 'name slug')
         .populate('subCategory', 'name slug')
         .sort({ name: 1 });
       
-      const typesWithUrls = types.map(type => type.toObject());
+      const typesData = types.map(type => ({
+        _id: type._id,
+        name: type.name,
+        slug: type.slug,
+        category: type.category,
+        subCategory: type.subCategory
+      }));
       
       res.status(200).json({
         success: true,
-        count: typesWithUrls.length,
-        data: typesWithUrls
+        count: typesData.length,
+        data: typesData
       });
     } catch (error) {
       res.status(500).json({
@@ -298,44 +304,108 @@ const typeController = {
     try {
       const { typeId } = req.params;
       const page = parseInt(req.query.page) || 1;
-      const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+      const limit = Math.min(parseInt(req.query.limit) || 20, 50);
       const skip = (page - 1) * limit;
+      
+      // Validate ObjectId
+      if (!/^[0-9a-fA-F]{24}$/.test(typeId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid type ID'
+        });
+      }
       
       const { Product } = require('../models/productModel');
       
-      const [products, total] = await Promise.all([
-        Product.find({ type: typeId, status: 'active' })
-          .populate('category', 'name slug')
-          .populate('subCategory', 'name slug')
-          .populate('type', 'name slug')
-          .populate('brand', 'name slug')
-          .select('-admin')
-          .sort({ createdAt: -1 })
+      const filter = { type: typeId, status: 'active' };
+      
+      // Add sorting
+      let sort = { createdAt: -1 };
+      switch (req.query.sort) {
+        case 'price_asc': sort = { 'variants.price': 1 }; break;
+        case 'price_desc': sort = { 'variants.price': -1 }; break;
+        case 'rating': sort = { rating: -1 }; break;
+        case 'newest': sort = { createdAt: -1 }; break;
+      }
+      
+      const [products, total, type] = await Promise.all([
+        Product.find(filter)
+          .populate('category', 'name')
+          .populate('brand', 'name')
+          .select('_id title images variants rating reviewCount totalStock featured')
+          .sort(sort)
           .skip(skip)
           .limit(limit),
-        Product.countDocuments({ type: typeId, status: 'active' })
+        Product.countDocuments(filter),
+        Type.findById(typeId).select('name').populate('category', 'name').populate('subCategory', 'name')
       ]);
       
-      // Add specifications to each product
+      // Get specs for all products
       const { ProductSpecs } = require('../models/productModel');
-      const productsWithSpecs = await Promise.all(
-        products.map(async (product) => {
-          const specifications = await ProductSpecs.find({ product: product._id })
-            .populate('specList', 'title')
-            .select('specList value');
-          
-          return {
-            ...product.toObject(),
-            specifications
-          };
-        })
-      );
+      const productIds = products.map(p => p._id);
+      const productSpecs = await ProductSpecs.find({ 
+        product: { $in: productIds } 
+      })
+      .populate('specList', 'title')
+      .select('product specList value')
+      .sort({ 'specList.title': 1 });
+      
+      if (!type) {
+        return res.status(404).json({
+          success: false,
+          message: 'Type not found'
+        });
+      }
+      
+      const typeProducts = products.map(product => {
+        const defaultVariant = product.variants?.find(v => v.isDefault) || product.variants?.[0];
+        const price = defaultVariant?.price || 0;
+        const originalPrice = defaultVariant?.originalPrice || null;
+        const isOnSale = !!(originalPrice && originalPrice > price);
+        const discountPercent = isOnSale ? Math.round(((originalPrice - price) / originalPrice) * 100) : 0;
+        const thumbnail = product.images?.[0] ? `/uploads/products/${product.images[0]}` : null;
+        
+        // Get specs for this product (prioritized)
+        const specPriority = ['RAM', 'Storage', 'Display', 'Processor', 'Battery', 'Camera', 'OS', 'Size', 'Weight'];
+        const specs = productSpecs
+          .filter(spec => spec.product.toString() === product._id.toString())
+          .sort((a, b) => {
+            const aIndex = specPriority.findIndex(p => a.specList?.title?.toLowerCase().includes(p.toLowerCase()));
+            const bIndex = specPriority.findIndex(p => b.specList?.title?.toLowerCase().includes(p.toLowerCase()));
+            return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
+          })
+          .slice(0, 3)
+          .map(spec => ({
+            title: spec.specList?.title || 'Unknown',
+            value: spec.value
+          }));
+        
+        return {
+          _id: product._id,
+          title: product.title,
+          thumbnail,
+          price,
+          originalPrice,
+          isOnSale,
+          discountPercent,
+          rating: product.rating || 0,
+          reviewCount: product.reviewCount || 0,
+          totalStock: product.totalStock || 0,
+          featured: product.featured || false,
+          category: product.category,
+          brand: product.brand,
+          specs: specs
+        };
+      });
       
       const totalPages = Math.ceil(total / limit);
       
       res.status(200).json({
         success: true,
-        data: productsWithSpecs,
+        data: {
+          type,
+          products: typeProducts
+        },
         pagination: {
           current: page,
           total: totalPages,
@@ -345,10 +415,11 @@ const typeController = {
         }
       });
     } catch (error) {
+      console.error('Get products by type error:', error);
       res.status(500).json({
         success: false,
         message: 'Server error',
-        error: error.message
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
       });
     }
   },

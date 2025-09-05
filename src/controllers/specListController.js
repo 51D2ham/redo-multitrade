@@ -529,6 +529,9 @@ module.exports = {
       
       if (filters.status) filter.status = filters.status;
       if (filters.category) filter.category = filters.category;
+      if (filters.subCategory) filter.subCategory = filters.subCategory;
+      if (filters.type) filter.type = filters.type;
+      if (filters.brand) filter.brand = filters.brand;
       if (filters.displayInFilter) {
         filter.displayInFilter = filters.displayInFilter === 'true';
       }
@@ -550,7 +553,7 @@ module.exports = {
         default: sort = { createdAt: -1 }; break;
       }
       
-      const [specLists, total, categories] = await Promise.all([
+      const [specLists, total, categories, subCategories, types, brands] = await Promise.all([
         SpecList.find(filter)
           .populate('admin', 'username email fullname')
           .populate('category', 'name')
@@ -561,7 +564,10 @@ module.exports = {
           .skip(skip)
           .limit(limit),
         SpecList.countDocuments(filter),
-        Category.find().sort({ name: 1 })
+        Category.find().sort({ name: 1 }),
+        SubCategory.find().populate('category').sort({ name: 1 }),
+        Type.find().populate('subCategory').sort({ name: 1 }),
+        Brand.find().sort({ name: 1 })
       ]);
       
       const totalPages = Math.ceil(total / limit);
@@ -570,6 +576,9 @@ module.exports = {
         title: 'Manage Spec Lists',
         specLists: specLists || [],
         categories: categories || [],
+        subCategories: subCategories || [],
+        types: types || [],
+        brands: brands || [],
         pagination: {
           current: page,
           total: totalPages,
@@ -591,6 +600,9 @@ module.exports = {
         title: 'Manage Spec Lists',
         specLists: [],
         categories: [],
+        subCategories: [],
+        types: [],
+        brands: [],
         pagination: { current: 1, total: 1, hasNext: false, hasPrev: false, next: 1, prev: 1, totalSpecLists: 0 },
         filters: req.query || {},
         success: req.flash('success') || [],
@@ -603,8 +615,8 @@ module.exports = {
     try {
       const [categories, subCategories, types, brands] = await Promise.all([
         Category.find().sort({ name: 1 }),
-        SubCategory.find().sort({ name: 1 }),
-        Type.find().sort({ name: 1 }),
+        SubCategory.find().populate('category').sort({ name: 1 }),
+        Type.find().populate('subCategory').sort({ name: 1 }),
         Brand.find().sort({ name: 1 })
       ]);
       
@@ -631,6 +643,34 @@ module.exports = {
       if (!title || title.trim().length === 0) {
         req.flash('error', 'Spec title is required');
         return res.redirect('/admin/v1/parameters/spec-lists/new');
+      }
+      
+      // Validate hierarchy relationships
+      if (subCategory && !category) {
+        req.flash('error', 'Cannot select subcategory without selecting category first');
+        return res.redirect('/admin/v1/parameters/spec-lists/new');
+      }
+      
+      if (type && !subCategory) {
+        req.flash('error', 'Cannot select type without selecting subcategory first');
+        return res.redirect('/admin/v1/parameters/spec-lists/new');
+      }
+      
+      // Validate cross-relationships
+      if (subCategory && category) {
+        const subCat = await SubCategory.findById(subCategory).populate('category');
+        if (!subCat || subCat.category._id.toString() !== category) {
+          req.flash('error', 'Selected subcategory does not belong to the selected category');
+          return res.redirect('/admin/v1/parameters/spec-lists/new');
+        }
+      }
+      
+      if (type && subCategory) {
+        const typeDoc = await Type.findById(type).populate('subCategory');
+        if (!typeDoc || typeDoc.subCategory._id.toString() !== subCategory) {
+          req.flash('error', 'Selected type does not belong to the selected subcategory');
+          return res.redirect('/admin/v1/parameters/spec-lists/new');
+        }
       }
       
       const adminId = req.user && req.user._id ? req.user._id : req.session?.admin?.id;
@@ -748,6 +788,34 @@ module.exports = {
       if (!title || title.trim().length === 0) {
         req.flash('error', 'Spec title is required');
         return res.redirect(`/admin/v1/parameters/spec-lists/${specListId}/edit`);
+      }
+      
+      // Validate hierarchy relationships
+      if (subCategory && !category) {
+        req.flash('error', 'Cannot select subcategory without selecting category first');
+        return res.redirect(`/admin/v1/parameters/spec-lists/${specListId}/edit`);
+      }
+      
+      if (type && !subCategory) {
+        req.flash('error', 'Cannot select type without selecting subcategory first');
+        return res.redirect(`/admin/v1/parameters/spec-lists/${specListId}/edit`);
+      }
+      
+      // Validate cross-relationships
+      if (subCategory && category) {
+        const subCat = await SubCategory.findById(subCategory).populate('category');
+        if (!subCat || subCat.category._id.toString() !== category) {
+          req.flash('error', 'Selected subcategory does not belong to the selected category');
+          return res.redirect(`/admin/v1/parameters/spec-lists/${specListId}/edit`);
+        }
+      }
+      
+      if (type && subCategory) {
+        const typeDoc = await Type.findById(type).populate('subCategory');
+        if (!typeDoc || typeDoc.subCategory._id.toString() !== subCategory) {
+          req.flash('error', 'Selected type does not belong to the selected subcategory');
+          return res.redirect(`/admin/v1/parameters/spec-lists/${specListId}/edit`);
+        }
       }
 
       const adminId = req.user && req.user._id ? req.user._id : req.session?.admin?.id;

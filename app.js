@@ -9,15 +9,20 @@ const MongoStore = require('connect-mongo');
 const flash = require('connect-flash');
 const cors = require('cors');
 const connectDb = require('./src/config/connectDb');
+const { securityHeaders, generateCSRFToken, createRateLimit } = require('./src/middlewares/security');
 
 const app = express();
 const port = process.env.PORT || 9001;
+
+// Security middleware
+app.use(securityHeaders);
+app.use(createRateLimit());
 
 // CORS & Express setup
 app.use(cors({
   origin: 'http://localhost:5173',
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
   credentials: true,
 }));
 
@@ -60,6 +65,7 @@ app.use(session({
 }));
 
 app.use(flash());
+app.use(generateCSRFToken);
 
 // Global middleware
 app.use((req, res, next) => {

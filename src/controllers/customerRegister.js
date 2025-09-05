@@ -588,8 +588,21 @@ const getUserProfileRender = async (req, res) => {
     const permanentAddress = user.permanentAddress || '';
     const tempAddress = user.tempAddress || '';
 
-    // Extract just the filename from the full path
-    const photoFilename = user.profileImage ? path.basename(user.profileImage) : null;
+    // Safely extract and validate the filename from the full path
+    let photoFilename = null;
+    if (user.profileImage) {
+      const { validateFilePath } = require('../middlewares/security');
+      const filename = path.basename(user.profileImage);
+      const uploadsDir = path.join(__dirname, '../uploads');
+      
+      // Validate filename and path to prevent path traversal
+      if (!/^[a-zA-Z0-9._-]+$/.test(filename) || !validateFilePath(user.profileImage, uploadsDir)) {
+        const { sanitizeForLog } = require('../middlewares/security');
+        console.warn('Invalid filename detected:', sanitizeForLog(filename));
+      } else {
+        photoFilename = filename;
+      }
+    }
 
     res.render('customer/profile', {
       user,

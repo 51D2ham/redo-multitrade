@@ -224,16 +224,21 @@ const subCategoryController = {
   getAllPublicSubCategories: async (req, res) => {
     try {
       const subcategories = await SubCategory.find({ isActive: true })
-        .select('name slug isActive isFeatured category createdAt')
+        .select('name slug category')
         .populate('category', 'name slug')
         .sort({ name: 1 });
       
-      const subcategoriesWithUrls = subcategories.map(subcategory => subcategory.toObject());
+      const subcategoriesData = subcategories.map(subcategory => ({
+        _id: subcategory._id,
+        name: subcategory.name,
+        slug: subcategory.slug,
+        category: subcategory.category
+      }));
       
       res.status(200).json({
         success: true,
-        count: subcategoriesWithUrls.length,
-        data: subcategoriesWithUrls
+        count: subcategoriesData.length,
+        data: subcategoriesData
       });
     } catch (error) {
       res.status(500).json({
@@ -274,44 +279,108 @@ const subCategoryController = {
     try {
       const { subCategoryId } = req.params;
       const page = parseInt(req.query.page) || 1;
-      const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+      const limit = Math.min(parseInt(req.query.limit) || 20, 50);
       const skip = (page - 1) * limit;
+      
+      // Validate ObjectId
+      if (!/^[0-9a-fA-F]{24}$/.test(subCategoryId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid subcategory ID'
+        });
+      }
       
       const { Product } = require('../models/productModel');
       
-      const [products, total] = await Promise.all([
-        Product.find({ subCategory: subCategoryId, status: 'active' })
-          .populate('category', 'name slug')
-          .populate('subCategory', 'name slug')
-          .populate('type', 'name slug')
-          .populate('brand', 'name slug')
-          .select('-admin')
-          .sort({ createdAt: -1 })
+      const filter = { subCategory: subCategoryId, status: 'active' };
+      
+      // Add sorting
+      let sort = { createdAt: -1 };
+      switch (req.query.sort) {
+        case 'price_asc': sort = { 'variants.price': 1 }; break;
+        case 'price_desc': sort = { 'variants.price': -1 }; break;
+        case 'rating': sort = { rating: -1 }; break;
+        case 'newest': sort = { createdAt: -1 }; break;
+      }
+      
+      const [products, total, subCategory] = await Promise.all([
+        Product.find(filter)
+          .populate('category', 'name')
+          .populate('brand', 'name')
+          .select('_id title images variants rating reviewCount totalStock featured')
+          .sort(sort)
           .skip(skip)
           .limit(limit),
-        Product.countDocuments({ subCategory: subCategoryId, status: 'active' })
+        Product.countDocuments(filter),
+        SubCategory.findById(subCategoryId).select('name').populate('category', 'name')
       ]);
       
-      // Add specifications to each product
+      // Get specs for all products
       const { ProductSpecs } = require('../models/productModel');
-      const productsWithSpecs = await Promise.all(
-        products.map(async (product) => {
-          const specifications = await ProductSpecs.find({ product: product._id })
-            .populate('specList', 'title')
-            .select('specList value');
-          
-          return {
-            ...product.toObject(),
-            specifications
-          };
-        })
-      );
+      const productIds = products.map(p => p._id);
+      const productSpecs = await ProductSpecs.find({ 
+        product: { $in: productIds } 
+      })
+      .populate('specList', 'title')
+      .select('product specList value')
+      .sort({ 'specList.title': 1 });
+      
+      if (!subCategory) {
+        return res.status(404).json({
+          success: false,
+          message: 'Subcategory not found'
+        });
+      }
+      
+      const subCategoryProducts = products.map(product => {
+        const defaultVariant = product.variants?.find(v => v.isDefault) || product.variants?.[0];
+        const price = defaultVariant?.price || 0;
+        const originalPrice = defaultVariant?.originalPrice || null;
+        const isOnSale = !!(originalPrice && originalPrice > price);
+        const discountPercent = isOnSale ? Math.round(((originalPrice - price) / originalPrice) * 100) : 0;
+        const thumbnail = product.images?.[0] ? `/uploads/products/${product.images[0]}` : null;
+        
+        // Get specs for this product (prioritized)
+        const specPriority = ['RAM', 'Storage', 'Display', 'Processor', 'Battery', 'Camera', 'OS', 'Size', 'Weight'];
+        const specs = productSpecs
+          .filter(spec => spec.product.toString() === product._id.toString())
+          .sort((a, b) => {
+            const aIndex = specPriority.findIndex(p => a.specList?.title?.toLowerCase().includes(p.toLowerCase()));
+            const bIndex = specPriority.findIndex(p => b.specList?.title?.toLowerCase().includes(p.toLowerCase()));
+            return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
+          })
+          .slice(0, 3)
+          .map(spec => ({
+            title: spec.specList?.title || 'Unknown',
+            value: spec.value
+          }));
+        
+        return {
+          _id: product._id,
+          title: product.title,
+          thumbnail,
+          price,
+          originalPrice,
+          isOnSale,
+          discountPercent,
+          rating: product.rating || 0,
+          reviewCount: product.reviewCount || 0,
+          totalStock: product.totalStock || 0,
+          featured: product.featured || false,
+          category: product.category,
+          brand: product.brand,
+          specs: specs
+        };
+      });
       
       const totalPages = Math.ceil(total / limit);
       
       res.status(200).json({
         success: true,
-        data: productsWithSpecs,
+        data: {
+          subCategory,
+          products: subCategoryProducts
+        },
         pagination: {
           current: page,
           total: totalPages,
@@ -321,10 +390,11 @@ const subCategoryController = {
         }
       });
     } catch (error) {
+      console.error('Get products by subcategory error:', error);
       res.status(500).json({
         success: false,
         message: 'Server error',
-        error: error.message
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
       });
     }
   }
