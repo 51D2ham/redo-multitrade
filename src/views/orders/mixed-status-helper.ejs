@@ -27,7 +27,7 @@
 </div>
 
 <!-- Order Status Summary Component -->
-<script>
+<script nonce="<%= (typeof cspNonce !== 'undefined' ? cspNonce : '') %>">
 function calculateOrderStatusSummary(items) {
   const summary = {
     pending: 0,
@@ -157,7 +157,7 @@ function showStatusChangeWarning(item, newStatus) {
 }
 </script>
 
-<style>
+<style nonce="<%= (typeof cspNonce !== 'undefined' ? cspNonce : '') %>">
 .mixed-status-helper {
   margin-bottom: 1rem;
 }

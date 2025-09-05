@@ -17,11 +17,23 @@ const handleMulterError = (err, req, res, next) => {
 };
 
 // Authentication Routes
-router.get('/register',  (req, res) => res.render('admin/register'));
+router.get('/register', (req, res) => {
+  res.render('admin/register', {
+    error: req.flash('error'),
+    success: req.flash('success'),
+    old: {}
+  });
+});
 router.post('/register',upload.single('photo'), handleMulterError, adminController.registerAdmin);
 
 // login post and get
-router.get('/login', (req, res) => res.render('admin/login'));
+router.get('/login', (req, res) => {
+  res.render('admin/login', {
+    error: req.flash('error'),
+    success: req.flash('success'),
+    old: {}
+  });
+});
 router.post('/login', adminController.loginAdmin);
 //logout post and get
 router.get('/logout', adminController.logoutAdmin);
@@ -29,13 +41,29 @@ router.post('/logout', adminController.logoutAdmin);
 
 
 // Password Management Routes
-router.get('/change-password',authMiddleware,(req, res) => res.render('admin/change-password'));
+router.get('/change-password', authMiddleware, (req, res) => {
+  res.render('admin/change-password', {
+    error: req.flash('error'),
+    success: req.flash('success')
+  });
+});
 router.post('/change-password', adminController.changePasswordRender);
 
-router.get('/forgot-password', (req, res) => res.render('admin/forgot-password'));
+router.get('/forgot-password', (req, res) => {
+  res.render('admin/forgot-password', {
+    error: req.flash('error'),
+    success: req.flash('success')
+  });
+});
 router.post('/forgot-password', adminController.forgotPasswordRender);
 
-router.get('/reset-password', (req, res) => res.render('admin/reset-password'));
+router.get('/reset-password', (req, res) => {
+  res.render('admin/reset-password', {
+    error: req.flash('error'),
+    success: req.flash('success'),
+    email: req.query.email || ''
+  });
+});
 router.post('/reset-password', adminController.resetPasswordRender);
 
 // Admin Management Routes

@@ -1,55 +1,46 @@
 # Multitrade API Documentation
 
-## Base URL
-```
-http://localhost:9001
-```
+## Base URLs
+- **Production**: https://redo-multitrade.onrender.com
+- **Development**: http://localhost:9001
 
 ## Authentication
-- **Customer APIs**: Require JWT token in Authorization header
-- **Admin APIs**: Require admin session authentication
+- **Customer APIs**: JWT token in Authorization header
+- **Admin APIs**: Session-based authentication
 
 ---
 
-## Public APIs (No Authentication Required)
+## 🌐 Public APIs (No Authentication)
 
 ### Products
-- `GET /api/v1/products` - Get all products with filters
-- `GET /api/v1/products/:id` - Get product by ID
-- `GET /api/v1/products/slug/:slug` - Get product by slug
+```http
+GET /api/v1/products                    # Get all products with filters
+GET /api/v1/products/:id                # Get product by ID
+```
 
-### Categories
-- `GET /api/v1/categories` - Get all categories
-- `GET /api/v1/categories/:id` - Get category by ID
+**Query Parameters:**
+- `page` (default: 1)
+- `limit` (default: 20, max: 50)
+- `category` - Category ObjectId
+- `brand` - Brand ObjectId
+- `search` - Search term
+- `sort` - price_asc, price_desc, rating, newest
+- `minPrice` / `maxPrice` - Price range
+- `featured` - true/false
 
-### Subcategories
-- `GET /api/v1/subcategories` - Get all subcategories
-- `GET /api/v1/subcategories/:id` - Get subcategory by ID
-
-### Types
-- `GET /api/v1/types` - Get all types
-- `GET /api/v1/types/:id` - Get type by ID
-
-### Brands
-- `GET /api/v1/brands` - Get all brands
-- `GET /api/v1/brands/:id` - Get brand by ID
-
-### Content Management
-- `GET /api/v1/hero-carousel` - Get hero carousel items
-- `GET /api/v1/ads-panel` - Get advertisement panels
-- `GET /api/v1/company-info` - Get company information
-- `GET /api/v1/parameter-posters` - Get parameter posters
-- `GET /api/v1/brand-carousel` - Get brand carousel items
-
-### Reviews
-- `GET /api/v1/reviews/product/:productId` - Get product reviews
+### Categories & Filters
+```http
+GET /api/v1/categories                  # Get all categories
+GET /api/v1/brands                      # Get all brands
+GET /api/v1/subcategories              # Get all subcategories
+GET /api/v1/types                      # Get all types
+```
 
 ---
 
-## Customer APIs (Authentication Required)
+## 🔐 Customer APIs (JWT Required)
 
 ### Authentication
-#### Register OTP
 ```http
 POST /api/v1/customers/register/send-otp
 Content-Type: application/json
@@ -59,7 +50,6 @@ Content-Type: application/json
 }
 ```
 
-#### Verify OTP & Register
 ```http
 POST /api/v1/customers/register/verify-otp
 Content-Type: application/json
@@ -70,13 +60,10 @@ Content-Type: application/json
   "username": "customer123",
   "fullname": "John Doe",
   "phone": "1234567890",
-  "password": "securePassword123",
-  "gender": "male",
-  "dob": "1990-01-01"
+  "password": "securePassword123"
 }
 ```
 
-#### Login
 ```http
 POST /api/v1/customers/login
 Content-Type: application/json
@@ -87,394 +74,74 @@ Content-Type: application/json
 }
 ```
 
-#### Verify Token
-```http
-GET /api/v1/customers/verify-token
-Authorization: Bearer <jwt_token>
-```
-
-#### Get Current User
-```http
-GET /api/v1/customers/me
-Authorization: Bearer <jwt_token>
-```
-
-#### Logout
-```http
-POST /api/v1/customers/logout
-Authorization: Bearer <jwt_token>
-```
-
 ### Cart Management
-#### Get Cart
 ```http
-GET /api/v1/cart
-Authorization: Bearer <jwt_token>
-```
-
-#### Add to Cart
-```http
-POST /api/v1/cart/items
-Authorization: Bearer <jwt_token>
-Content-Type: application/json
-
-{
-  "productId": "product_id",
-  "variantSku": "variant_sku",
-  "quantity": 2
-}
-```
-
-#### Update Cart Item
-```http
-PUT /api/v1/cart/items/:itemId
-Authorization: Bearer <jwt_token>
-Content-Type: application/json
-
-{
-  "quantity": 3
-}
-```
-
-#### Remove Cart Item
-```http
-DELETE /api/v1/cart/items/:itemId
-Authorization: Bearer <jwt_token>
-```
-
-#### Clear Cart
-```http
-DELETE /api/v1/cart
-Authorization: Bearer <jwt_token>
+GET /api/v1/cart                        # Get cart
+POST /api/v1/cart/items                 # Add to cart
+PUT /api/v1/cart/items/:itemId          # Update cart item
+DELETE /api/v1/cart/items/:itemId       # Remove cart item
+DELETE /api/v1/cart                     # Clear cart
 ```
 
 ### Wishlist Management
-#### Get Wishlist
 ```http
-GET /api/v1/wishlist
-Authorization: Bearer <jwt_token>
+GET /api/v1/wishlist                    # Get wishlist
+POST /api/v1/wishlist/items             # Add to wishlist
+DELETE /api/v1/wishlist/items/:itemId   # Remove from wishlist
 ```
 
-#### Check Wishlist Status
+### Orders
 ```http
-GET /api/v1/wishlist/check/:productId?variantSku=sku
-Authorization: Bearer <jwt_token>
-```
-
-#### Add to Wishlist
-```http
-POST /api/v1/wishlist/items
-Authorization: Bearer <jwt_token>
-Content-Type: application/json
-
-{
-  "productId": "product_id",
-  "variantSku": "variant_sku"
-}
-```
-
-#### Remove from Wishlist
-```http
-DELETE /api/v1/wishlist/items/:itemId
-Authorization: Bearer <jwt_token>
-```
-
-#### Clear Wishlist
-```http
-DELETE /api/v1/wishlist
-Authorization: Bearer <jwt_token>
-```
-
-### Order Management
-#### Get Orders
-```http
-GET /api/v1/orders
-Authorization: Bearer <jwt_token>
-```
-
-#### Get Order by ID
-```http
-GET /api/v1/orders/:orderId
-Authorization: Bearer <jwt_token>
-```
-
-#### Create Order
-```http
-POST /api/v1/orders
-Authorization: Bearer <jwt_token>
-Content-Type: application/json
-
-{
-  "items": [
-    {
-      "product": "product_id",
-      "variantSku": "variant_sku",
-      "quantity": 2,
-      "price": 999.99
-    }
-  ],
-  "shippingAddress": {
-    "fullname": "John Doe",
-    "street": "123 Main St",
-    "city": "City",
-    "state": "State",
-    "postalCode": "12345",
-    "country": "Country",
-    "phone": "1234567890"
-  },
-  "paymentMethod": "card"
-}
-```
-
-### Reviews
-#### Create Review
-```http
-POST /api/v1/reviews
-Authorization: Bearer <jwt_token>
-Content-Type: application/json
-
-{
-  "product": "product_id",
-  "rating": 5,
-  "title": "Great product!",
-  "review": "This product exceeded my expectations..."
-}
+GET /api/v1/orders                      # Get user orders
+GET /api/v1/orders/:orderId             # Get order by ID
+POST /api/v1/orders                     # Create new order
 ```
 
 ---
 
-## Admin APIs (Session Authentication Required)
+## 👨💼 Admin APIs (Session Required)
 
 ### Product Management
-#### Get All Products (Admin)
 ```http
-GET /admin/v1/products
-Cookie: multitrade.sid=<session_id>
-```
-
-#### Create Product
-```http
-POST /admin/v1/products
-Cookie: multitrade.sid=<session_id>
-Content-Type: multipart/form-data
-
-title: Product Name
-description: Product description
-price: 999.99
-category: category_id
-brand: brand_id
-variants[0][sku]: VARIANT-SKU-1
-variants[0][price]: 999.99
-variants[0][stock]: 100
-images: [file uploads]
-```
-
-#### Update Product
-```http
-PUT /admin/v1/products/:id
-Cookie: multitrade.sid=<session_id>
-Content-Type: multipart/form-data
-```
-
-#### Delete Product
-```http
-DELETE /admin/v1/products/:id
-Cookie: multitrade.sid=<session_id>
+GET /admin/v1/products                  # List products
+POST /admin/v1/products                 # Create product
+PUT /admin/v1/products/:id              # Update product
+DELETE /admin/v1/products/:id           # Delete product
 ```
 
 ### Bulk Upload
-#### Upload Products CSV
 ```http
 POST /admin/v1/products/bulk-upload/upload
-Cookie: multitrade.sid=<session_id>
 Content-Type: multipart/form-data
 
 file: products.csv
 uploadMode: create|update
-validateOnly: false
-```
-
-#### Download Template
-```http
-GET /admin/v1/products/bulk-upload/template
-Cookie: multitrade.sid=<session_id>
-```
-
-#### Download Sample
-```http
-GET /admin/v1/products/bulk-upload/sample
-Cookie: multitrade.sid=<session_id>
-```
-
-### Category Management
-#### Get Categories (Admin)
-```http
-GET /admin/v1/parameters/categories
-Cookie: multitrade.sid=<session_id>
-```
-
-#### Create Category
-```http
-POST /admin/v1/parameters/categories
-Cookie: multitrade.sid=<session_id>
-Content-Type: multipart/form-data
-
-name: Category Name
-isActive: true
-isFeatured: false
-icon: [file upload]
-```
-
-#### Update Category
-```http
-PUT /admin/v1/parameters/categories/:id
-Cookie: multitrade.sid=<session_id>
-Content-Type: multipart/form-data
-```
-
-#### Delete Category
-```http
-DELETE /admin/v1/parameters/categories/:id
-Cookie: multitrade.sid=<session_id>
-```
-
-### Brand Management
-#### Get Brands (Admin)
-```http
-GET /admin/v1/parameters/brands
-Cookie: multitrade.sid=<session_id>
-```
-
-#### Create Brand
-```http
-POST /admin/v1/parameters/brands
-Cookie: multitrade.sid=<session_id>
-Content-Type: multipart/form-data
-
-name: Brand Name
-isActive: true
-isFeatured: false
-logo: [file upload]
-```
-
-### Order Management (Admin)
-#### Get All Orders
-```http
-GET /admin/v1/order
-Cookie: multitrade.sid=<session_id>
-```
-
-#### Update Order Status
-```http
-PUT /admin/v1/order/:orderId/status
-Cookie: multitrade.sid=<session_id>
-Content-Type: application/json
-
-{
-  "status": "processing",
-  "message": "Order is being processed"
-}
 ```
 
 ### Inventory Management
-#### Get Inventory Dashboard
 ```http
-GET /api/v1/inventory/dashboard
-Cookie: multitrade.sid=<session_id>
+GET /admin/v1/inventory/low-stock       # Get low stock alerts
+GET /admin/v1/inventory/restock         # Show restock form
+POST /admin/v1/inventory/restock        # Restock products
+GET /admin/v1/inventory/movements       # Inventory movements
 ```
 
-#### Get Low Stock Items
+### Order Management
 ```http
-GET /api/v1/inventory/low-stock
-Cookie: multitrade.sid=<session_id>
-```
-
-#### Update Stock
-```http
-PUT /api/v1/inventory/stock
-Cookie: multitrade.sid=<session_id>
-Content-Type: application/json
-
-{
-  "productId": "product_id",
-  "variantSku": "variant_sku",
-  "newStock": 50,
-  "reason": "Stock adjustment"
-}
-```
-
-### Content Management (Admin)
-#### Hero Carousel
-```http
-POST /admin/v1/parameters/hero-carousel
-Cookie: multitrade.sid=<session_id>
-Content-Type: multipart/form-data
-
-title: Carousel Title
-link: https://example.com
-status: active
-image: [file upload]
-```
-
-#### Ads Panel
-```http
-POST /admin/v1/parameters/ads-panel
-Cookie: multitrade.sid=<session_id>
-Content-Type: multipart/form-data
-
-title: Ad Title
-locationId: homepage-banner
-link: https://example.com
-image: [file upload]
-```
-
-#### Parameter Posters
-```http
-POST /admin/v1/content/parameter-posters
-Cookie: multitrade.sid=<session_id>
-Content-Type: multipart/form-data
-
-title: Poster Title
-parameterType: category|brand
-parameterId: parameter_id
-status: active
-image: [file upload]
-```
-
-#### Brand Carousel
-```http
-POST /admin/v1/content/brand-carousel
-Cookie: multitrade.sid=<session_id>
-Content-Type: application/json
-
-{
-  "brand": "brand_id",
-  "order": 1,
-  "status": "active"
-}
+GET /admin/v1/order                     # List all orders
+GET /admin/v1/order/:id                 # Get order details
+PUT /admin/v1/order/:id/status          # Update order status
 ```
 
 ### Reports & Analytics
-#### Comprehensive Dashboard
 ```http
-GET /admin/reports/comprehensive
-Cookie: multitrade.sid=<session_id>
-```
-
-#### Export Dashboard Data
-```http
-GET /admin/reports/comprehensive/excel
-Cookie: multitrade.sid=<session_id>
-```
-
-```http
-GET /admin/reports/comprehensive/csv
-Cookie: multitrade.sid=<session_id>
+GET /admin/reports/comprehensive        # Main dashboard
+GET /admin/reports/export               # Export reports
 ```
 
 ---
 
-## Response Format
+## 📊 Response Format
 
 ### Success Response
 ```json
@@ -483,6 +150,12 @@ Cookie: multitrade.sid=<session_id>
   "message": "Operation successful",
   "data": {
     // Response data
+  },
+  "pagination": {
+    "current": 1,
+    "total": 5,
+    "hasNext": true,
+    "hasPrev": false
   }
 }
 ```
@@ -493,49 +166,58 @@ Cookie: multitrade.sid=<session_id>
   "success": false,
   "message": "Error message",
   "errors": [
-    // Validation errors if any
+    // Validation errors
   ]
 }
 ```
 
 ---
 
-## Status Codes
+## 🔧 Status Codes
 - `200` - Success
 - `201` - Created
 - `400` - Bad Request
 - `401` - Unauthorized
 - `403` - Forbidden
 - `404` - Not Found
-- `409` - Conflict
-- `422` - Validation Error
 - `500` - Internal Server Error
 
 ---
 
-## File Upload
-- **Supported formats**: JPG, JPEG, PNG, WEBP
-- **Max file size**: 5MB
-- **Upload path**: `/uploads/`
-- **Multiple files**: Supported for product images
+## 📁 File Upload
+- **Formats**: JPG, JPEG, PNG, WEBP
+- **Max Size**: 5MB per file
+- **Path**: `/uploads/`
 
 ---
 
-## Pagination
-Query parameters for paginated endpoints:
-- `page` - Page number (default: 1)
-- `limit` - Items per page (default: 10)
-- `sort` - Sort field
-- `order` - Sort order (asc/desc)
+## 🧪 Testing Examples
+
+### Get Products with Filters
+```bash
+curl "https://redo-multitrade.onrender.com/api/v1/products?category=CATEGORY_ID&sort=price_asc&limit=10"
+```
+
+### Customer Login
+```bash
+curl -X POST "https://redo-multitrade.onrender.com/api/v1/customers/login" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"password123"}'
+```
+
+### Add to Cart (with JWT)
+```bash
+curl -X POST "https://redo-multitrade.onrender.com/api/v1/cart/items" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"productId":"PRODUCT_ID","variantSku":"SKU","quantity":2}'
+```
 
 ---
 
-## Filtering
-Query parameters for filtered endpoints:
-- `category` - Filter by category ID
-- `brand` - Filter by brand ID
-- `minPrice` - Minimum price
-- `maxPrice` - Maximum price
-- `status` - Filter by status
-- `featured` - Filter featured items
-- `search` - Search query
+## 🚀 Live Demo
+**Production API**: https://redo-multitrade.onrender.com/api/v1
+
+**Admin Panel**: https://redo-multitrade.onrender.com/admin/v1/staff/login
+
+**Dashboard**: https://redo-multitrade.onrender.com/admin/reports/comprehensive

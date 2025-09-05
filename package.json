@@ -9,7 +9,7 @@
     "clean:db": "node src/seed/cleanDatabase.js"
   },
   "keywords": ["ecommerce", "nodejs", "express", "mongodb"],
-  "author": "",
+  "author": "Multitrade Team",
   "license": "MIT",
   "description": "A comprehensive e-commerce platform built with Node.js, Express, and MongoDB",
   "dependencies": {

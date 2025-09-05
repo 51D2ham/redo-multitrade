@@ -269,7 +269,7 @@
 
 </main>
 
-<script>
+<script nonce="<%= (typeof cspNonce !== 'undefined' ? cspNonce : '') %>">
 // Auto-submit form on sort change
 document.addEventListener('DOMContentLoaded', function() {
   const sortSelect = document.querySelector('select[name="sort"]');

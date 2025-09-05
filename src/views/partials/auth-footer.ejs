@@ -38,7 +38,7 @@
     </div>
   </footer>
 
-  <script>
+  <script nonce="<%= (typeof cspNonce !== 'undefined' ? cspNonce : '') %>">
     // Auth footer time update
     function updateAuthFooterTime() {
       const authFooterTimeElement = document.getElementById('authFooterTime');

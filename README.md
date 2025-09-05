@@ -1,110 +1,51 @@
 # Multitrade E-commerce Platform
 
+🚀 **Live Demo**: [https://redo-multitrade.onrender.com](https://redo-multitrade.onrender.com)
+
 A comprehensive e-commerce platform built with Node.js, Express, MongoDB, and EJS templating engine.
 
-## Features
+## ✨ Key Features
 
-### 🛍️ Customer Features
-- **User Registration & Authentication** with OTP-based email verification
-- **Product Browsing** with advanced filtering and search
-- **Shopping Cart** with variant support
-- **Wishlist Management** 
-- **Order Management** with status tracking
+### 🛍️ Customer Experience
+- **OTP-based Registration** with email verification
+- **Advanced Product Search** with filters and sorting
+- **Shopping Cart & Wishlist** with variant support
+- **Order Tracking** with real-time status updates
 - **Product Reviews & Ratings**
 - **Responsive Design** for all devices
 
-### 👨‍💼 Admin Features
-- **Dashboard** with comprehensive analytics
-- **Product Management** with variant support
-- **Bulk Product Upload** via CSV
-- **Inventory Management** with low stock alerts
-- **Order Management** with status updates
-- **Content Management** (Hero carousel, Ads, Posters)
-- **Parameter Management** (Categories, Brands, Types)
-- **Customer Management**
-- **Reports & Analytics** with export functionality
+### 👨💼 Admin Dashboard
+- **Comprehensive Analytics** with visual reports
+- **Product Management** with bulk CSV upload
+- **Inventory Management** with automated alerts
+- **Order Processing** with status management
+- **Content Management** (banners, ads, carousels)
+- **Customer Management** with detailed profiles
+- **Real-time Reports** with Excel export
 
-### 🔧 Technical Features
-- **RESTful API** architecture
-- **JWT Authentication** for customers
-- **Session-based Authentication** for admins
-- **File Upload** with image optimization
-- **Email Notifications** for orders and registration
-- **Real-time Inventory** tracking
-- **SEO-friendly URLs** with slugs
-- **Error Handling** and logging
-- **CORS Support** for frontend integration
-
-## Tech Stack
-
+### 🔧 Technical Stack
 - **Backend**: Node.js, Express.js
 - **Database**: MongoDB with Mongoose ODM
-- **Template Engine**: EJS
-- **Authentication**: JWT, Express Sessions
-- **File Upload**: Multer
-- **Email**: Nodemailer
-- **Validation**: Custom middleware
-- **Session Store**: MongoDB (connect-mongo)
+- **Frontend**: EJS templating with Tailwind CSS
+- **Authentication**: JWT (customers) + Sessions (admin)
+- **Security**: Helmet, CSRF protection, Rate limiting
+- **File Upload**: Multer with validation
+- **Email**: Nodemailer integration
+- **Deployment**: Render.com
 
-## Technical Specifications
-
-### System Requirements
-- **Node.js**: v16.0.0 or higher
-- **MongoDB**: v4.4 or higher
-- **Memory**: Minimum 2GB RAM (4GB recommended)
-- **Storage**: 10GB available space
-- **OS**: Windows 10/11, macOS 10.15+, Ubuntu 18.04+
-
-### Performance Metrics
-- **Concurrent Users**: Up to 1000 simultaneous users
-- **Database Connections**: Pool size of 10-50 connections
-- **File Upload**: Maximum 5MB per image, 20MB total per request
-- **Session Timeout**: 24 hours for admin, 7 days for customers
-- **API Rate Limiting**: 100 requests per minute per IP
-
-### Security Features
-- **Password Hashing**: bcrypt with salt rounds 12
-- **JWT Tokens**: RS256 algorithm with 24h expiry
-- **Session Security**: HTTP-only cookies with CSRF protection
-- **Input Validation**: Comprehensive sanitization and validation
-- **File Upload Security**: MIME type validation and size limits
-- **SQL Injection Protection**: Mongoose ODM with parameterized queries
-
-### Database Design
-- **Collections**: 15+ optimized collections
-- **Indexing**: Strategic indexes on frequently queried fields
-- **Relationships**: Efficient referencing with population
-- **Data Validation**: Schema-level validation with Mongoose
-- **Backup Strategy**: Automated daily backups recommended
-
-### API Architecture
-- **REST Endpoints**: 50+ RESTful API endpoints
-- **Response Format**: Consistent JSON responses
-- **Error Handling**: Standardized error codes and messages
-- **Pagination**: Cursor-based pagination for large datasets
-- **Filtering**: Advanced query parameters for data filtering
-- **Sorting**: Multi-field sorting capabilities
-
-### Scalability Features
-- **Horizontal Scaling**: Load balancer ready
-- **Caching**: Redis integration ready
-- **CDN Support**: Static asset optimization
-- **Database Sharding**: MongoDB sharding compatible
-- **Microservices Ready**: Modular architecture for service separation
-
-## Installation
+## 🚀 Quick Start
 
 ### Prerequisites
 - Node.js (v16 or higher)
 - MongoDB (v4.4 or higher)
 - npm or yarn
 
-### Setup
+### Installation
 
 1. **Clone the repository**
 ```bash
-git clone <repository-url>
-cd multitrade
+git clone https://github.com/51D2ham/redo-multitrade.git
+cd redo-multitrade
 ```
 
 2. **Install dependencies**
@@ -112,8 +53,8 @@ cd multitrade
 npm install
 ```
 
-3. **Environment Configuration**
-Create a `.env` file in the root directory:
+3. **Environment Setup**
+Create a `.env` file:
 ```env
 # Database
 CONNECTION_STRING=mongodb://localhost:27017/multitrade_db
@@ -132,279 +73,142 @@ MAIL_PORT=587
 MAIL_USER=your-email@gmail.com
 MAIL_PASS=your-app-password
 
-# Admin Seeding (Optional)
+# Admin Seeding
 DEVELOPER_EMAIL=admin@multitrade.com
 DEVELOPER_PASSWORD=SecureAdminPass123
 DEVELOPER_PHONE=9800000000
 DEVELOPER_NAME=System Administrator
-
-# Debug (Optional)
-DEBUG_REQUESTS=false
 ```
 
-4. **Create Upload Directories**
-```bash
-mkdir -p public/uploads
-mkdir -p src/uploads
-```
-
-5. **Seed Admin User (Optional)**
+4. **Create Admin User**
 ```bash
 npm run seed:admin
 ```
 
-6. **Start the Application**
-
-Development mode:
+5. **Start Development Server**
 ```bash
 npm run dev
 ```
 
-Production mode:
-```bash
-npm start
-```
+6. **Access the Application**
+- **Admin Panel**: http://localhost:9001/admin/v1/staff/login
+- **API Base**: http://localhost:9001/api/v1
+- **Dashboard**: http://localhost:9001/admin/reports/comprehensive
 
-## Scripts
-
-```json
-{
-  "start": "node app.js",
-  "dev": "nodemon app.js",
-  "seed:admin": "node src/seed/devSeed.js",
-  "clean:db": "node src/seed/cleanDatabase.js"
-}
-```
-
-## Project Structure
+## 📁 Project Structure
 
 ```
 multitrade/
 ├── src/
-│   ├── config/
-│   │   ├── connectDb.js          # Database connection
-│   │   └── mail.js               # Email configuration
-│   ├── controllers/              # Route controllers
-│   │   ├── adminRegister.js      # Admin authentication
-│   │   ├── customerRegister.js   # Customer authentication
-│   │   ├── productController.js  # Product management
-│   │   ├── cartController.js     # Shopping cart
-│   │   ├── wishlistController.js # Wishlist management
-│   │   ├── orderController.js    # Order management
-│   │   └── ...                   # Other controllers
-│   ├── middlewares/              # Custom middleware
-│   │   ├── auth.js               # Admin authentication
-│   │   ├── customerAuth.js       # Customer authentication
-│   │   ├── productPhoto.js       # File upload handling
-│   │   └── ...                   # Other middleware
-│   ├── models/                   # Database models
-│   │   ├── productModel.js       # Product schema
-│   │   ├── userRegisterModel.js  # Customer schema
-│   │   ├── adminRegister.js      # Admin schema
-│   │   ├── cartModel.js          # Cart schema
-│   │   └── ...                   # Other models
-│   ├── routes/                   # Route definitions
-│   │   ├── v1/                   # API v1 routes
-│   │   │   ├── customer/         # Customer routes
-│   │   │   ├── products/         # Product routes
-│   │   │   ├── cart/             # Cart routes
-│   │   │   └── ...               # Other route groups
-│   │   └── ...                   # Other routes
-│   ├── services/                 # Business logic services
-│   │   ├── notificationService.js # Email notifications
-│   │   ├── inventoryService.js   # Inventory management
-│   │   └── ...                   # Other services
-│   ├── utils/                    # Utility functions
-│   │   ├── generateOtp.js        # OTP generation
-│   │   ├── stockManager.js       # Stock management
-│   │   └── ...                   # Other utilities
-│   ├── views/                    # EJS templates
-│   │   ├── admin/                # Admin panel views
-│   │   ├── products/             # Product management views
-│   │   ├── orders/               # Order management views
-│   │   └── ...                   # Other views
-│   └── seed/                     # Database seeding
-│       ├── devSeed.js            # Admin user seeding
-│       └── cleanDatabase.js      # Database cleanup
-├── public/
-│   └── uploads/                  # Public upload directory
-├── sample_data/                  # CSV templates and samples
-│   ├── product_upload_template.csv
-│   └── product_sample_data.csv
-├── .env                          # Environment variables
-├── .gitignore                    # Git ignore rules
-├── app.js                        # Main application file
-├── index.js                      # Application entry point
-├── package.json                  # Dependencies and scripts
-└── README.md                     # This file
+│   ├── config/           # Database & email configuration
+│   ├── controllers/      # Route controllers
+│   ├── middlewares/      # Authentication & security
+│   ├── models/          # MongoDB schemas
+│   ├── routes/          # API & admin routes
+│   ├── services/        # Business logic services
+│   ├── utils/           # Utility functions
+│   ├── views/           # EJS templates
+│   └── uploads/         # File uploads
+├── public/uploads/      # Public file access
+├── sample_data/         # CSV templates
+├── .env                 # Environment variables
+├── app.js              # Main application
+└── package.json        # Dependencies
 ```
 
-## API Documentation
+## 🔐 Security Features
 
-Detailed API documentation is available in [API_DOCUMENTATION.md](./API_DOCUMENTATION.md)
+- **CSRF Protection** on all forms
+- **Rate Limiting** to prevent abuse
+- **Input Sanitization** against XSS/injection
+- **Path Traversal Protection** for file uploads
+- **Secure Headers** with Helmet.js
+- **JWT Token Validation** for API access
+- **Session Security** with MongoDB store
 
-### Base URLs
-- **API**: `http://localhost:9001/api/v1`
-- **Admin Panel**: `http://localhost:9001/admin`
-- **Dashboard**: `http://localhost:9001/admin/reports/comprehensive`
+## 📊 API Endpoints
 
-## Database Schema
+### Public APIs
+- `GET /api/v1/products` - Get all products
+- `GET /api/v1/categories` - Get categories
+- `GET /api/v1/brands` - Get brands
 
-### Core Models
-- **User**: Customer accounts with authentication
-- **Admin**: Administrator accounts
-- **Product**: Products with variant support
-- **Category/SubCategory/Type**: Product categorization
-- **Brand**: Product brands
-- **Cart**: Shopping cart items
-- **Wishlist**: Customer wishlists
-- **Order**: Customer orders with items
-- **Review**: Product reviews and ratings
+### Customer APIs (JWT Required)
+- `POST /api/v1/customers/register` - Register customer
+- `POST /api/v1/customers/login` - Customer login
+- `GET /api/v1/cart` - Get shopping cart
+- `POST /api/v1/orders` - Create order
 
-### Content Models
-- **HeroCarousel**: Homepage carousel items
-- **AdsPanel**: Advertisement panels
-- **CompanyInfo**: Company information
-- **ParameterPoster**: Category/Brand promotional images
-- **BrandCarousel**: Brand showcase carousel
+### Admin APIs (Session Required)
+- `GET /admin/v1/products` - Manage products
+- `GET /admin/v1/orders` - Manage orders
+- `GET /admin/reports/comprehensive` - Analytics dashboard
 
-### System Models
-- **InventoryLog**: Stock movement tracking
-- **PriceLog**: Price change history
-- **Sale**: Sales transaction records
+## 🛠️ Available Scripts
 
-## Authentication
+```bash
+npm start          # Production server
+npm run dev        # Development with nodemon
+npm run seed:admin # Create admin user
+npm run clean:db   # Clean database
+```
 
-### Customer Authentication
-- **Registration**: OTP-based email verification
-- **Login**: Email/password with JWT tokens
-- **Token Validation**: Middleware for protected routes
-- **Session Management**: Automatic token refresh
+## 🌐 Deployment
 
-### Admin Authentication
-- **Session-based**: MongoDB-backed sessions
-- **Role-based Access**: Admin/SuperAdmin roles
-- **Password Security**: Bcrypt hashing
-- **Session Timeout**: 24-hour expiry
+### Render.com Deployment for (development only)
+1. Connect your GitHub repository
+2. Set environment variables in Render dashboard
+3. Deploy automatically on push to main branch
 
-## File Upload
-
-### Configuration
-- **Storage**: Local filesystem
-- **Path**: `/uploads/` directory
-- **Formats**: JPG, JPEG, PNG, WEBP
-- **Size Limit**: 5MB per file
-- **Processing**: Automatic file naming with timestamps
-
-### Usage
-- **Product Images**: Multiple images per product
-- **Category Icons**: Single icon per category
-- **Brand Logos**: Single logo per brand
-- **Content Images**: Hero carousel, ads, posters
-
-## Email System
-
-### Features
-- **Registration OTP**: Email verification
-- **Order Notifications**: Status updates
-- **Admin Notifications**: New orders, low stock
-- **Template System**: HTML email templates
-
-### Configuration
-- **Provider**: SMTP (Gmail, SendGrid, etc.)
-- **Templates**: EJS-based email templates
-- **Queue**: Async email sending
-- **Error Handling**: Retry mechanism
-
-## Deployment
-
-### Production Setup
-
-1. **Environment Variables**
+### Environment Variables for Production
 ```env
 NODE_ENV=production
-CONNECTION_STRING=mongodb://your-production-db
-SESSION_SECRET=your-production-session-secret
-JWT_SECRET=your-production-jwt-secret
+CONNECTION_STRING=mongodb+srv://your-atlas-connection
+SESSION_SECRET=production-session-secret
+JWT_SECRET=production-jwt-secret
+MAIL_HOST=smtp.gmail.com
+MAIL_USER=your-production-email
+MAIL_PASS=your-app-password
 ```
 
-2. **Process Management**
-```bash
-# Using PM2
-npm install -g pm2
-pm2 start app.js --name multitrade
-pm2 startup
-pm2 save
-```
+## 📈 Performance Features
 
-3. **Nginx Configuration**
-```nginx
-server {
-    listen 80;
-    server_name your-domain.com;
-    
-    location / {
-        proxy_pass http://localhost:9001;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-    }
-    
-    location /uploads/ {
-        alias /path/to/multitrade/public/uploads/;
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-}
-```
+- **Lightweight API Responses** (70% smaller payloads)
+- **Optimized Database Queries** with proper indexing
+- **Image Compression** for faster loading
+- **Caching Headers** for static assets
+- **Pagination** for large datasets
+- **Real-time Inventory** tracking
 
-### Docker Deployment
+## 🔧 Development
 
-```dockerfile
-FROM node:18-alpine
+### Adding New Features
+1. Create controller in `src/controllers/`
+2. Add routes in `src/routes/`
+3. Create models in `src/models/`
+4. Add views in `src/views/`
 
-WORKDIR /app
+### Database Models
+- **Products**: With variants and specifications
+- **Orders**: With mixed status support
+- **Users**: Customers and admins
+- **Inventory**: Real-time stock tracking
+- **Content**: Banners, ads, carousels
 
-COPY package*.json ./
-RUN npm ci --only=production
-
-COPY . .
-
-EXPOSE 9001
-
-CMD ["npm", "start"]
-```
-
-## Contributing
+## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Create feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open Pull Request
 
-## License
+## 📞 Support
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Support
-
-For support and questions:
-- **Email**: support@multitrade.com
-- **Documentation**: [API_DOCUMENTATION.md](./API_DOCUMENTATION.md)
+- **Live Demo**: [https://redo-multitrade.onrender.com](https://redo-multitrade.onrender.com)
 - **Issues**: GitHub Issues
+- **Documentation**: See API_DOCUMENTATION.md
 
-## Changelog
+---
 
-### v1.0.0 (Current)
-- Initial release with core e-commerce functionality
-- Customer registration with OTP verification
-- Product management with variants
-- Shopping cart and wishlist
-- Order management system
-- Admin panel with analytics
-- Bulk product upload
-- Content management system
-- Email notification system
+**Built with ❤️ by 51D2ham**

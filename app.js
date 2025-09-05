@@ -14,6 +14,14 @@ const { securityHeaders, generateCSRFToken, createRateLimit } = require('./src/m
 const app = express();
 const port = process.env.PORT || 9001;
 
+// Generate CSP nonce first
+app.use((req, res, next) => {
+  if (!res.locals.cspNonce) {
+    res.locals.cspNonce = crypto.randomBytes(16).toString('base64');
+  }
+  next();
+});
+
 // Security middleware
 app.use(securityHeaders);
 app.use(createRateLimit());
@@ -73,10 +81,6 @@ app.use((req, res, next) => {
   res.locals.error = req.flash('error');
   res.locals.currentUser = req.user || null;
   res.locals.currentPath = req.path;
-  
-  if (!res.locals.cspNonce) {
-    res.locals.cspNonce = crypto.randomBytes(16).toString('base64');
-  }
   next();
 });
 

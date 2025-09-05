@@ -303,6 +303,8 @@ const getAllAdminsRender = async (req, res) => {
       admins,
       pagination,
       filters: { search, role, sortBy, sortOrder },
+      success: req.flash('success'),
+      error: req.flash('error')
     });
   } catch (error) {
     console.error(error);

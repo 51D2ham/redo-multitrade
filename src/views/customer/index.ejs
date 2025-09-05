@@ -16,9 +16,6 @@ safePagination.total = safePagination.total || safeUsers.length;
   <a href="/admin/v1/staff/dashboard" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition">
     <i class="fa fa-home"></i> Dashboard
   </a>
-  <a href="/admin/v1/customers/users/new" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition">
-    <i class="fa fa-plus"></i> Add New User
-  </a>
 </nav>
 
 <main class="container mx-auto max-w-7xl px-4 mt-8">
@@ -74,15 +71,6 @@ safePagination.total = safePagination.total || safeUsers.length;
         </div>
       </div>
       
-      <div>
-        <label class="block font-semibold mb-2 text-gray-700">Role</label>
-        <select name="role" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-          <option value="">All Roles</option>
-          <option value="customer" <%= (safeFilters.role === 'customer') ? 'selected' : '' %>>Customer</option>
-          <option value="admin" <%= (safeFilters.role === 'admin') ? 'selected' : '' %>>Admin</option>
-          <option value="staff" <%= (safeFilters.role === 'staff') ? 'selected' : '' %>>Staff</option>
-        </select>
-      </div>
       
       <div>
         <label class="block font-semibold mb-2 text-gray-700">Status</label>
