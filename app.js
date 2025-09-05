@@ -162,6 +162,7 @@ app.use('/admin/v1/content/parameter-posters', parameterPosterRoutes);
 app.use('/admin/v1/content/brand-carousel', brandCarouselRoutes);
 app.use('/admin/v1/order', orderManagementRoutes);
 app.use('/admin/inventory', inventoryRoutes);
+app.use('/admin/v1/inventory', inventoryRoutes);
 
 // Dashboard redirects
 app.get('/admin/dashboard', (req, res) => res.redirect('/admin/reports/comprehensive'));

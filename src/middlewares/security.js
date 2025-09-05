@@ -10,6 +10,11 @@ const csrfProtection = (req, res, next) => {
     return next();
   }
 
+  // Skip CSRF for API routes or if session is not available
+  if (!req.session || req.path.startsWith('/api/')) {
+    return next();
+  }
+
   const token = req.body._csrf || req.headers['x-csrf-token'];
   const sessionToken = req.session.csrfToken;
 
@@ -22,10 +27,14 @@ const csrfProtection = (req, res, next) => {
 
 // Generate CSRF token
 const generateCSRFToken = (req, res, next) => {
-  if (!req.session.csrfToken) {
-    req.session.csrfToken = crypto.randomBytes(32).toString('hex');
+  if (req.session) {
+    if (!req.session.csrfToken) {
+      req.session.csrfToken = crypto.randomBytes(32).toString('hex');
+    }
+    res.locals.csrfToken = req.session.csrfToken;
+  } else {
+    res.locals.csrfToken = '';
   }
-  res.locals.csrfToken = req.session.csrfToken;
   next();
 };
 

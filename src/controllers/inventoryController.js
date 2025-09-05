@@ -327,6 +327,44 @@ exports.getMovements = async (req, res) => {
   }
 };
 
+// GET /admin/inventory/restock - Show restock form
+exports.showRestockForm = async (req, res) => {
+  try {
+    const { productId, variantSku } = req.query;
+    
+    // Get products for dropdown
+    const products = await Product.find({ status: 'active' })
+      .select('title variants')
+      .sort({ title: 1 })
+      .limit(100);
+    
+    let selectedProduct = null;
+    let selectedVariant = null;
+    
+    if (productId && isValidObjectId(productId)) {
+      selectedProduct = await Product.findById(productId).select('title variants');
+      if (selectedProduct && variantSku) {
+        selectedVariant = selectedProduct.variants.find(v => v.sku === variantSku);
+      }
+    }
+    
+    res.render('inventory/restock', {
+      title: 'Restock Inventory',
+      products,
+      selectedProduct,
+      selectedVariant,
+      productId,
+      variantSku,
+      success: req.flash('success'),
+      error: req.flash('error')
+    });
+  } catch (error) {
+    console.error('Show restock form error:', error);
+    req.flash('error', 'Failed to load restock form');
+    res.redirect('/admin/v1/inventory/low-stock');
+  }
+};
+
 // POST /admin/inventory/restock - Enhanced restock with better validation
 exports.restock = async (req, res) => {
   try {
@@ -341,7 +379,7 @@ exports.restock = async (req, res) => {
     
     if (!productId || !isValidObjectId(productId)) {
       req.flash('error', 'Invalid product ID');
-      return res.redirect('/admin/inventory');
+      return res.redirect('/admin/v1/inventory/low-stock');
     }
     
     if (!variantSku || !variantSku.trim()) {
@@ -373,7 +411,7 @@ exports.restock = async (req, res) => {
       return res.redirect(`/admin/v1/products/${productId}`);
     }
     
-    res.redirect('/admin/inventory');
+    res.redirect('/admin/v1/inventory/low-stock');
   } catch (error) {
     console.error('Restock error:', error);
     req.flash('error', error.message || 'Failed to restock product');
@@ -395,7 +433,7 @@ exports.adjustStock = async (req, res) => {
     
     if (!productId || !isValidObjectId(productId)) {
       req.flash('error', 'Invalid product ID');
-      return res.redirect('/admin/inventory');
+      return res.redirect('/admin/v1/inventory/low-stock');
     }
     
     if (!variantSku || !variantSku.trim()) {
@@ -427,7 +465,7 @@ exports.adjustStock = async (req, res) => {
       return res.redirect(`/admin/v1/products/${productId}`);
     }
     
-    res.redirect('/admin/inventory');
+    res.redirect('/admin/v1/inventory/low-stock');
   } catch (error) {
     console.error('Stock adjustment error:', error);
     req.flash('error', error.message || 'Failed to adjust stock');

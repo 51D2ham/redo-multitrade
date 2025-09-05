@@ -12,7 +12,7 @@ router.post('/', adminAuth, csrfProtection, productController.uploadImages, prod
 router.get('/:id', adminAuth, productController.showProduct);
 router.get('/:id/edit', adminAuth, productController.editProduct);
 router.get('/:id/reviews', adminAuth, reviewController.getProductReviewsAdmin);
-router.put('/:id', adminAuth, csrfProtection, productController.uploadImages, productController.updateProduct);
+router.put('/:id', adminAuth, productController.uploadImages, productController.updateProduct);
 router.delete('/:id', adminAuth, csrfProtection, productController.deleteProduct);
 
 module.exports = router;

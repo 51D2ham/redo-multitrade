@@ -516,6 +516,31 @@ module.exports = {
 
       const variants = processVariants(req.body.variants);
 
+      // Log inventory changes
+      const InventoryService = require('../services/inventoryService');
+      const adminId = req.user._id;
+      
+      for (const newVariant of variants) {
+        const oldVariant = product.variants.find(v => v.sku === newVariant.sku);
+        if (oldVariant && oldVariant.stock !== newVariant.stock) {
+          try {
+            await InventoryService.logMovement(
+              product._id,
+              newVariant.sku,
+              'adjustment',
+              Math.abs(newVariant.stock - oldVariant.stock),
+              oldVariant.stock,
+              newVariant.stock,
+              adminId,
+              null,
+              `Stock updated via product edit: ${oldVariant.stock} → ${newVariant.stock}`
+            );
+          } catch (logError) {
+            console.error('Inventory log error:', logError);
+          }
+        }
+      }
+
       const updateData = {
         slug,
         title: title.trim(),

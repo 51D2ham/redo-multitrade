@@ -16,6 +16,7 @@ router.get('/movements', inventoryController.getMovements);
 router.get('/history', inventoryController.getMovements);
 
 // Stock management actions
+router.get('/restock', inventoryController.showRestockForm);
 router.post('/restock', inventoryController.restock);
 router.post('/adjust', inventoryController.adjustStock);
 router.post('/stock/adjust', inventoryController.adjustStock);
