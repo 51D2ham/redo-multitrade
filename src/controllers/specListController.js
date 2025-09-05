@@ -3,7 +3,7 @@ const { Category, SubCategory, Type, Brand } = require('../models/parametersMode
 const { Product, ProductSpecs } = require('../models/productModel');
 
 module.exports = {
-  // PUBLIC API CONTROLLERS
+  // PUBLIC API CONTROLLERS - No auth required by design
   getAllPublicSpecLists: async (req, res) => {
     try {
       const specLists = await SpecList.find({ status: 'active' })
@@ -536,8 +536,9 @@ module.exports = {
         filter.displayInFilter = filters.displayInFilter === 'true';
       }
       
-      if (filters.search) {
-        const searchRegex = new RegExp(filters.search, 'i');
+      if (filters.search && typeof filters.search === 'string') {
+        const sanitizedSearch = filters.search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const searchRegex = new RegExp(sanitizedSearch, 'i');
         filter.$or = [
           { title: searchRegex },
           { value: searchRegex }

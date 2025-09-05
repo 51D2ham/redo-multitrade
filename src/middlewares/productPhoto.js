@@ -1,8 +1,9 @@
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
+const { validateFilePath } = require('./security');
 
-const uploadDir = path.join(__dirname, '../../public/uploads');
+const uploadDir = path.join(__dirname, '../../src/uploads');
 
 // Create directory if not exists
 fs.mkdir(uploadDir, { recursive: true }).catch(err => {
@@ -13,13 +14,17 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadDir),
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
+    const allowedExts = ['.jpg', '.jpeg', '.png', '.webp'];
+    if (!allowedExts.includes(ext)) {
+      return cb(new Error('Invalid file extension'));
+    }
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     cb(null, `${uniqueSuffix}${ext}`);
   }
 });
 
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {

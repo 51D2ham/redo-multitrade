@@ -2,15 +2,16 @@ const express = require('express');
 const router = express.Router();
 const adminAuth = require('../../../middlewares/auth');
 const upload = require('../../../middlewares/productPhoto');
+const { csrfProtection } = require('../../../middlewares/security');
 const typeController = require('../../../controllers/typeController');
 
 router.get('/', adminAuth, typeController.listTypes);
 router.get('/new', adminAuth, typeController.newType);
-router.post('/', adminAuth, typeController.createType);
+router.post('/', adminAuth, csrfProtection, typeController.createType);
 router.get('/subcategories/:categoryId', adminAuth, typeController.getSubCategoriesByCategory);
 router.get('/:id', adminAuth, typeController.showType);
 router.get('/:id/edit', adminAuth, typeController.editType);
-router.put('/:id', adminAuth, typeController.updateType);
-router.delete('/:id', adminAuth, typeController.deleteType);
+router.put('/:id', adminAuth, csrfProtection, typeController.updateType);
+router.delete('/:id', adminAuth, csrfProtection, typeController.deleteType);
 
 module.exports = router;

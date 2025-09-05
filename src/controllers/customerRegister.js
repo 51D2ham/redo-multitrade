@@ -65,7 +65,7 @@ const sendRegistrationOTP = async (req, res) => {
       email: email.replace(/(.{2})(.*)(@.*)/, '$1***$3') // Mask email for security
     });
   } catch (error) {
-    console.error('Send registration OTP error:', error);
+    console.error('Send registration OTP error:', error.message);
     return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ 
       success: false, 
       message: 'Server error. Please try again later.' 
@@ -178,9 +178,17 @@ const registerAndSendOTP = async (req, res) => {
     const otpCode = generateOtp();
     const expiry = new Date(Date.now() + 5 * 60 * 1000);
 
-    // Store ALL registration data in session
+    // Store specific registration data in session
     req.session.registrationData = {
-      ...req.body, // Store all form data
+      username,
+      email, 
+      phone,
+      fullname,
+      password: req.body.password,
+      gender: req.body.gender,
+      dob: req.body.dob,
+      permanentAddress: req.body.permanentAddress,
+      tempAddress: req.body.tempAddress,
       otp: otpCode,
       otpExpires: expiry,
       ...(req.file && { profileImagePath: req.file.path, profileImageFilename: req.file.filename })
@@ -251,7 +259,7 @@ const verifyOTPAndRegister = async (req, res) => {
       permanentAddress: registrationData.permanentAddress,
       tempAddress: registrationData.tempAddress,
       isEmailVerified: true,
-      ...(registrationData.profileImageFilename && { profileImage: `/uploads/${registrationData.profileImageFilename}` }),
+      ...(registrationData.profileImageFilename && { profileImage: registrationData.profileImageFilename }),
     };
 
     const newUser = new User(userData);
@@ -342,7 +350,7 @@ const registerUser = async (req, res) => {
       permanentAddress,
       tempAddress,
       isEmailVerified: true, // Email is verified through OTP
-      ...(req.file && { profileImage: `/uploads/${req.file.filename}` }),
+      ...(req.file && { profileImage: req.file.filename }),
     };
 
     const newUser = new User(userData);
@@ -463,10 +471,13 @@ const updateUser = async (req, res) => {
 
     if (req.file) {
       const user = await User.findById(userId);
-      if (user.profileImage && fs.existsSync(user.profileImage)) {
-        fs.unlinkSync(user.profileImage);
+      if (user.profileImage && /^[a-zA-Z0-9._-]+$/.test(user.profileImage)) {
+        const oldImagePath = path.join(__dirname, '../uploads', user.profileImage);
+        if (fs.existsSync(oldImagePath)) {
+          fs.unlinkSync(oldImagePath);
+        }
       }
-      updates.profileImage = req.file.path;
+      updates.profileImage = req.file.filename;
     }
 
     const updatedUser = await User.findByIdAndUpdate(userId, updates, { new: true });
@@ -487,10 +498,13 @@ const deleteUser = async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    if (user.profileImage && fs.existsSync(user.profileImage)) {
-      fs.unlink(user.profileImage, err => {
-        if (err) console.error('Error deleting photo:', err);
-      });
+    if (user.profileImage && /^[a-zA-Z0-9._-]+$/.test(user.profileImage)) {
+      const imagePath = path.join(__dirname, '../uploads', user.profileImage);
+      if (fs.existsSync(imagePath)) {
+        fs.unlink(imagePath, err => {
+          if (err) console.error('Error deleting photo:', err.message);
+        });
+      }
     }
 
     await User.findByIdAndDelete(userId);
@@ -588,18 +602,12 @@ const getUserProfileRender = async (req, res) => {
     const permanentAddress = user.permanentAddress || '';
     const tempAddress = user.tempAddress || '';
 
-    // Safely extract and validate the filename from the full path
+    // Extract the photo filename safely
     let photoFilename = null;
     if (user.profileImage) {
-      const { validateFilePath } = require('../middlewares/security');
-      const filename = path.basename(user.profileImage);
-      const uploadsDir = path.join(__dirname, '../uploads');
-      
-      // Validate filename and path to prevent path traversal
-      if (!/^[a-zA-Z0-9._-]+$/.test(filename) || !validateFilePath(user.profileImage, uploadsDir)) {
-        const { sanitizeForLog } = require('../middlewares/security');
-        console.warn('Invalid filename detected:', sanitizeForLog(filename));
-      } else {
+      // Since we now store only filenames, just validate the filename
+      const filename = user.profileImage;
+      if (/^[a-zA-Z0-9._-]+$/.test(filename)) {
         photoFilename = filename;
       }
     }
@@ -627,7 +635,7 @@ const showEditUserRender = async (req, res) => {
     const tempAddress = user.tempAddress || '';
 
     // Extract the photo filename
-    const photoFilename = user.profileImage ? path.basename(user.profileImage) : null;
+    const photoFilename = user.profileImage || null;
 
     res.render('customer/edit', {
       user,
@@ -648,8 +656,11 @@ const updateUserRender = async (req, res) => {
 
     if (req.file) {
       const user = await User.findById(userId);
-      if (user.profileImage && fs.existsSync(user.profileImage)) fs.unlinkSync(user.profileImage);
-      updates.profileImage = req.file.path;
+      if (user.profileImage) {
+        const oldImagePath = path.join(__dirname, '../uploads', user.profileImage);
+        if (fs.existsSync(oldImagePath)) fs.unlinkSync(oldImagePath);
+      }
+      updates.profileImage = req.file.filename;
     }
 
     await User.findByIdAndUpdate(userId, updates);
@@ -669,16 +680,19 @@ const deleteUserRender = async (req, res) => {
       return res.render('error', { message: 'User not found', error: {} });
     }
 
-    if (user.profileImage && fs.existsSync(user.profileImage)) {
-      fs.unlink(user.profileImage, err => {
-        if (err) console.error('Error deleting photo:', err);
-      });
+    if (user.profileImage && /^[a-zA-Z0-9._-]+$/.test(user.profileImage)) {
+      const imagePath = path.join(__dirname, '../uploads', user.profileImage);
+      if (fs.existsSync(imagePath)) {
+        fs.unlink(imagePath, err => {
+          if (err) console.error('Error deleting photo:', err.message);
+        });
+      }
     }
 
     await User.findByIdAndDelete(userId);
     res.redirect('/admin/v1/customers/users');
   } catch (error) {
-    console.error(error);
+    console.error(error.message);
     res.render('error', { message: 'Failed to delete user', error });
   }
 };
