@@ -17,14 +17,15 @@ const handleMulterError = (err, req, res, next) => {
 };
 
 // Authentication Routes
-router.get('/register', (req, res) => {
+router.get('/register', authMiddleware, rbac('developer', 'superAdmin'), (req, res) => {
+  console.log('Register GET route accessed by:', req.session.admin);
   res.render('admin/register', {
     error: req.flash('error'),
     success: req.flash('success'),
     old: {}
   });
 });
-router.post('/register',upload.single('photo'), handleMulterError, adminController.registerAdmin);
+router.post('/register', upload.single('photo'), handleMulterError, authMiddleware, rbac('developer', 'superAdmin'), adminController.registerAdmin);
 
 // login post and get
 router.get('/login', (req, res) => {
