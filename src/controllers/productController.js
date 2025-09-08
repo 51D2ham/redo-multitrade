@@ -155,12 +155,7 @@ const transformToLightweight = (product, allSpecs = []) => {
       value: spec.value
     }));
   
-  // Debug: Log if this specific product has specs
-  if (process.env.NODE_ENV === 'development' && product._id.toString() === '68b6d3d0fc2ecc6ac6f28f8b') {
-    const { sanitizeForLog } = require('../middlewares/security');
-    console.log('Sony product specs:', sanitizeForLog(JSON.stringify(productSpecs)));
-    console.log('All specs for Sony:', sanitizeForLog(JSON.stringify(allSpecs.filter(spec => spec.product.toString() === product._id.toString()))));
-  }
+
   
   return {
     _id: product._id,
@@ -631,6 +626,66 @@ module.exports = {
     }
   },
 
+  // Public API - Get featured products
+  getFeaturedProducts: async (req, res) => {
+    try {
+      const page = parseInt(req.query.page) || 1;
+      const limit = Math.min(parseInt(req.query.limit) || 12, 50);
+      const skip = (page - 1) * limit;
+      
+      const filter = { status: 'active', featured: true };
+      
+      // Initialize featuredRank for products that don't have it
+      await Product.updateMany(
+        { featured: true, $or: [{ featuredRank: { $exists: false } }, { featuredRank: 0 }] },
+        { featuredRank: 999 }
+      );
+      
+      const sort = { featuredRank: 1, createdAt: -1 };
+      
+      const [products, total] = await Promise.all([
+        Product.find(filter)
+          .populate('category', 'name')
+          .populate('brand', 'name')
+          .select('_id title images variants rating reviewCount totalStock featured featuredRank')
+          .sort(sort)
+          .skip(skip)
+          .limit(limit),
+        Product.countDocuments(filter)
+      ]);
+      
+      const productIds = products.map(p => p._id);
+      const productSpecs = await ProductSpecs.find({ 
+        product: { $in: productIds } 
+      })
+      .populate('specList', 'title')
+      .select('product specList value');
+      
+      const lightweightProducts = products.map(product => transformToLightweight(product, productSpecs));
+      
+      const totalPages = Math.ceil(total / limit);
+      
+      res.status(200).json({
+        success: true,
+        data: lightweightProducts,
+        pagination: {
+          current: page,
+          total: totalPages,
+          hasNext: page < totalPages,
+          hasPrev: page > 1,
+          totalProducts: total
+        }
+      });
+    } catch (error) {
+      console.error('Get featured products error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Server error',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
+  },
+
   // Public API - Get all products
   getAllProducts: async (req, res) => {
     try {
@@ -660,12 +715,7 @@ module.exports = {
       .populate('specList', 'title')
       .select('product specList value');
       
-      // Debug: Log specs found
-      if (process.env.NODE_ENV === 'development') {
-        const { sanitizeForLog } = require('../middlewares/security');
-        console.log('ProductSpecs found:', productSpecs.length);
-        console.log('Sample spec:', sanitizeForLog(JSON.stringify(productSpecs[0])));
-      } // Sort by spec title
+      // Sort by spec title
       let lightweightProducts = products.map(product => transformToLightweight(product, productSpecs));
       
       // Post-filter for discount
@@ -857,6 +907,71 @@ module.exports = {
         message: 'Server error',
         error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
       });
+    }
+  },
+
+  // Admin - Featured products ranking
+  featuredProductsRanking: async (req, res) => {
+    try {
+      const products = await Product.find({ featured: true })
+        .populate('category', 'name')
+        .populate('brand', 'name')
+        .select('_id title images featuredRank totalStock status')
+        .sort({ featuredRank: 1, createdAt: -1 });
+
+      res.render('products/featured-ranking', {
+        title: 'Featured Products Ranking',
+        products,
+        csrfToken: req.session.csrfToken,
+        success: req.flash('success'),
+        error: req.flash('error')
+      });
+    } catch (error) {
+      console.error('Featured products ranking error:', error);
+      req.flash('error', 'Error loading featured products');
+      res.redirect('/admin/v1/products');
+    }
+  },
+
+  // Admin - Update featured products ranking
+  updateFeaturedRanking: async (req, res) => {
+    try {
+      const { rankings } = req.body;
+      
+      if (!rankings) {
+        req.flash('error', 'No ranking data received');
+        return res.redirect('/admin/v1/products/featured/ranking');
+      }
+
+      let parsedRankings;
+      try {
+        parsedRankings = typeof rankings === 'string' ? JSON.parse(rankings) : rankings;
+      } catch (e) {
+        req.flash('error', 'Invalid ranking data format');
+        return res.redirect('/admin/v1/products/featured/ranking');
+      }
+
+      if (!Array.isArray(parsedRankings)) {
+        req.flash('error', 'Rankings must be an array');
+        return res.redirect('/admin/v1/products/featured/ranking');
+      }
+
+      const updatePromises = parsedRankings.map((item, index) => {
+        if (isValidObjectId(item.id)) {
+          return Product.findByIdAndUpdate(item.id, { 
+            featuredRank: index + 1 
+          });
+        }
+      }).filter(Boolean);
+
+      await Promise.all(updatePromises);
+
+      req.flash('success', 'Featured products ranking updated successfully');
+      res.redirect('/admin/v1/products/featured/ranking');
+    } catch (error) {
+      console.error('Update featured ranking error:', error);
+      req.flash('error', 'Error updating ranking: ' + error.message);
+      res.redirect('/admin/v1/products/featured/ranking');
     }
   },
 

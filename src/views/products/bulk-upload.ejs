@@ -1,259 +1,242 @@
-﻿<%- include('../partials/header.ejs', { title: 'Bulk Product Upload' }) %>
+<%- include('../partials/header.ejs', { title: 'Bulk Upload Products' }) %>
 
-<div class="mb-8">
-  <div class="flex items-center gap-4 mb-4">
-    <div class="w-12 h-12 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
-      <i class="fas fa-upload text-white text-xl"></i>
-    </div>
-    <div>
-      <h1 class="text-3xl font-bold text-gray-800">Bulk Product Upload</h1>
-      <p class="text-gray-600">Import multiple products using CSV file</p>
-    </div>
-  </div>
-</div>
+<!-- Navigation Breadcrumb -->
+<nav class="flex items-center gap-2 mb-8 p-4 bg-white rounded-xl shadow-sm border border-gray-100">
+  <a href="/admin/v1/staff/dashboard" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition">
+    <i class="fa fa-home"></i> Dashboard
+  </a>
+  <i class="fa fa-chevron-right text-gray-400 text-sm"></i>
+  <a href="/admin/v1/products" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-50 text-gray-700 hover:bg-gray-100 transition">
+    <i class="fa fa-box"></i> Products
+  </a>
+  <i class="fa fa-chevron-right text-gray-400 text-sm"></i>
+  <span class="px-4 py-2 text-gray-600 font-medium">Bulk Upload</span>
+</nav>
 
-<!-- Upload Form -->
-<div class="bg-white rounded-xl shadow-md border border-gray-100 p-6 mb-6">
-  <form id="bulkUploadForm" enctype="multipart/form-data">
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+<main class="container mx-auto px-4">
+  <!-- Header Section -->
+  <div class="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl p-8 mb-8 text-white">
+    <div class="flex items-center justify-between">
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Upload Mode</label>
-        <select name="uploadMode" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-          <option value="create">Create New Products</option>
-          <option value="update">Update Existing Products</option>
-        </select>
+        <h1 class="text-3xl font-bold mb-2">CSV Bulk Upload</h1>
+        <p class="text-purple-100">Upload multiple products at once using CSV files</p>
       </div>
-      
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">CSV File</label>
-        <input type="file" name="csvFile" accept=".csv" required 
-               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+      <div class="w-20 h-20 bg-white/20 rounded-2xl flex items-center justify-center">
+        <i class="fa fa-upload text-3xl"></i>
       </div>
-    </div>
-    
-    <div class="flex gap-4">
-      <button type="button" id="validateBtn" onclick="validateFile()" 
-              class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center">
-        <i class="fas fa-check mr-2"></i>
-        <span class="btn-text">Validate Only</span>
-      </button>
-      <button type="submit" id="uploadBtn"
-              class="px-6 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors flex items-center">
-        <i class="fas fa-upload mr-2"></i>
-        <span class="btn-text">Upload Products</span>
-      </button>
-    </div>
-  </form>
-</div>
-
-<!-- Loading Indicator -->
-<div id="loadingIndicator" class="hidden bg-white rounded-xl shadow-md border border-gray-100 p-6 mb-6">
-  <div class="flex items-center justify-center">
-    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mr-4"></div>
-    <div>
-      <div class="text-lg font-semibold text-gray-800" id="loadingText">Processing...</div>
-      <div class="text-sm text-gray-600" id="loadingSubtext">Please wait while we process your file</div>
     </div>
   </div>
-</div>
 
-<!-- Download Templates -->
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-  <div class="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-    <h3 class="text-lg font-semibold text-gray-800 mb-4">Download Template</h3>
-    <p class="text-gray-600 mb-4">Download the CSV template with required columns</p>
-    <a href="/admin/v1/products/bulk-upload/template" 
-       class="inline-flex items-center px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors">
-      <i class="fas fa-download mr-2"></i>Download Template
-    </a>
-  </div>
-  
-  <div class="bg-white rounded-xl shadow-md border border-gray-100 p-6">
-    <h3 class="text-lg font-semibold text-gray-800 mb-4">Sample Data</h3>
-    <p class="text-gray-600 mb-4">Download sample data to understand the format</p>
-    <a href="/admin/v1/products/bulk-upload/sample" 
-       class="inline-flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
-      <i class="fas fa-download mr-2"></i>Download Sample
-    </a>
-  </div>
-</div>
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <!-- Upload Section -->
+    <div class="lg:col-span-2">
+      <div class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+        <!-- Flash Messages -->
+        <% if (error && error.length) { %>
+          <div class="p-4 bg-red-50 border-b border-red-200">
+            <% error.forEach(msg => { %>
+              <div class="flex items-center gap-2 text-red-700">
+                <i class="fa fa-exclamation-circle"></i>
+                <%= msg %>
+              </div>
+            <% }) %>
+          </div>
+        <% } %>
+        <% if (success && success.length) { %>
+          <div class="p-4 bg-green-50 border-b border-green-200">
+            <% success.forEach(msg => { %>
+              <div class="flex items-center gap-2 text-green-700">
+                <i class="fa fa-check-circle"></i>
+                <%= msg %>
+              </div>
+            <% }) %>
+          </div>
+        <% } %>
 
-<!-- Format Instructions -->
-<div class="bg-white rounded-xl shadow-md border border-gray-100 p-6 mb-6">
-  <h3 class="text-lg font-semibold text-gray-800 mb-4">CSV Format Instructions</h3>
-  <div class="space-y-4">
-    <div>
-      <h4 class="font-medium text-gray-700 mb-2">Required Fields:</h4>
-      <p class="text-sm text-gray-600">title, description, category, subCategory, type, brand, variant_sku, variant_price, stock</p>
-    </div>
-    <div>
-      <h4 class="font-medium text-gray-700 mb-2">Tags Format:</h4>
-      <p class="text-sm text-gray-600 mb-2">Use semicolon (;) to separate multiple tags:</p>
-      <code class="bg-gray-100 px-2 py-1 rounded text-sm">"wireless;bluetooth;noise-cancelling"</code>
-    </div>
-    <div>
-      <h4 class="font-medium text-gray-700 mb-2">Status Options:</h4>
-      <p class="text-sm text-gray-600">draft, active, inactive</p>
-    </div>
-    <div>
-      <h4 class="font-medium text-gray-700 mb-2">Boolean Fields:</h4>
-      <p class="text-sm text-gray-600">featured, variant_isDefault: use true or false</p>
-    </div>
-  </div>
-</div>
-
-<!-- Results -->
-<div id="results" class="hidden bg-white rounded-xl shadow-md border border-gray-100 p-6">
-  <h3 class="text-lg font-semibold text-gray-800 mb-4">Upload Results</h3>
-  <div id="resultsContent"></div>
-</div>
-
-<script>
-const form = document.getElementById('bulkUploadForm');
-const resultsDiv = document.getElementById('results');
-const resultsContent = document.getElementById('resultsContent');
-const loadingIndicator = document.getElementById('loadingIndicator');
-const loadingText = document.getElementById('loadingText');
-const loadingSubtext = document.getElementById('loadingSubtext');
-const validateBtn = document.getElementById('validateBtn');
-const uploadBtn = document.getElementById('uploadBtn');
-
-function showLoading(isValidation = false) {
-  loadingIndicator.classList.remove('hidden');
-  resultsDiv.classList.add('hidden');
-  
-  if (isValidation) {
-    loadingText.textContent = 'Validating...';
-    loadingSubtext.textContent = 'Checking your CSV file for errors';
-  } else {
-    loadingText.textContent = 'Uploading...';
-    loadingSubtext.textContent = 'Creating products in database';
-  }
-  
-  validateBtn.disabled = true;
-  uploadBtn.disabled = true;
-  validateBtn.classList.add('opacity-50', 'cursor-not-allowed');
-  uploadBtn.classList.add('opacity-50', 'cursor-not-allowed');
-}
-
-function hideLoading() {
-  loadingIndicator.classList.add('hidden');
-  
-  validateBtn.disabled = false;
-  uploadBtn.disabled = false;
-  validateBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-  uploadBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-}
-
-function validateFile() {
-  const formData = new FormData(form);
-  formData.append('validateOnly', 'true');
-  
-  showLoading(true);
-  
-  fetch('/admin/v1/products/bulk-upload', {
-    method: 'POST',
-    body: formData
-  })
-  .then(response => {
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
-  })
-  .then(data => {
-    hideLoading();
-    showResults(data);
-  })
-  .catch(error => {
-    hideLoading();
-    console.error('Error:', error);
-    alert('Validation failed: ' + error.message);
-  });
-}
-
-form.addEventListener('submit', function(e) {
-  e.preventDefault();
-  
-  const formData = new FormData(form);
-  
-  showLoading(false);
-  
-  fetch('/admin/v1/products/bulk-upload', {
-    method: 'POST',
-    body: formData
-  })
-  .then(response => {
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
-  })
-  .then(data => {
-    hideLoading();
-    if (data.success && data.redirect) {
-      window.location.href = data.redirect;
-    } else {
-      showResults(data);
-    }
-  })
-  .catch(error => {
-    hideLoading();
-    console.error('Error:', error);
-    alert('Upload failed: ' + error.message);
-  });
-});
-
-function showResults(data) {
-  resultsDiv.classList.remove('hidden');
-  
-  let html = `
-    <div class="mb-4">
-      <div class="flex items-center gap-2 mb-2">
-        <span class="px-3 py-1 rounded-full text-sm font-medium ${data.success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
-          ${data.success ? 'Success' : 'Completed with Errors'}
-        </span>
-      </div>
-      <p class="text-gray-700">${data.message}</p>
-    </div>
-    
-    <div class="grid grid-cols-3 gap-4 mb-4">
-      <div class="text-center p-3 bg-blue-50 rounded-lg">
-        <div class="text-2xl font-bold text-blue-600">${data.stats.total}</div>
-        <div class="text-sm text-blue-600">Total Rows</div>
-      </div>
-      <div class="text-center p-3 bg-green-50 rounded-lg">
-        <div class="text-2xl font-bold text-green-600">${data.stats.success}</div>
-        <div class="text-sm text-green-600">Successful</div>
-      </div>
-      <div class="text-center p-3 bg-red-50 rounded-lg">
-        <div class="text-2xl font-bold text-red-600">${data.stats.errors}</div>
-        <div class="text-sm text-red-600">Errors</div>
-      </div>
-    </div>
-  `;
-  
-  if (data.errors && data.errors.length > 0) {
-    html += `
-      <div class="mt-4">
-        <h4 class="font-semibold text-gray-800 mb-2">Errors:</h4>
-        <div class="max-h-64 overflow-y-auto">
-          ${data.errors.map(error => `
-            <div class="mb-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <div class="font-medium text-red-800">Row ${error.row}:</div>
-              <ul class="text-sm text-red-600 mt-1">
-                ${error.errors.map(err => `<li>• ${err}</li>`).join('')}
-              </ul>
+        <div class="p-8">
+          <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+            <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+              <i class="fa fa-file-csv text-purple-600"></i>
             </div>
-          `).join('')}
+            Upload CSV File
+          </h2>
+
+          <form action="/admin/v1/products/bulk-upload" method="POST" enctype="multipart/form-data" class="space-y-6">
+            <input type="hidden" name="_token" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+            
+            <!-- File Upload Area -->
+            <div class="bg-gray-50 rounded-xl p-6">
+              <label for="fileInput" class="block text-sm font-medium text-gray-700 mb-3">Select CSV File</label>
+              <input type="file" name="csvFile" accept=".csv" required id="fileInput" class="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-purple-600 file:text-white file:hover:bg-purple-700">
+              <p class="text-sm text-gray-500 mt-2">Maximum file size: 10MB • Supported format: CSV</p>
+            </div>
+
+            <!-- File Info -->
+            <div id="fileInfo" class="hidden bg-gray-50 rounded-lg p-4">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                    <i class="fa fa-file-csv text-green-600"></i>
+                  </div>
+                  <div>
+                    <div class="font-medium text-gray-800" id="fileName"></div>
+                    <div class="text-sm text-gray-500" id="fileSize"></div>
+                  </div>
+                </div>
+                <button type="button" onclick="clearFile()" class="text-red-500 hover:text-red-700">
+                  <i class="fa fa-times"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Upload Options -->
+            <div class="bg-gray-50 rounded-lg p-6">
+              <h3 class="font-semibold text-gray-800 mb-4">Upload Options</h3>
+              <div class="space-y-3">
+                <label class="flex items-center gap-3">
+                  <input type="checkbox" name="skipDuplicates" checked class="w-4 h-4 text-purple-600 rounded">
+                  <span class="text-gray-700">Skip duplicate products (based on SKU)</span>
+                </label>
+                <label class="flex items-center gap-3">
+                  <input type="checkbox" name="validateData" checked class="w-4 h-4 text-purple-600 rounded">
+                  <span class="text-gray-700">Validate data before import</span>
+                </label>
+                <label class="flex items-center gap-3">
+                  <input type="checkbox" name="sendNotification" class="w-4 h-4 text-purple-600 rounded">
+                  <span class="text-gray-700">Send email notification when complete</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="flex justify-end gap-4">
+              <a href="/admin/v1/products" class="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition font-medium">
+                Cancel
+              </a>
+              <button type="submit" class="px-8 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium flex items-center gap-2">
+                <i class="fa fa-upload"></i>
+                Upload Products
+              </button>
+            </div>
+          </form>
         </div>
       </div>
-    `;
+    </div>
+
+    <!-- Sidebar -->
+    <div class="space-y-6">
+      <!-- Template Download -->
+      <div class="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+        <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+          <i class="fa fa-download text-blue-600"></i>
+          CSV Template
+        </h3>
+        <p class="text-gray-600 mb-4 text-sm">Download the template to ensure your CSV file has the correct format.</p>
+        <a href="/sample_data/product_upload_template.csv" download class="w-full bg-blue-600 text-white text-center py-3 rounded-lg hover:bg-blue-700 transition font-medium flex items-center justify-center gap-2">
+          <i class="fa fa-download"></i>
+          Download Template
+        </a>
+      </div>
+
+      <!-- Sample Data -->
+      <div class="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+        <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+          <i class="fa fa-database text-green-600"></i>
+          Sample Data
+        </h3>
+        <p class="text-gray-600 mb-4 text-sm">Download sample data to see how products should be formatted.</p>
+        <a href="/sample_data/product_sample_data.csv" download class="w-full bg-green-600 text-white text-center py-3 rounded-lg hover:bg-green-700 transition font-medium flex items-center justify-center gap-2">
+          <i class="fa fa-download"></i>
+          Download Sample
+        </a>
+      </div>
+
+      <!-- Upload Guidelines -->
+      <div class="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+        <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+          <i class="fa fa-info-circle text-amber-600"></i>
+          Guidelines
+        </h3>
+        <div class="space-y-3 text-sm text-gray-600">
+          <div class="flex items-start gap-2">
+            <i class="fa fa-check text-green-500 mt-0.5"></i>
+            <span>Use the provided CSV template</span>
+          </div>
+          <div class="flex items-start gap-2">
+            <i class="fa fa-check text-green-500 mt-0.5"></i>
+            <span>Maximum 1000 products per upload</span>
+          </div>
+          <div class="flex items-start gap-2">
+            <i class="fa fa-check text-green-500 mt-0.5"></i>
+            <span>Ensure all required fields are filled</span>
+          </div>
+          <div class="flex items-start gap-2">
+            <i class="fa fa-check text-green-500 mt-0.5"></i>
+            <span>Use valid category and brand IDs</span>
+          </div>
+          <div class="flex items-start gap-2">
+            <i class="fa fa-exclamation-triangle text-amber-500 mt-0.5"></i>
+            <span>Images must be uploaded separately</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Uploads -->
+      <div class="bg-white rounded-xl shadow-md border border-gray-100 p-6">
+        <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+          <i class="fa fa-history text-gray-600"></i>
+          Recent Uploads
+        </h3>
+        <div class="space-y-3 text-sm">
+          <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <div>
+              <div class="font-medium text-gray-800">products_batch_1.csv</div>
+              <div class="text-gray-500">25 products • 2 hours ago</div>
+            </div>
+            <span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Success</span>
+          </div>
+          <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <div>
+              <div class="font-medium text-gray-800">electronics.csv</div>
+              <div class="text-gray-500">150 products • 1 day ago</div>
+            </div>
+            <span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Success</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const fileInput = document.getElementById('fileInput');
+  const fileInfo = document.getElementById('fileInfo');
+  const fileName = document.getElementById('fileName');
+  const fileSize = document.getElementById('fileSize');
+
+  fileInput.addEventListener('change', function(e) {
+    if (e.target.files.length > 0) {
+      const file = e.target.files[0];
+      fileName.textContent = file.name;
+      fileSize.textContent = formatFileSize(file.size);
+      fileInfo.classList.remove('hidden');
+    }
+  });
+
+  function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
-  
-  resultsContent.innerHTML = html;
-}
+
+  window.clearFile = function() {
+    fileInput.value = '';
+    fileInfo.classList.add('hidden');
+  };
+});
 </script>
 
 <%- include('../partials/footer.ejs') %>
-

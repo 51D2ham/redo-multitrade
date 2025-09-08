@@ -62,6 +62,7 @@ const productSchema = new Schema({
     default: 'draft' 
   },
   featured: { type: Boolean, default: false },
+  featuredRank: { type: Number, default: 0, min: 0 },
   
   // Admin & Business
   admin: { type: Schema.Types.ObjectId, ref: 'Admin', required: true },
@@ -79,6 +80,7 @@ const productSchema = new Schema({
 productSchema.index({ category: 1, subCategory: 1, type: 1 });
 productSchema.index({ brand: 1, status: 1 });
 productSchema.index({ featured: 1, status: 1 });
+productSchema.index({ featured: 1, featuredRank: 1 });
 productSchema.index({ rating: -1, reviewCount: -1 });
 productSchema.index({ totalSales: -1 });
 productSchema.index({ createdAt: -1 });

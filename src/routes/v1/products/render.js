@@ -7,6 +7,8 @@ const reviewController = require('../../../controllers/reviewController');
 
 // Admin product routes
 router.get('/', adminAuth, productController.listProducts);
+router.get('/featured/ranking', adminAuth, productController.featuredProductsRanking);
+router.post('/featured/update-ranking', adminAuth, csrfProtection, productController.updateFeaturedRanking);
 router.get('/new', adminAuth, productController.newProduct);
 router.post('/', adminAuth, csrfProtection, productController.uploadImages, productController.createProduct);
 router.get('/:id', adminAuth, productController.showProduct);
