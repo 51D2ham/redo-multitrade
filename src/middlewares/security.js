@@ -4,14 +4,14 @@ const helmet = require('helmet');
 const validator = require('validator');
 const path = require('path');
 
-// CSRF Protection Middleware
+// CSRF Protection Middleware - Only for admin routes
 const csrfProtection = (req, res, next) => {
   if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') {
     return next();
   }
 
-  // Skip CSRF for API routes or if session is not available
-  if (!req.session || req.path.startsWith('/api/')) {
+  // Skip CSRF if session is not available
+  if (!req.session) {
     return next();
   }
 

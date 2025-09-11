@@ -75,6 +75,10 @@ app.use(session({
 app.use(flash());
 app.use(generateCSRFToken);
 
+// CSRF Protection - Only for admin routes
+const { csrfProtection } = require('./src/middlewares/security');
+app.use('/admin', csrfProtection);
+
 // Global middleware
 app.use((req, res, next) => {
   res.locals.success = req.flash('success');
@@ -148,7 +152,7 @@ app.use('/api/v1/inventory', inventoryApiRoutes);
 app.use('/api/v1/parameter-posters', parameterPosterApiRoutes);
 app.use('/api/v1/brand-carousel', brandCarouselApiRoutes);
 
-// Admin Routes (specific first)
+// Admin Routes (specific first) - CSRF protection applied above
 app.use('/admin/v1/products/bulk-upload', bulkUploadRoutes);
 app.use('/admin/v1/products', productRoutes);
 app.use('/admin/v1/reviews', adminReviewRoutes);

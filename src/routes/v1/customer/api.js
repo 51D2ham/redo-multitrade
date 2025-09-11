@@ -24,7 +24,7 @@ const {
   validateRegistration, 
   handleValidationErrors 
 } = require('../../../middlewares/registrationValidation');
-const { csrfProtection, sanitizeInput, createRateLimit } = require('../../../middlewares/security');
+const { sanitizeInput, createRateLimit } = require('../../../middlewares/security');
 
 const router = express.Router();
 
@@ -42,19 +42,19 @@ router.put('/change-password', authMiddleware, changePassword);
 router.delete('/users/:id', authMiddleware, deleteUser);
 
 // Simple 2-step registration
-router.post('/register', csrfProtection, upload.single('profileImage'), registerAndSendOTP);
-router.post('/verify-otp', csrfProtection, verifyOTPAndRegister);
+router.post('/register', upload.single('profileImage'), registerAndSendOTP);
+router.post('/verify-otp', verifyOTPAndRegister);
 
 // Advanced OTP-based registration flow
-router.post('/send-registration-otp', csrfProtection, validateRegistrationOTP, handleValidationErrors, sendRegistrationOTP);
+router.post('/send-registration-otp', validateRegistrationOTP, handleValidationErrors, sendRegistrationOTP);
 router.get('/registration-status', checkRegistrationStatus);
-router.post('/resend-registration-otp', csrfProtection, resendRegistrationOTP);
-router.post('/register-with-otp', csrfProtection, upload.single('profileImage'), validateRegistration, handleValidationErrors, registerUser);
+router.post('/resend-registration-otp', resendRegistrationOTP);
+router.post('/register-with-otp', upload.single('profileImage'), validateRegistration, handleValidationErrors, registerUser);
 
 // Auth & password reset (no auth)
-router.post('/login', csrfProtection, loginUser);
-router.post('/forgot-password', csrfProtection, forgetPassword);
-router.post('/reset-password', csrfProtection, resetPassword);
+router.post('/login', loginUser);
+router.post('/forgot-password', forgetPassword);
+router.post('/reset-password', resetPassword);
 
 // Logout route
 router.post('/logout',authMiddleware, logoutUser);
