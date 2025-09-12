@@ -147,8 +147,17 @@ const loginAdmin = async (req, res) => {
       
       req.session.ip = req.ip;
       req.session.userAgent = req.headers['user-agent'];
-      req.flash('success', 'Logged in successfully');
-      res.redirect('/admin/v1/staff/dashboard');
+      
+      // Ensure session is saved before redirect
+      req.session.save((err) => {
+        if (err) {
+          console.error('Session save error:', err);
+          req.flash('error', 'Login session error');
+          return res.redirect('/admin/v1/staff/login');
+        }
+        req.flash('success', 'Logged in successfully');
+        res.redirect('/admin/v1/staff/dashboard');
+      });
     });
   } catch (error) {
     console.error(error);
@@ -477,7 +486,7 @@ const logoutAdmin = (req, res) => {
     
     // Clear the session cookie
     res.clearCookie(
-      process.env.SESSION_NAME || 'ecom.sid', 
+      'multitrade.sid', 
       {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
@@ -511,7 +520,7 @@ const isAuthenticated = (req, res, next) => {
     if (req.session.admin.status !== 'active') {
       req.flash('error', `Your account is ${req.session.admin.status}. Please contact system administrator.`);
       req.session.destroy();
-      res.clearCookie(process.env.SESSION_NAME || 'ecom.sid');
+      res.clearCookie('multitrade.sid');
       return res.redirect('/admin/v1/staff/login');
     }
     return next();
@@ -527,7 +536,7 @@ const renderDashboard = async (req, res) => {
     const admin = await Admin.findById(req.session.admin.id).select('username fullname email role status');
     if (!admin) {
       req.session.destroy();
-      res.clearCookie(process.env.SESSION_NAME || 'ecom.sid');
+      res.clearCookie('multitrade.sid');
       req.flash('error', 'Admin not found. Please login again');
       return res.redirect('/admin/v1/staff/login');
     }

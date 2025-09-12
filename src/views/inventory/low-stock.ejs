@@ -179,6 +179,7 @@
         <h3 class="text-lg font-medium text-gray-900">Restock Product</h3>
       </div>
       <form id="restockForm" method="POST" action="/admin/v1/inventory/restock">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <div class="px-6 py-4 space-y-4">
           <input type="hidden" id="restockProductId" name="productId">
           <input type="hidden" id="restockVariantSku" name="variantSku">

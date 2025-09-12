@@ -5,6 +5,7 @@ const adminController = require('../../../controllers/adminRegister');
 const authMiddleware = require('../../../middlewares/auth');
 const upload = require('../../../middlewares/profilePhoto');
 const rbac = require('../../../middlewares/roleAccess');
+const { csrfProtection } = require('../../../middlewares/security');
 
 // Multer error handling middleware
 const handleMulterError = (err, req, res, next) => {
@@ -25,7 +26,7 @@ router.get('/register', authMiddleware, rbac('developer', 'superAdmin'), (req, r
     old: {}
   });
 });
-router.post('/register', upload.single('photo'), handleMulterError, authMiddleware, rbac('developer', 'superAdmin'), adminController.registerAdmin);
+router.post('/register', upload.single('photo'), handleMulterError, csrfProtection, authMiddleware, rbac('developer', 'superAdmin'), adminController.registerAdmin);
 
 // login post and get
 router.get('/login', (req, res) => {
@@ -35,10 +36,10 @@ router.get('/login', (req, res) => {
     old: {}
   });
 });
-router.post('/login', adminController.loginAdmin);
+router.post('/login', csrfProtection, adminController.loginAdmin);
 //logout post and get
 router.get('/logout', adminController.logoutAdmin);
-router.post('/logout', adminController.logoutAdmin);
+router.post('/logout', csrfProtection, adminController.logoutAdmin);
 
 
 // Password Management Routes
@@ -48,7 +49,7 @@ router.get('/change-password', authMiddleware, (req, res) => {
     success: req.flash('success')
   });
 });
-router.post('/change-password', adminController.changePasswordRender);
+router.post('/change-password', csrfProtection, adminController.changePasswordRender);
 
 router.get('/forgot-password', (req, res) => {
   res.render('admin/forgot-password', {
@@ -56,7 +57,7 @@ router.get('/forgot-password', (req, res) => {
     success: req.flash('success')
   });
 });
-router.post('/forgot-password', adminController.forgotPasswordRender);
+router.post('/forgot-password', csrfProtection, adminController.forgotPasswordRender);
 
 router.get('/reset-password', (req, res) => {
   res.render('admin/reset-password', {
@@ -65,14 +66,14 @@ router.get('/reset-password', (req, res) => {
     email: req.query.email || ''
   });
 });
-router.post('/reset-password', adminController.resetPasswordRender);
+router.post('/reset-password', csrfProtection, adminController.resetPasswordRender);
 
 // Admin Management Routes
 router.get('/', authMiddleware, adminController.getAllAdminsRender);
 router.get('/:id/profile', authMiddleware, adminController.getAdminProfileRender);
 router.get('/:id/edit', authMiddleware,rbac('developer', 'superAdmin'), adminController.showEditAdminRender);
-router.post('/:id/update', authMiddleware,rbac('developer', 'superAdmin'), upload.single('photo'), handleMulterError, adminController.updateAdminRender);
-router.post('/:id/delete', authMiddleware,rbac('developer', 'superAdmin'), adminController.deleteAdminRender);
+router.post('/:id/update', authMiddleware,rbac('developer', 'superAdmin'), upload.single('photo'), handleMulterError, csrfProtection, adminController.updateAdminRender);
+router.post('/:id/delete', authMiddleware,rbac('developer', 'superAdmin'), csrfProtection, adminController.deleteAdminRender);
 
 // Content dashboard controller
 const renderContentDashboard = async (req, res) => {

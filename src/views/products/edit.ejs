@@ -46,6 +46,8 @@
     <% } %>
 
     <form action="/admin/v1/products/<%= product._id %>?_method=PUT" method="POST" enctype="multipart/form-data" class="space-y-6" id="productForm">
+      <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>" />
+      
       <!-- Basic Information -->
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Basic Information</h3>
@@ -137,86 +139,20 @@
         <% if (product.images && product.images.length > 0) { %>
           <div class="mb-6">
             <h4 class="font-semibold text-gray-700 mb-4">Current Images</h4>
-            <div class="flex flex-col lg:flex-row gap-6">
-              <!-- Main Image Display -->
-              <div class="lg:w-2/5">
-                <div class="space-y-4">
-                  <div class="relative group">
-                    <img src="/uploads/products/<%= product.images[0] %>" alt="<%= product.title %>" class="w-full h-80 object-cover rounded-lg shadow-md border">
-                    <button type="button" class="absolute top-3 right-3 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center opacity-0 group-hover:opacity-100 transition remove-image-btn shadow-lg" data-image-filename="<%= product.images[0] %>">
-                      ×
-                    </button>
-                    <div class="absolute bottom-3 left-3 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-sm">
-                      Main Image
-                    </div>
-                  </div>
-                  
-                  <!-- Thumbnail Grid -->
-                  <% if (product.images.length > 1) { %>
-                    <div class="grid grid-cols-4 gap-3">
-                      <% product.images.slice(1, 5).forEach((img, index) => { %>
-                        <div class="relative group">
-                          <img src="/uploads/products/<%= img %>" alt="<%= product.title %>" class="w-full h-20 object-cover rounded-lg border hover:border-purple-300 transition">
-                          <button type="button" class="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition remove-image-btn" data-image-filename="<%= img %>">
-                            ×
-                          </button>
-                        </div>
-                      <% }) %>
-                    </div>
-                  <% } %>
-                  
-                  <!-- Additional Images (if more than 5) -->
-                  <% if (product.images.length > 5) { %>
-                    <div class="mt-4">
-                      <h5 class="text-sm font-medium text-gray-600 mb-3">Additional Images (<%= product.images.length - 5 %> more)</h5>
-                      <div class="grid grid-cols-3 md:grid-cols-4 gap-3">
-                        <% product.images.slice(5).forEach((img, index) => { %>
-                          <div class="relative group">
-                            <img src="/uploads/products/<%= img %>" alt="Product image <%= index + 6 %>" class="w-full h-20 object-cover rounded-lg border hover:border-purple-300 transition">
-                            <button type="button" class="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition remove-image-btn" data-image-filename="<%= img %>">
-                              ×
-                            </button>
-                          </div>
-                        <% }) %>
-                      </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <% product.images.forEach((img, index) => { %>
+                <div class="relative group">
+                  <img src="/uploads/products/<%= img %>" alt="<%= product.title %>" class="w-full h-32 object-cover rounded-lg border">
+                  <button type="button" class="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition remove-image-btn" data-image-filename="<%= img %>">
+                    ×
+                  </button>
+                  <% if (index === 0) { %>
+                    <div class="absolute bottom-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded">
+                      Main
                     </div>
                   <% } %>
                 </div>
-              </div>
-              
-              <!-- Image Management Info -->
-              <div class="lg:w-3/5">
-                <div class="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg p-6 border border-purple-100">
-                  <h5 class="font-semibold text-purple-800 mb-4">Image Management</h5>
-                  
-                  <div class="grid grid-cols-2 gap-4 mb-4">
-                    <div class="bg-white rounded-lg p-3 border">
-                      <div class="text-sm text-gray-600">Total Images</div>
-                      <div class="text-xl font-bold text-purple-600"><%= product.images.length %></div>
-                    </div>
-                    <div class="bg-white rounded-lg p-3 border">
-                      <div class="text-sm text-gray-600">Main Image</div>
-                      <div class="text-sm font-medium text-gray-800">Image #1</div>
-                    </div>
-                  </div>
-                  
-                  <div class="space-y-2 text-sm text-gray-700">
-                    <p>• The first image serves as the main product image and thumbnail</p>
-                    <p>• Hover over any image to reveal the delete button</p>
-                    <p>• Removing images will permanently delete them from the server</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        <% } else { %>
-          <div class="mb-6">
-            <div class="w-full h-80 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
-              <div class="text-center">
-                <div class="text-4xl text-gray-400 mb-3">📷</div>
-                <h4 class="text-lg font-medium text-gray-600 mb-2">No images uploaded</h4>
-                <p class="text-gray-500">Add some product images below to get started</p>
-              </div>
+              <% }) %>
             </div>
           </div>
         <% } %>
@@ -320,43 +256,9 @@
                     <label class="block font-semibold mb-1 text-gray-700">Specification *</label>
                     <select name="specifications[<%= index %>][specList]" required class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                       <option value="">Select Specification</option>
-                      <% 
-                        const relevantSpecs = specLists.filter(specList => {
-                          // Universal specs (no parameters assigned)
-                          if (!specList.category && !specList.subCategory && !specList.type && !specList.brand) return true;
-                          
-                          // Hierarchical matching logic
-                          const categoryMatch = specList.category && specList.category._id && specList.category._id.toString() === product.category.toString();
-                          const subCategoryMatch = specList.subCategory && specList.subCategory._id && specList.subCategory._id.toString() === product.subCategory.toString();
-                          const typeMatch = specList.type && specList.type._id && specList.type._id.toString() === product.type.toString();
-                          const brandMatch = specList.brand && specList.brand._id && specList.brand._id.toString() === product.brand.toString();
-                          
-                          // If spec has subcategory, it must match exactly
-                          if (specList.subCategory) {
-                            return subCategoryMatch;
-                          }
-                          
-                          // If spec has type, it must match exactly
-                          if (specList.type) {
-                            return typeMatch;
-                          }
-                          
-                          // If spec has brand, it must match exactly
-                          if (specList.brand) {
-                            return brandMatch;
-                          }
-                          
-                          // If spec only has category, match by category
-                          if (specList.category) {
-                            return categoryMatch;
-                          }
-                          
-                          return false;
-                        }).sort((a, b) => a.title.localeCompare(b.title));
-                      %>
-                      <% relevantSpecs.forEach(specList => { %>
+                      <% specLists.forEach(specList => { %>
                         <option value="<%= specList._id %>" <%= spec.specList._id.toString() === specList._id.toString() ? 'selected' : '' %>>
-                          <%= specList.title %><% if (specList.category || specList.subCategory || specList.type || specList.brand) { %> (<% if (specList.category) { %><%= specList.category.name %><% } %><% if (specList.subCategory) { %><%= specList.subCategory.name %><% } %><% if (specList.type) { %><%= specList.type.name %><% } %><% if (specList.brand) { %><%= specList.brand.name %><% } %>)<% } %>
+                          <%= specList.title %>
                         </option>
                       <% }) %>
                     </select>
@@ -451,10 +353,21 @@
   </div>
 </div>
 
+<!-- Server Data -->
+<script id="server-data" type="application/json">
+{
+  "variantCount": <%= product.variants.length %>,
+  "specificationCount": <%= specifications ? specifications.length : 0 %>,
+  "availableSpecs": <%- JSON.stringify(specLists.map(spec => ({ id: spec._id, title: spec.title }))) %>
+}
+</script>
+
 <script>
+const serverData = JSON.parse(document.getElementById('server-data').textContent);
 const removedImages = [];
-let variantCount = parseInt('<%= product.variants.length %>');
-let specificationCount = parseInt('<%= specifications ? specifications.length : 0 %>');
+let variantCount = serverData.variantCount;
+let specificationCount = serverData.specificationCount;
+const availableSpecs = serverData.availableSpecs;
 
 // Image upload preview
 document.getElementById('imageInput').addEventListener('change', function(e) {
@@ -610,7 +523,6 @@ document.getElementById('add-specification').addEventListener('click', function(
         <label class="block font-semibold mb-1 text-gray-700">Specification *</label>
         <select name="specifications[${specIndex}][specList]" required class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 spec-select">
           <option value="">Select Specification</option>
-          <!-- Options will be populated by JavaScript based on current product category -->
         </select>
       </div>
       <div>
@@ -643,48 +555,14 @@ document.addEventListener('click', function(e) {
 
 // Populate specification dropdown for new specs
 function populateSpecSelect(selectElement) {
-  const productCategory = '<%= product.category %>';
-  const productSubCategory = '<%= product.subCategory %>';
-  const productType = '<%= product.type %>';
-  const productBrand = '<%= product.brand %>';
-  
-  const relevantSpecs = [
-    <% 
-      const jsRelevantSpecs = specLists.filter(specList => {
-        if (!specList.category && !specList.subCategory && !specList.type && !specList.brand) return true;
-        
-        const categoryMatch = specList.category && specList.category._id && specList.category._id.toString() === product.category.toString();
-        const subCategoryMatch = specList.subCategory && specList.subCategory._id && specList.subCategory._id.toString() === product.subCategory.toString();
-        const typeMatch = specList.type && specList.type._id && specList.type._id.toString() === product.type.toString();
-        const brandMatch = specList.brand && specList.brand._id && specList.brand._id.toString() === product.brand.toString();
-        
-        if (specList.subCategory) return subCategoryMatch;
-        if (specList.type) return typeMatch;
-        if (specList.brand) return brandMatch;
-        if (specList.category) return categoryMatch;
-        
-        return false;
-      }).sort((a, b) => a.title.localeCompare(b.title));
-    %>
-    <% jsRelevantSpecs.forEach((specList, index) => { %>
-      { id: '<%= specList._id %>', title: '<%= specList.title %><% if (specList.category || specList.subCategory || specList.type || specList.brand) { %> (<% if (specList.category) { %><%= specList.category.name %><% } %><% if (specList.subCategory) { %><%= specList.subCategory.name %><% } %><% if (specList.type) { %><%= specList.type.name %><% } %><% if (specList.brand) { %><%= specList.brand.name %><% } %>)<% } %>' }<%= index < jsRelevantSpecs.length - 1 ? ',' : '' %>
-    <% }) %>
-  ];
-  
   selectElement.innerHTML = '<option value="">Select Specification</option>';
-  relevantSpecs.sort((a, b) => a.title.localeCompare(b.title)).forEach(spec => {
+  availableSpecs.forEach(spec => {
     const option = document.createElement('option');
     option.value = spec.id;
     option.textContent = spec.title;
     selectElement.appendChild(option);
   });
 }
-
-// Populate spec selects when new specifications are added
-document.addEventListener('DOMContentLoaded', function() {
-  // Populate any existing spec selects that need it
-  document.querySelectorAll('.spec-select').forEach(populateSpecSelect);
-});
 </script>
 
 <%- include('../partials/footer.ejs') %>

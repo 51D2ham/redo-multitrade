@@ -105,25 +105,19 @@
       <div class="p-4 border-b">
         <h2 class="text-lg font-semibold">Order Details</h2>
       </div>
-      <form method="POST" action="/admin/v1/order/<%- encodeURIComponent(order._id) %>?_method=PUT" class="p-4 space-y-4" onsubmit="return validateOrderForm()">
+      <form method="POST" enctype="multipart/form-data" action="/admin/v1/order/<%- encodeURIComponent(order._id) %>?_method=PUT" class="p-4 space-y-4" onsubmit="return validateOrderForm()">
         <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
-        
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium mb-1" for="order-status">Order Status</label>
-            <div class="flex gap-2">
-              <select name="status" id="order-status" class="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
-                <% const currentStatus = order.status || 'pending'; %>
-                <option value="pending" <%- currentStatus === 'pending' ? 'selected' : '' %>>Pending</option>
-                <option value="processing" <%- currentStatus === 'processing' ? 'selected' : '' %>>Processing</option>
-                <option value="shipped" <%- currentStatus === 'shipped' ? 'selected' : '' %>>Shipped</option>
-                <option value="delivered" <%- currentStatus === 'delivered' ? 'selected' : '' %>>Delivered</option>
-                <option value="cancelled" <%- currentStatus === 'cancelled' ? 'selected' : '' %>>Cancelled</option>
-              </select>
-              <button type="button" onclick="autoCorrectStatus()" class="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm transition-all" title="Auto-correct status based on items">
-                <i class="fas fa-magic"></i>
-              </button>
-            </div>
+            <select name="status" id="order-status" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+              <% const currentStatus = order.status || 'pending'; %>
+              <option value="pending" <%- currentStatus === 'pending' ? 'selected' : '' %>>Pending</option>
+              <option value="processing" <%- currentStatus === 'processing' ? 'selected' : '' %>>Processing</option>
+              <option value="shipped" <%- currentStatus === 'shipped' ? 'selected' : '' %>>Shipped</option>
+              <option value="delivered" <%- currentStatus === 'delivered' ? 'selected' : '' %>>Delivered</option>
+              <option value="cancelled" <%- currentStatus === 'cancelled' ? 'selected' : '' %>>Cancelled</option>
+            </select>
           </div>
           <div>
             <label class="block text-sm font-medium mb-1" for="payment-status">Payment Status</label>
@@ -134,18 +128,14 @@
             </select>
           </div>
         </div>
-        
         <div>
           <label class="block text-sm font-medium mb-1" for="tracking-number">Tracking Number</label>
           <input type="text" name="trackingNumber" id="tracking-number" value="<%- order.trackingNumber || '' %>" placeholder="Enter tracking number" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" maxlength="50">
         </div>
-        
         <div>
           <label class="block text-sm font-medium mb-1" for="status-message">Message to Customer</label>
-          <textarea name="statusMessage" id="status-message" rows="3" placeholder="Optional message to customer..." class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical" maxlength="500" oninput="updateCharCount()"></textarea>
-          <p class="text-xs text-gray-500 mt-1">Maximum 500 characters <span id="char-count">(0/500)</span></p>
+          <textarea name="statusMessage" id="status-message" rows="3" placeholder="Optional message to customer..." class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical" maxlength="500"></textarea>
         </div>
-        
         <div class="flex flex-col sm:flex-row gap-3">
           <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
             <i class="fas fa-save"></i>
@@ -155,25 +145,14 @@
             <i class="fas fa-times"></i>
             <span>Cancel</span>
           </a>
-          <button type="button" onclick="resetForm()" class="px-4 py-2 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition-all flex items-center justify-center gap-2">
-            <i class="fas fa-undo"></i>
-            <span>Reset</span>
-          </button>
         </div>
       </form>
     </div>
   </div>
 </div>
 
-<div id="order-data" 
-     data-order-id="<%- order._id %>" 
-     data-order-status="<%- order.status || 'pending' %>" 
-     data-paid-status="<%- order.paid || false %>" 
-     data-order-items='<%- typeof orderItemsJson !== "undefined" ? orderItemsJson : "[]" %>' 
-     style="display: none;"></div>
-
 <script>
-const orderId = document.getElementById('order-data').dataset.orderId;
+const orderId = '<%- order._id %>';
 
 // Form validation
 function validateOrderForm() {
@@ -187,58 +166,6 @@ function validateOrderForm() {
   return true;
 }
 
-// Update character count for status message
-function updateCharCount() {
-  const textarea = document.getElementById('status-message');
-  const counter = document.getElementById('char-count');
-  const current = textarea.value.length;
-  const max = 500;
-  
-  counter.textContent = `(${current}/${max})`;
-  counter.className = current > max * 0.9 ? 'text-red-500 font-medium' : 'text-gray-500';
-}
-
-// Initialize character count on page load
-document.addEventListener('DOMContentLoaded', function() {
-  updateCharCount();
-});
-
-// Auto-correct status
-function autoCorrectStatus() {
-  const items = JSON.parse(document.getElementById('order-data').dataset.orderItems || '[]');
-  if (items.length === 0) {
-    alert('No items found to analyze status');
-    return;
-  }
-  
-  const statuses = items.map(item => item.status || 'pending');
-  const allDelivered = statuses.filter(s => s !== 'cancelled').every(s => s === 'delivered');
-  const allCancelled = statuses.every(s => s === 'cancelled');
-  const hasShipped = statuses.some(s => s === 'shipped');
-  const hasProcessing = statuses.some(s => s === 'processing');
-  
-  let newStatus = 'pending';
-  if (allCancelled) newStatus = 'cancelled';
-  else if (allDelivered) newStatus = 'delivered';
-  else if (hasShipped) newStatus = 'shipped';
-  else if (hasProcessing) newStatus = 'processing';
-  
-  const currentStatus = document.getElementById('order-status').value;
-  if (currentStatus !== newStatus) {
-    document.getElementById('order-status').value = newStatus;
-    alert(`Status auto-corrected from '${currentStatus}' to '${newStatus}' based on item statuses`);
-  } else {
-    alert(`Status is already correct: '${currentStatus}'`);
-  }
-}
-
-// Reset form
-function resetForm() {
-  if (confirm('Are you sure you want to reset all changes?')) {
-    document.querySelector('form').reset();
-  }
-}
-
 // Confirm item cancellation
 function confirmItemCancel(index) {
   if (confirm('Are you sure you want to cancel this item? This action cannot be undone.')) {
@@ -246,7 +173,7 @@ function confirmItemCancel(index) {
   }
 }
 
-// Update item status function for direct onclick calls
+// Update item status function
 function updateItemStatus(index, action) {
   const button = event.target;
   const originalText = button.textContent;

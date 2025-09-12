@@ -41,7 +41,8 @@
   <% } %>
 
   <div class="bg-white rounded-xl shadow-md p-8 mb-10 border border-gray-100">
-    <form action="/admin/v1/parameters/spec-lists" method="POST" class="space-y-6">
+    <form action="/admin/v1/parameters/spec-lists" method="POST" enctype="multipart/form-data" class="space-y-6">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       <div>
         <label for="title" class="block font-semibold mb-1 text-gray-700">Spec Title *</label>
         <input
@@ -163,9 +164,9 @@
 
 <script>
 // Store all data for filtering
-const allSubCategories = JSON.parse('<%- JSON.stringify(subCategories || []) %>');
-const allTypes = JSON.parse('<%- JSON.stringify(types || []) %>');
-const allBrands = JSON.parse('<%- JSON.stringify(brands || []) %>');
+const allSubCategories = <%- JSON.stringify(subCategories || []) %>;
+const allTypes = <%- JSON.stringify(types || []) %>;
+const allBrands = <%- JSON.stringify(brands || []) %>;
 
 // Get dropdown elements
 const categorySelect = document.getElementById('category');
@@ -182,9 +183,11 @@ categorySelect.addEventListener('change', function() {
     subCategorySelect.disabled = false;
     subCategorySelect.innerHTML = '<option value="">Select Sub Category (Optional)</option>';
     
-    const filteredSubCategories = allSubCategories.filter(sub => 
-      sub.category && sub.category.toString() === selectedCategoryId
-    );
+    const filteredSubCategories = allSubCategories.filter(sub => {
+      // Handle both populated and non-populated category references
+      const categoryId = sub.category && sub.category._id ? sub.category._id : sub.category;
+      return categoryId && categoryId.toString() === selectedCategoryId;
+    });
     
     filteredSubCategories.forEach(sub => {
       const option = document.createElement('option');
@@ -211,9 +214,11 @@ subCategorySelect.addEventListener('change', function() {
     typeSelect.disabled = false;
     typeSelect.innerHTML = '<option value="">Select Type (Optional)</option>';
     
-    const filteredTypes = allTypes.filter(type => 
-      type.subCategory && type.subCategory.toString() === selectedSubCategoryId
-    );
+    const filteredTypes = allTypes.filter(type => {
+      // Handle both populated and non-populated subCategory references
+      const subCategoryId = type.subCategory && type.subCategory._id ? type.subCategory._id : type.subCategory;
+      return subCategoryId && subCategoryId.toString() === selectedSubCategoryId;
+    });
     
     filteredTypes.forEach(type => {
       const option = document.createElement('option');

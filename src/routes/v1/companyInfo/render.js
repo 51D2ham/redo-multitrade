@@ -1,5 +1,6 @@
 const express = require('express');
 const upload = require('../../../middlewares/productPhoto');
+const { csrfProtection } = require('../../../middlewares/security');
 const authMiddleware = require('../../../middlewares/auth');
 const router = express.Router();
 const companyInfo = require('../../../controllers/companyInfoController');

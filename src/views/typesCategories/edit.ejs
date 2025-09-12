@@ -53,7 +53,8 @@
 
   <div class="bg-white rounded-xl shadow-md p-8 mb-10 border border-gray-100">
     <% if (typeof type !== 'undefined' && type) { %>
-      <form action="/admin/v1/parameters/types/<%= type._id %>" method="POST" class="space-y-6">
+      <form action="/admin/v1/parameters/types/<%= type._id %>" method="POST" enctype="multipart/form-data" class="space-y-6">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <input type="hidden" name="_method" value="PUT">
         <div>
           <label for="name" class="block font-semibold mb-1 text-gray-700">Name *</label>

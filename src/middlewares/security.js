@@ -10,12 +10,11 @@ const csrfProtection = (req, res, next) => {
     return next();
   }
 
-  // Skip CSRF if session is not available
-  if (!req.session) {
+  if (!req.session || !req.session.admin) {
     return next();
   }
 
-  const token = req.body._csrf || req.headers['x-csrf-token'];
+  const token = (req.body && req.body._csrf) || req.headers['x-csrf-token'];
   const sessionToken = req.session.csrfToken;
 
   if (!token || !sessionToken || token !== sessionToken) {
@@ -77,7 +76,7 @@ const validateFilePath = (filePath, allowedDir) => {
 };
 
 // Rate limiting
-const createRateLimit = (windowMs = 15 * 60 * 1000, max = 100) => {
+const createRateLimit = (windowMs = 15 * 60 * 1000, max = 200) => {
   return rateLimit({
     windowMs,
     max,

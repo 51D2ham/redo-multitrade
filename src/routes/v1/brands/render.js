@@ -8,9 +8,9 @@ const brandsController = require('../../../controllers/brandsController');
 
 router.get('/', adminAuth, brandsController.listBrands);
 router.get('/new', adminAuth, brandsController.newBrand);
-router.post('/', adminAuth, csrfProtection, upload.single('logo'), brandsController.createBrand);
+router.post('/', adminAuth, upload.single('logo'), csrfProtection, brandsController.createBrand);
 router.get('/:id/edit', adminAuth, brandsController.editBrand);
-router.post('/:id/update', adminAuth, csrfProtection, upload.single('logo'), brandsController.updateBrand);
+router.post('/:id/update', adminAuth, upload.single('logo'), csrfProtection, brandsController.updateBrand);
 router.get('/:id', adminAuth, brandsController.showBrand);
 router.delete('/:id', adminAuth, csrfProtection, brandsController.deleteBrand);
 

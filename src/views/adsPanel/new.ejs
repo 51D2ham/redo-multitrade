@@ -42,6 +42,8 @@
     </div>
     
     <form action="/admin/v1/parameters/ads-panel" method="POST" enctype="multipart/form-data" class="space-y-6">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       <div>
         <label for="title" class="block font-semibold mb-2 text-gray-700">Title *</label>
         <input 

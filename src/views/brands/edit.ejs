@@ -30,6 +30,7 @@
 
   <div class="bg-white rounded-xl shadow-md p-8 border border-gray-100">
     <form id="brandForm" action="/admin/v1/parameters/brands/<%= brand._id %>/update" method="POST" enctype="multipart/form-data">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       
       <div class="mb-6">
         <label for="name" class="block font-semibold mb-2 text-gray-700">Brand Name *</label>

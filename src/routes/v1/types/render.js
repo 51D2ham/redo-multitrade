@@ -7,11 +7,12 @@ const typeController = require('../../../controllers/typeController');
 
 router.get('/', adminAuth, typeController.listTypes);
 router.get('/new', adminAuth, typeController.newType);
-router.post('/', adminAuth, csrfProtection, typeController.createType);
+router.post('/', adminAuth, upload.single('icon'), csrfProtection, typeController.createType);
 router.get('/subcategories/:categoryId', adminAuth, typeController.getSubCategoriesByCategory);
 router.get('/:id', adminAuth, typeController.showType);
 router.get('/:id/edit', adminAuth, typeController.editType);
-router.put('/:id', adminAuth, csrfProtection, typeController.updateType);
+router.put('/:id', adminAuth, upload.single('icon'), csrfProtection, typeController.updateType);
+router.post('/:id', adminAuth, upload.single('icon'), csrfProtection, typeController.updateType);
 router.delete('/:id', adminAuth, csrfProtection, typeController.deleteType);
 
 module.exports = router;

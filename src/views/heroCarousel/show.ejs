@@ -98,7 +98,9 @@ const safeError = error || [];
         <i class="fa fa-edit"></i> Edit
       </a>
       
-      <form method="POST" action="/admin/v1/parameters/hero-carousel/<%= safeItem._id %>?_method=DELETE" 
+      <form method="POST" action="/admin/v1/parameters/hero-carousel/<%= safeItem._id %>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+?_method=DELETE" 
             class="inline" onsubmit="return confirm('Are you sure you want to delete this hero content?')">
         <button type="submit" 
                 class="px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition flex items-center gap-2">

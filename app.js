@@ -75,9 +75,9 @@ app.use(session({
 app.use(flash());
 app.use(generateCSRFToken);
 
-// CSRF Protection - Only for admin routes
+// CSRF Protection - Only for admin routes (after body parsing)
 const { csrfProtection } = require('./src/middlewares/security');
-app.use('/admin', csrfProtection);
+// Apply CSRF after routes are loaded so multer can process multipart data first
 
 // Global middleware
 app.use((req, res, next) => {
@@ -152,7 +152,7 @@ app.use('/api/v1/inventory', inventoryApiRoutes);
 app.use('/api/v1/parameter-posters', parameterPosterApiRoutes);
 app.use('/api/v1/brand-carousel', brandCarouselApiRoutes);
 
-// Admin Routes (specific first) - CSRF protection applied above
+// Admin Routes (specific first) - CSRF protection applied in individual routes
 app.use('/admin/v1/products/bulk-upload', bulkUploadRoutes);
 app.use('/admin/v1/products', productRoutes);
 app.use('/admin/v1/reviews', adminReviewRoutes);

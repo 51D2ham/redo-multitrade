@@ -11,7 +11,7 @@ module.exports = async (req, res, next) => {
       req.flash('error', 'Session expired. Please log in again.');
       return req.session.destroy((err) => {
         if (err) console.error('Session destroy error:', err);
-        res.clearCookie('ecom.sid');
+        res.clearCookie('multitrade.sid');
         return res.redirect('/admin/v1/staff/login');
       });
     }
@@ -25,7 +25,7 @@ module.exports = async (req, res, next) => {
       req.flash('error', 'Security alert: Session validation failed');
       return req.session.destroy((err) => {
         if (err) console.error('Session destroy error:', err);
-        res.clearCookie('ecom.sid');
+        res.clearCookie('multitrade.sid');
         return res.redirect('/admin/v1/staff/login');
       });
     }
@@ -40,7 +40,7 @@ module.exports = async (req, res, next) => {
       req.flash('error', 'Admin account not found');
       return req.session.destroy((err) => {
         if (err) console.error('Session destroy error:', err);
-        res.clearCookie('ecom.sid');
+        res.clearCookie('multitrade.sid');
         return res.redirect('/admin/v1/staff/login');
       });
     }

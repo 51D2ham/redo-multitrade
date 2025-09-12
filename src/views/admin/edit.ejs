@@ -53,6 +53,7 @@
   <!-- Form Card -->
   <div class="bg-white rounded-xl shadow-md p-8 mb-10 border border-gray-100">
     <form action="/admin/v1/staff/<%= admin._id %>/update" method="POST" enctype="multipart/form-data" class="space-y-8">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       <!-- Profile Photo Section -->
       <div class="border-b border-gray-100 pb-8">
         <h3 class="font-semibold text-lg mb-5 text-blue-700 flex items-center gap-2">
