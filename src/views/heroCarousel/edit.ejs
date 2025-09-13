@@ -45,7 +45,9 @@
 
   <!-- Edit Form Card -->
   <div class="bg-white rounded-xl shadow-md p-8 mb-10 border border-gray-100">
-    <form action="/admin/v1/parameters/hero-carousel/<%= item._id %>?_method=PUT" method="POST" enctype="multipart/form-data" class="space-y-6">
+    <form action="/admin/v1/parameters/hero-carousel/<%= item._id %>" method="POST" enctype="multipart/form-data" class="space-y-6">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input type="hidden" name="_method" value="PUT">
       <div>
         <label for="title" class="block font-semibold mb-2 text-gray-700">Title *</label>
         <input
@@ -116,4 +118,3 @@
 </main>
 
 <%- include('../partials/footer.ejs') %>
-

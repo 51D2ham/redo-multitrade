@@ -120,7 +120,7 @@ const typeController = {
         subCategory,
         isActive: isActive === 'on' || isActive === true,
         isFeatured: isFeatured === 'on' || isFeatured === true,
-        admin: req.user._id
+        admin: req.user._id || req.session.admin.id
       };
 
 

@@ -10,6 +10,7 @@ module.exports = {
     res.render('brandCarousel/index', {
       baseUrl: req.baseUrl,
       items,
+      csrfToken: res.locals.csrfToken,
       success: req.flash('success'),
       error: req.flash('error')
     });
@@ -21,6 +22,7 @@ module.exports = {
       res.render('brandCarousel/new', {
         baseUrl: req.baseUrl,
         brands,
+        csrfToken: res.locals.csrfToken,
         success: req.flash('success'),
         error: req.flash('error')
       });
@@ -51,6 +53,10 @@ module.exports = {
   },
 
   async showBrandCarousel(req, res) {
+    if (!req.params.id.match(/^[0-9a-fA-F]{24}$/)) {
+      req.flash('error', 'Invalid item ID');
+      return res.redirect(req.baseUrl);
+    }
     const item = await BrandCarousel.findById(req.params.id)
       .populate('brand', 'name logo')
       .populate('admin', 'username email');
@@ -61,12 +67,17 @@ module.exports = {
     res.render('brandCarousel/show', {
       baseUrl: req.baseUrl,
       item,
+      csrfToken: res.locals.csrfToken,
       success: req.flash('success'),
       error: req.flash('error')
     });
   },
 
   async editBrandCarouselForm(req, res) {
+    if (!req.params.id.match(/^[0-9a-fA-F]{24}$/)) {
+      req.flash('error', 'Invalid item ID');
+      return res.redirect(req.baseUrl);
+    }
     try {
       const [item, brands] = await Promise.all([
         BrandCarousel.findById(req.params.id).populate('brand'),
@@ -80,6 +91,7 @@ module.exports = {
         baseUrl: req.baseUrl,
         item,
         brands,
+        csrfToken: res.locals.csrfToken,
         success: req.flash('success'),
         error: req.flash('error')
       });
@@ -90,6 +102,10 @@ module.exports = {
   },
 
   async updateBrandCarousel(req, res) {
+    if (!req.params.id.match(/^[0-9a-fA-F]{24}$/)) {
+      req.flash('error', 'Invalid item ID');
+      return res.redirect(req.baseUrl);
+    }
     const item = await BrandCarousel.findById(req.params.id);
     if (!item) {
       req.flash('error', 'Item not found');
@@ -117,6 +133,10 @@ module.exports = {
   },
 
   async deleteBrandCarousel(req, res) {
+    if (!req.params.id.match(/^[0-9a-fA-F]{24}$/)) {
+      req.flash('error', 'Invalid item ID');
+      return res.redirect(req.baseUrl);
+    }
     const item = await BrandCarousel.findById(req.params.id);
     if (!item) {
       req.flash('error', 'Item not found');

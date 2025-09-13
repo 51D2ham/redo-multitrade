@@ -1,4 +1,10 @@
-﻿<%- include('../partials/header.ejs', { title: 'Edit User' }) %>
+﻿<%
+// Safe variable initialization
+const safeUser = typeof user !== 'undefined' ? user : {};
+const safeSuccess = typeof success !== 'undefined' ? success : [];
+const safeError = typeof error !== 'undefined' ? error : [];
+%>
+<%- include('../partials/header.ejs', { title: 'Edit User' }) %>
 
 <!-- Modern Navigation Bar -->
 <nav class="flex flex-wrap gap-3 mb-8 p-4 bg-white rounded-xl shadow-sm border border-gray-100 items-center">
@@ -8,7 +14,7 @@
   <a href="/admin/v1/customers/users" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-50 text-gray-700 hover:bg-gray-100 transition">
     <i class="fa fa-users"></i> Customer List
   </a>
-  <a href="/admin/v1/customers/users/<%= user._id %>" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-50 text-gray-700 hover:bg-gray-100 transition">
+  <a href="/admin/v1/customers/users/<%= safeUser._id || '' %>" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-50 text-gray-700 hover:bg-gray-100 transition">
     <i class="fa fa-user"></i> Profile
   </a>
 </nav>
@@ -16,13 +22,13 @@
 <main class="container mx-auto max-w-3xl px-4 mt-8">
   <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-8 gap-4">
     <div>
-      <h1 class="text-3xl font-bold text-gray-800">Edit <%= user.username || 'Unnamed User' %></h1>
+      <h1 class="text-3xl font-bold text-gray-800">Edit <%= safeUser.username || 'Unnamed User' %></h1>
       <p class="text-gray-500 mt-1">Update user details and preferences</p>
     </div>
     <div class="text-right">
       <% 
         // Safely handle undefined role
-        const userRole = user.role || 'customer';
+        const userRole = safeUser.role || 'customer';
         const displayRole = userRole.charAt(0).toUpperCase() + userRole.slice(1);
         const roleColor = userRole === 'admin' ? 'blue' : 'green';
       %>
@@ -33,9 +39,9 @@
   </div>
 
   <!-- Flash Messages -->
-  <% if (error && error.length) { %>
+  <% if (safeError && safeError.length) { %>
     <div class="mb-6 p-4 rounded-lg border-l-4 border-red-400 bg-red-50 text-red-800 shadow-sm">
-      <% error.forEach(msg => { %>
+      <% safeError.forEach(msg => { %>
         <div class="flex items-center gap-2">
           <i class="fa fa-exclamation-circle"></i>
           <%= msg %>
@@ -43,9 +49,9 @@
       <% }) %>
     </div>
   <% } %>
-  <% if (success && success.length) { %>
+  <% if (safeSuccess && safeSuccess.length) { %>
     <div class="mb-6 p-4 rounded-lg border-l-4 border-green-400 bg-green-50 text-green-800 shadow-sm">
-      <% success.forEach(msg => { %>
+      <% safeSuccess.forEach(msg => { %>
         <div class="flex items-center gap-2">
           <i class="fa fa-check-circle"></i>
           <%= msg %>
@@ -56,7 +62,7 @@
 
   <!-- Form Card -->
   <div class="bg-white rounded-xl shadow-md p-8 mb-10 border border-gray-100">
-    <form action="/admin/v1/customers/users/<%= user._id %>/update" method="POST" enctype="multipart/form-data" class="space-y-8">
+    <form action="/admin/v1/customers/users/<%= safeUser._id || '' %>/update" method="POST" enctype="multipart/form-data" class="space-y-8">
       <!-- Profile Photo Section -->
       <div class="border-b border-gray-100 pb-8">
         <h3 class="font-semibold text-lg mb-5 text-blue-700 flex items-center gap-2">
@@ -65,9 +71,9 @@
         <div class="flex flex-col md:flex-row md:items-start gap-8">
           <div class="w-32 h-32 flex-shrink-0">
             <div class="relative w-full h-full rounded-full overflow-hidden border-2 border-gray-200">
-              <% if (user.profileImage) { %>
+              <% if (safeUser.profileImage) { %>
                 <img 
-                  src="<%= user.profileImage %>" 
+                  src="<%= safeUser.profileImage %>" 
                   alt="Current User Photo"
                   class="w-full h-full object-cover"
                   id="currentImage"
@@ -117,7 +123,7 @@
               id="fullname"
               name="fullname"
               type="text"
-              value="<%= user.fullname || '' %>"
+              value="<%= safeUser.fullname || '' %>"
               required
               class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
             >
@@ -128,8 +134,7 @@
               id="username"
               name="username"
               type="text"
-              value="<%= user.username || '' %>"
-              required
+              value="<%= safeUser.username || safeUser.fullname || '' %>"
               class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
             >
           </div>
@@ -139,7 +144,7 @@
               id="email"
               name="email"
               type="email"
-              value="<%= user.email || '' %>"
+              value="<%= safeUser.email || '' %>"
               required
               class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
             >
@@ -150,7 +155,7 @@
               id="phone"
               name="phone"
               type="tel"
-              value="<%= user.phone || '' %>"
+              value="<%= safeUser.phone || '' %>"
               class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
             >
           </div>
@@ -167,7 +172,7 @@
             <label for="gender" class="block font-semibold mb-2 text-gray-700">Gender</label>
             <select id="gender" name="gender" class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
               <% ['Male', 'Female', 'Others'].forEach(g => { %>
-                <option value="<%= g %>" <%= (user.gender || '') === g ? 'selected' : '' %>>
+                <option value="<%= g %>" <%= (safeUser.gender || '') === g ? 'selected' : '' %>>
                   <%= g %>
                 </option>
               <% }) %>
@@ -179,7 +184,7 @@
               id="dob"
               name="dob"
               type="date"
-              value="<%= user.dob ? (new Date(user.dob).toISOString().split('T')[0]) : '' %>"
+              value="<%= safeUser.dob ? (new Date(safeUser.dob).toISOString().split('T')[0]) : '' %>"
               class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
             >
           </div>
@@ -187,12 +192,23 @@
             <label for="role" class="block font-semibold mb-2 text-gray-700">Account Role</label>
             <select id="role" name="role" class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
               <% ['admin', 'customer'].forEach(r => { %>
-                <option value="<%= r %>" <%= (user.role || 'customer') === r ? 'selected' : '' %>>
+                <option value="<%= r %>" <%= (safeUser.role || 'customer') === r ? 'selected' : '' %>>
                   <%= r.charAt(0).toUpperCase() + r.slice(1) %>
                 </option>
               <% }) %>
             </select>
             <p class="mt-1 text-sm text-gray-500">Role determines user permissions</p>
+          </div>
+          <div>
+            <label for="status" class="block font-semibold mb-2 text-gray-700">Account Status</label>
+            <select id="status" name="status" class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+              <% ['active', 'inactive', 'blocked'].forEach(s => { %>
+                <option value="<%= s %>" <%= (safeUser.status || 'active') === s ? 'selected' : '' %>>
+                  <%= s.charAt(0).toUpperCase() + s.slice(1) %>
+                </option>
+              <% }) %>
+            </select>
+            <p class="mt-1 text-sm text-gray-500">Controls user access to the system</p>
           </div>
         </div>
       </div>
@@ -212,7 +228,7 @@
                   id="permanentAddress[locality]"
                   name="permanentAddress[locality]"
                   type="text"
-                  value="<%= user.permanentAddress && user.permanentAddress.locality ? user.permanentAddress.locality : '' %>"
+                  value="<%= safeUser.permanentAddress && safeUser.permanentAddress.locality ? safeUser.permanentAddress.locality : '' %>"
                   class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
                 >
               </div>
@@ -222,7 +238,7 @@
                   id="permanentAddress[city]"
                   name="permanentAddress[city]"
                   type="text"
-                  value="<%= user.permanentAddress && user.permanentAddress.city ? user.permanentAddress.city : '' %>"
+                  value="<%= safeUser.permanentAddress && safeUser.permanentAddress.city ? safeUser.permanentAddress.city : '' %>"
                   class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
                 >
               </div>
@@ -233,7 +249,7 @@
                     id="permanentAddress[postalCode]"
                     name="permanentAddress[postalCode]"
                     type="text"
-                    value="<%= user.permanentAddress && user.permanentAddress.postalCode ? user.permanentAddress.postalCode : '' %>"
+                    value="<%= safeUser.permanentAddress && safeUser.permanentAddress.postalCode ? safeUser.permanentAddress.postalCode : '' %>"
                     class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
                   >
                 </div>
@@ -243,7 +259,7 @@
                     id="permanentAddress[province]"
                     name="permanentAddress[province]"
                     type="text"
-                    value="<%= user.permanentAddress && user.permanentAddress.province ? user.permanentAddress.province : '' %>"
+                    value="<%= safeUser.permanentAddress && safeUser.permanentAddress.province ? safeUser.permanentAddress.province : '' %>"
                     class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
                   >
                 </div>
@@ -254,7 +270,7 @@
                   id="permanentAddress[country]"
                   name="permanentAddress[country]"
                   type="text"
-                  value="<%= user.permanentAddress && user.permanentAddress.country ? user.permanentAddress.country : '' %>"
+                  value="<%= safeUser.permanentAddress && safeUser.permanentAddress.country ? safeUser.permanentAddress.country : '' %>"
                   class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
                 >
               </div>
@@ -273,7 +289,7 @@
                   id="tempAddress[locality]"
                   name="tempAddress[locality]"
                   type="text"
-                  value="<%= user.tempAddress && user.tempAddress.locality ? user.tempAddress.locality : '' %>"
+                  value="<%= safeUser.tempAddress && safeUser.tempAddress.locality ? safeUser.tempAddress.locality : '' %>"
                   class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
                 >
               </div>
@@ -283,7 +299,7 @@
                   id="tempAddress[city]"
                   name="tempAddress[city]"
                   type="text"
-                  value="<%= user.tempAddress && user.tempAddress.city ? user.tempAddress.city : '' %>"
+                  value="<%= safeUser.tempAddress && safeUser.tempAddress.city ? safeUser.tempAddress.city : '' %>"
                   class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
                 >
               </div>
@@ -294,7 +310,7 @@
                     id="tempAddress[postalCode]"
                     name="tempAddress[postalCode]"
                     type="text"
-                    value="<%= user.tempAddress && user.tempAddress.postalCode ? user.tempAddress.postalCode : '' %>"
+                    value="<%= safeUser.tempAddress && safeUser.tempAddress.postalCode ? safeUser.tempAddress.postalCode : '' %>"
                     class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
                   >
                 </div>
@@ -304,7 +320,7 @@
                     id="tempAddress[province]"
                     name="tempAddress[province]"
                     type="text"
-                    value="<%= user.tempAddress && user.tempAddress.province ? user.tempAddress.province : '' %>"
+                    value="<%= safeUser.tempAddress && safeUser.tempAddress.province ? safeUser.tempAddress.province : '' %>"
                     class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
                   >
                 </div>
@@ -315,7 +331,7 @@
                   id="tempAddress[country]"
                   name="tempAddress[country]"
                   type="text"
-                  value="<%= user.tempAddress && user.tempAddress.country ? user.tempAddress.country : '' %>"
+                  value="<%= safeUser.tempAddress && safeUser.tempAddress.country ? safeUser.tempAddress.country : '' %>"
                   class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
                 >
               </div>
@@ -326,7 +342,7 @@
 
       <!-- Form Actions -->
       <div class="flex flex-col sm:flex-row sm:justify-end gap-3 pt-6">
-        <a href="/admin/v1/customers/users/<%= user._id %>" class="px-4 py-2.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition text-center">
+        <a href="/admin/v1/customers/users/<%= safeUser._id || '' %>" class="px-4 py-2.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition text-center">
           <i class="fa fa-times mr-2"></i> Cancel
         </a>
         <button type="submit" class="px-4 py-2.5 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition flex items-center justify-center">

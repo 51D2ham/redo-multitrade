@@ -90,6 +90,7 @@
                       Edit
                     </a>
                     <form action="/admin/v1/content/parameter-posters/<%= poster._id %>" method="POST" class="inline">
+                      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                       <input type="hidden" name="_method" value="DELETE">
                       <button type="submit" class="px-4 py-2 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition-colors text-sm font-medium border border-red-200" onclick="return confirm('Delete this poster?')" title="Delete Poster">
                         Delete

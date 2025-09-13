@@ -36,6 +36,10 @@ module.exports = {
   },
 
   async showCarouselItem(req, res) {
+    if (!req.params.id.match(/^[0-9a-fA-F]{24}$/)) {
+      req.flash('error', 'Invalid item ID');
+      return res.redirect(req.baseUrl);
+    }
     const item = await HeroCarousel.findById(req.params.id).populate('admin', 'username email');
     if (!item) {
       req.flash('error', 'Item not found');
@@ -50,6 +54,10 @@ module.exports = {
   },
 
   async editCarouselItemForm(req, res) {
+    if (!req.params.id.match(/^[0-9a-fA-F]{24}$/)) {
+      req.flash('error', 'Invalid item ID');
+      return res.redirect(req.baseUrl);
+    }
     const item = await HeroCarousel.findById(req.params.id);
     if (!item) {
       req.flash('error', 'Item not found');
@@ -64,6 +72,10 @@ module.exports = {
   },
 
   async updateCarouselItem(req, res) {
+    if (!req.params.id.match(/^[0-9a-fA-F]{24}$/)) {
+      req.flash('error', 'Invalid item ID');
+      return res.redirect(req.baseUrl);
+    }
     const item = await HeroCarousel.findById(req.params.id);
     if (!item) {
       req.flash('error', 'Item not found');
@@ -81,6 +93,10 @@ module.exports = {
   },
 
   async deleteCarouselItem(req, res) {
+    if (!req.params.id.match(/^[0-9a-fA-F]{24}$/)) {
+      req.flash('error', 'Invalid item ID');
+      return res.redirect(req.baseUrl);
+    }
     const item = await HeroCarousel.findById(req.params.id);
     if (!item) {
       req.flash('error', 'Item not found');

@@ -36,6 +36,10 @@ module.exports = {
   },
 
   async showAdsPanel(req, res) {
+    if (!req.params.id.match(/^[0-9a-fA-F]{24}$/)) {
+      req.flash('error', 'Invalid ads panel ID');
+      return res.redirect(req.baseUrl);
+    }
     const item = await AdsPanel.findById(req.params.id).populate('admin', 'username email');
     if (!item) {
       req.flash('error', 'Ads panel not found');
@@ -50,6 +54,10 @@ module.exports = {
   },
 
   async editAdsPanelForm(req, res) {
+    if (!req.params.id.match(/^[0-9a-fA-F]{24}$/)) {
+      req.flash('error', 'Invalid ads panel ID');
+      return res.redirect(req.baseUrl);
+    }
     const item = await AdsPanel.findById(req.params.id);
     if (!item) {
       req.flash('error', 'Ads panel not found');
@@ -64,6 +72,10 @@ module.exports = {
   },
 
   async updateAdsPanel(req, res) {
+    if (!req.params.id.match(/^[0-9a-fA-F]{24}$/)) {
+      req.flash('error', 'Invalid ads panel ID');
+      return res.redirect(req.baseUrl);
+    }
     const item = await AdsPanel.findById(req.params.id);
     if (!item) {
       req.flash('error', 'Ads panel not found');
@@ -81,6 +93,10 @@ module.exports = {
   },
 
   async deleteAdsPanel(req, res) {
+    if (!req.params.id.match(/^[0-9a-fA-F]{24}$/)) {
+      req.flash('error', 'Invalid ads panel ID');
+      return res.redirect(req.baseUrl);
+    }
     const item = await AdsPanel.findById(req.params.id);
     if (!item) {
       req.flash('error', 'Ads panel not found');

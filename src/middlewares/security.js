@@ -18,7 +18,8 @@ const csrfProtection = (req, res, next) => {
   const sessionToken = req.session.csrfToken;
 
   if (!token || !sessionToken || token !== sessionToken) {
-    return res.status(403).json({ error: 'Invalid CSRF token' });
+    req.flash('error', 'Security token mismatch. Please try again.');
+    return res.redirect('back');
   }
 
   next();
@@ -37,8 +38,13 @@ const generateCSRFToken = (req, res, next) => {
   next();
 };
 
-// Input sanitization middleware
+// Input sanitization middleware - Skip admin and API routes
 const sanitizeInput = (req, res, next) => {
+  // Skip sanitization for API routes and admin routes
+  if (req.path.startsWith('/api/') || req.path.startsWith('/admin/')) {
+    return next();
+  }
+
   const sanitizeValue = (value) => {
     if (typeof value === 'string') {
       return validator.escape(value.trim());

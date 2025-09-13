@@ -5,7 +5,7 @@ const adminController = require('../../../controllers/adminRegister');
 const authMiddleware = require('../../../middlewares/auth');
 const upload = require('../../../middlewares/profilePhoto');
 const rbac = require('../../../middlewares/roleAccess');
-const { csrfProtection } = require('../../../middlewares/security');
+const { csrfProtection, generateCSRFToken } = require('../../../middlewares/security');
 
 // Multer error handling middleware
 const handleMulterError = (err, req, res, next) => {
@@ -18,12 +18,13 @@ const handleMulterError = (err, req, res, next) => {
 };
 
 // Authentication Routes
-router.get('/register', authMiddleware, rbac('developer', 'superAdmin'), (req, res) => {
+router.get('/register', authMiddleware, rbac('developer', 'superAdmin'), generateCSRFToken, (req, res) => {
   console.log('Register GET route accessed by:', req.session.admin);
   res.render('admin/register', {
     error: req.flash('error'),
     success: req.flash('success'),
-    old: {}
+    old: {},
+    csrfToken: res.locals.csrfToken
   });
 });
 router.post('/register', upload.single('photo'), handleMulterError, csrfProtection, authMiddleware, rbac('developer', 'superAdmin'), adminController.registerAdmin);
@@ -71,7 +72,7 @@ router.post('/reset-password', csrfProtection, adminController.resetPasswordRend
 // Admin Management Routes
 router.get('/', authMiddleware, adminController.getAllAdminsRender);
 router.get('/:id/profile', authMiddleware, adminController.getAdminProfileRender);
-router.get('/:id/edit', authMiddleware,rbac('developer', 'superAdmin'), adminController.showEditAdminRender);
+router.get('/:id/edit', authMiddleware,rbac('developer', 'superAdmin'), generateCSRFToken, adminController.showEditAdminRender);
 router.post('/:id/update', authMiddleware,rbac('developer', 'superAdmin'), upload.single('photo'), handleMulterError, csrfProtection, adminController.updateAdminRender);
 router.post('/:id/delete', authMiddleware,rbac('developer', 'superAdmin'), csrfProtection, adminController.deleteAdminRender);
 

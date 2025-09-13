@@ -385,18 +385,26 @@ exports.updateCartItem = async (req, res) => {
     }
 
     cartItem.qty = parsedQty;
+    cartItem.totalPrice = parsedQty * cartItem.productPrice;
     await cartItem.save();
 
-    const cartItems = await Cart.getUserCart(req.userInfo.userId);
-    const cartTotal = await Cart.getCartTotal(req.userInfo.userId);
+    const cartItems = await Cart.find({ user: req.userInfo.userId })
+      .populate({
+        path: 'product',
+        select: 'title price thumbnail images slug variants status',
+        populate: { path: 'category', select: 'name' }
+      });
+    
+    const totalPrice = cartItems.reduce((sum, item) => sum + item.totalPrice, 0);
+    const totalItems = cartItems.reduce((sum, item) => sum + item.qty, 0);
 
     res.status(StatusCodes.OK).json({
       success: true,
       message: 'Cart item updated',
       data: {
         items: cartItems.map(formatCartItem),
-        totalPrice: cartTotal.total,
-        totalItems: cartTotal.count
+        totalPrice,
+        totalItems
       }
     });
   } catch (error) {

@@ -156,7 +156,7 @@ class NotificationService {
           <p>Welcome to Multitrade! Please verify your email address to complete your registration.</p>
           <div class="otp-box">
             <div class="otp-code">${data.otp || 'XXXXXX'}</div>
-            <p style="color: #64748b; margin: 0;">This code expires in 5 minutes</p>
+            <p style="color: #64748b; margin: 0;">This code expires in 10 minutes</p>
           </div>
           <p>Enter this code in the verification form to activate your account.</p>
           <p>If you didn't create an account, please ignore this email.</p>
@@ -170,7 +170,7 @@ class NotificationService {
           <p>We received a request to reset your password. Use the code below:</p>
           <div class="otp-box">
             <div class="otp-code">${data.otp || 'XXXXXX'}</div>
-            <p style="color: #64748b; margin: 0;">This code expires in 5 minutes</p>
+            <p style="color: #64748b; margin: 0;">This code expires in 10 minutes</p>
           </div>
           <p>If you didn't request this, please ignore this email or contact support.</p>
         `
@@ -183,7 +183,7 @@ class NotificationService {
           <p>A password reset was requested for your admin account.</p>
           <div class="otp-box">
             <div class="otp-code">${data.otp || 'XXXXXX'}</div>
-            <p style="color: #64748b; margin: 0;">This code expires in 5 minutes</p>
+            <p style="color: #64748b; margin: 0;">This code expires in 10 minutes</p>
           </div>
           <p>If you didn't request this, please contact the system administrator immediately.</p>
         `

@@ -267,6 +267,7 @@ module.exports = {
           totalCategories: total
         },
         filters: filters || {},
+        csrfToken: res.locals.csrfToken,
         success: req.flash('success') || [],
         error: req.flash('error') || []
       });
@@ -279,6 +280,7 @@ module.exports = {
         categories: [],
         pagination: { current: 1, total: 1, hasNext: false, hasPrev: false, next: 1, prev: 1, totalCategories: 0 },
         filters: req.query || {},
+        csrfToken: res.locals.csrfToken,
         success: req.flash('success') || [],
         error: req.flash('error') || []
       });
@@ -293,6 +295,7 @@ module.exports = {
   newCategory: (req, res) => {
     res.render('categories/new', {
       title: 'Create New Category',
+      csrfToken: res.locals.csrfToken,
       success: req.flash('success'),
       error: req.flash('error')
     });
@@ -354,6 +357,7 @@ module.exports = {
         title: 'Category Details',
         category,
         subcategories: subCategories,
+        csrfToken: res.locals.csrfToken,
         success: req.flash('success'),
         error: req.flash('error')
       });
@@ -380,6 +384,7 @@ module.exports = {
       res.render('categories/edit', {
         title: 'Edit Category',
         category,
+        csrfToken: res.locals.csrfToken,
         success: req.flash('success'),
         error: req.flash('error')
       });
@@ -398,6 +403,11 @@ module.exports = {
     try {
       const { name, isActive, isFeatured } = req.body;
       
+      if (!name) {
+        req.flash('error', 'Category name is required');
+        return res.redirect(`/admin/v1/parameters/categories/${req.params.id}/edit`);
+      }
+      
       const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
       const updateData = {
@@ -408,12 +418,17 @@ module.exports = {
       };
 
       // Handle file uploads
-      if (req.files && req.files.icon) {
-        updateData.icon = req.files.icon[0].filename;
+      if (req.file) {
+        updateData.icon = req.file.filename;
       }
-
-      await Category.findByIdAndUpdate(req.params.id, updateData);
-
+      
+      const updatedCategory = await Category.findByIdAndUpdate(req.params.id, updateData, { new: true });
+      
+      if (!updatedCategory) {
+        req.flash('error', 'Category not found');
+        return res.redirect('/admin/v1/parameters/categories');
+      }
+      
       req.flash('success', 'Category updated successfully');
       res.redirect('/admin/v1/parameters/categories');
     } catch (error) {
@@ -434,7 +449,7 @@ module.exports = {
 
       try {
         const categoryId = req.params.id;
-        const adminId = req.user._id;
+        const adminId = req.user._id || req.session.admin.id;
 
         // Delete category and its dependencies
         await Category.deleteOne({ _id: categoryId }).session(session);
@@ -452,7 +467,7 @@ module.exports = {
       }
     } catch (error) {
       req.flash('error', 'Error deleting category: ' + error.message);
-      res.redirect(`/admin/v1/parameters/categories/${req.params.id}`);
+      res.redirect('/admin/v1/parameters/categories');
     }
   }
 };

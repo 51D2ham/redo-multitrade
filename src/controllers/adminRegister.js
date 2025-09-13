@@ -30,8 +30,12 @@ const registerAdmin = async (req, res) => {
           await fs.unlink(safePath);
         }
       }
-      req.flash('error', errors.join(', '));
-      return res.redirect('/admin/v1/staff/register');
+      return res.render('admin/register', {
+        error: errors,
+        success: [],
+        old: req.body,
+        csrfToken: res.locals.csrfToken
+      });
     }
 
     // Validate required fields
@@ -42,8 +46,12 @@ const registerAdmin = async (req, res) => {
           await fs.unlink(safePath);
         }
       }
-      req.flash('error', 'Please fill in all required fields');
-      return res.redirect('/admin/v1/staff/register');
+      return res.render('admin/register', {
+        error: ['Please fill in all required fields'],
+        success: [],
+        old: req.body,
+        csrfToken: res.locals.csrfToken
+      });
     }
 
     // Validate enum values
@@ -57,8 +65,12 @@ const registerAdmin = async (req, res) => {
           await fs.unlink(safePath);
         }
       }
-      req.flash('error', 'Invalid gender selected');
-      return res.redirect('/admin/v1/staff/register');
+      return res.render('admin/register', {
+        error: ['Invalid gender selected'],
+        success: [],
+        old: req.body,
+        csrfToken: res.locals.csrfToken
+      });
     }
     
     if (!validRoles.includes(role.toLowerCase())) {
@@ -68,8 +80,12 @@ const registerAdmin = async (req, res) => {
           await fs.unlink(safePath);
         }
       }
-      req.flash('error', 'Invalid role selected');
-      return res.redirect('/admin/v1/staff/register');
+      return res.render('admin/register', {
+        error: ['Invalid role selected'],
+        success: [],
+        old: req.body,
+        csrfToken: res.locals.csrfToken
+      });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -359,7 +375,10 @@ const showEditAdminRender = async (req, res) => {
     
     res.render('admin/edit', {
       admin,
-      photoFilename
+      photoFilename,
+      csrfToken: res.locals.csrfToken,
+      error: req.flash('error'),
+      success: req.flash('success')
     });
   } catch (error) {
     console.error(error);
@@ -377,13 +396,61 @@ const updateAdminRender = async (req, res) => {
     const admin = await Admin.findById(adminId);
     if (!admin) {
       if (req.file) {
-      const safePath = path.resolve(req.file.path);
-      if (safePath.startsWith(path.resolve('./src/uploads'))) {
-        await fs.unlink(safePath);
+        const safePath = path.resolve(req.file.path);
+        if (safePath.startsWith(path.resolve('./src/uploads'))) {
+          await fs.unlink(safePath);
+        }
       }
-    }
       req.flash('error', 'Admin not found');
       return res.redirect('/admin/v1/staff');
+    }
+
+    // Check for duplicates (excluding current admin)
+    const duplicateChecks = [];
+    if (updates.username && updates.username !== admin.username) {
+      duplicateChecks.push(Admin.findOne({ username: updates.username, _id: { $ne: adminId } }));
+    }
+    if (updates.email && updates.email !== admin.email) {
+      duplicateChecks.push(Admin.findOne({ email: updates.email, _id: { $ne: adminId } }));
+    }
+    if (updates.phone && updates.phone !== admin.phone) {
+      duplicateChecks.push(Admin.findOne({ phone: updates.phone, _id: { $ne: adminId } }));
+    }
+
+    if (duplicateChecks.length > 0) {
+      const duplicateResults = await Promise.all(duplicateChecks);
+      let errors = [];
+      
+      let checkIndex = 0;
+      if (updates.username && updates.username !== admin.username) {
+        if (duplicateResults[checkIndex]) errors.push('Username already exists');
+        checkIndex++;
+      }
+      if (updates.email && updates.email !== admin.email) {
+        if (duplicateResults[checkIndex]) errors.push('Email already exists');
+        checkIndex++;
+      }
+      if (updates.phone && updates.phone !== admin.phone) {
+        if (duplicateResults[checkIndex]) errors.push('Phone already exists');
+      }
+
+      if (errors.length > 0) {
+        if (req.file) {
+          const safePath = path.resolve(req.file.path);
+          if (safePath.startsWith(path.resolve('./src/uploads'))) {
+            await fs.unlink(safePath);
+          }
+        }
+        
+        const photoFilename = admin.profileImage ? path.basename(admin.profileImage) : null;
+        return res.render('admin/edit', {
+          admin: { ...admin, ...updates },
+          photoFilename,
+          csrfToken: res.locals.csrfToken,
+          error: errors,
+          success: []
+        });
+      }
     }
 
     // Handle profile image
@@ -430,14 +497,28 @@ const updateAdminRender = async (req, res) => {
     console.error('Update Admin Error:', error);
     
     // Handle validation errors
+    let errorMessages = [];
     if (error.name === 'ValidationError') {
-      const messages = Object.values(error.errors).map(err => err.message);
-      req.flash('error', messages.join(', '));
+      errorMessages = Object.values(error.errors).map(err => err.message);
+    } else if (error.code === 11000) {
+      // Handle duplicate key errors
+      const field = Object.keys(error.keyPattern)[0];
+      errorMessages = [`${field.charAt(0).toUpperCase() + field.slice(1)} already exists`];
     } else {
-      req.flash('error', 'Failed to update admin');
+      errorMessages = ['Failed to update admin'];
     }
     
-    res.redirect(`/admin/v1/staff/${req.params.id}/edit`);
+    // Get admin data for re-rendering
+    const admin = await Admin.findById(req.params.id).lean();
+    const photoFilename = admin.profileImage ? path.basename(admin.profileImage) : null;
+    
+    res.render('admin/edit', {
+      admin: { ...admin, ...updates }, // Merge original with attempted updates
+      photoFilename,
+      csrfToken: res.locals.csrfToken,
+      error: errorMessages,
+      success: []
+    });
   }
 };
 

@@ -32,6 +32,20 @@ const authMiddleware = async (req, res, next) => {
       });
     }
 
+    if (!user.isEmailVerified) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        success: false,
+        message: 'Please verify your email to access this feature.',
+      });
+    }
+
+    if (user.status !== 'active') {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        success: false,
+        message: 'Account is inactive. Please contact support.',
+      });
+    }
+
     req.userInfo = {
       userId: user._id,
       email: user.email,

@@ -100,7 +100,7 @@ const subCategoryController = {
         category,
         isActive: isActive === 'on' || isActive === true,
         isFeatured: isFeatured === 'on' || isFeatured === true,
-        admin: req.user._id
+        admin: req.user._id || req.session.admin.id
       };
 
 
@@ -170,6 +170,11 @@ const subCategoryController = {
     try {
       const { name, category, isActive, isFeatured } = req.body;
 
+      if (!name) {
+        req.flash('error', 'Subcategory name is required');
+        return res.redirect(`/admin/v1/parameters/subcategories/${req.params.id}/edit`);
+      }
+
       const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
       
       const updateData = {
@@ -179,11 +184,14 @@ const subCategoryController = {
         isActive: isActive === 'on' || isActive === true,
         isFeatured: isFeatured === 'on' || isFeatured === true
       };
-
-
       
-      await SubCategory.findByIdAndUpdate(req.params.id, updateData);
-
+      const updated = await SubCategory.findByIdAndUpdate(req.params.id, updateData, { new: true });
+      
+      if (!updated) {
+        req.flash('error', 'Subcategory not found');
+        return res.redirect('/admin/v1/parameters/subcategories');
+      }
+      
       req.flash('success', 'Subcategory updated successfully');
       res.redirect('/admin/v1/parameters/subcategories');
     } catch (error) {

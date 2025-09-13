@@ -1,62 +1,37 @@
 const express = require('express');
+const multer = require('multer');
 const {
   registerAndSendOTP,
   verifyOTPAndRegister,
-  sendRegistrationOTP,
-  checkRegistrationStatus,
   resendRegistrationOTP,
-  registerUser,
   loginUser,
   verifyToken,
   getCurrentUser,
-  updateUser,
-  deleteUser,
-  changePassword,
-  forgetPassword,
-  resetPassword,
   logoutUser,
+  updateProfile,
+  changePassword
 } = require('../../../controllers/customerRegister');
 
-const upload = require('../../../middlewares/profilePhoto');
 const authMiddleware = require('../../../middlewares/customerAuth');
-const { 
-  validateRegistrationOTP, 
-  validateRegistration, 
-  handleValidationErrors 
-} = require('../../../middlewares/registrationValidation');
-const { sanitizeInput, createRateLimit } = require('../../../middlewares/security');
+const upload = require('../../../middlewares/profilePhoto');
 
 const router = express.Router();
 
-// Apply security middleware
-router.use(sanitizeInput);
-router.use(createRateLimit(15 * 60 * 1000, 50)); // 50 requests per 15 minutes
+// Registration flow
+router.post('/register', multer().none(), registerAndSendOTP);
+router.post('/verify-otp', multer().none(), verifyOTPAndRegister);
+router.post('/resend-otp', multer().none(), resendRegistrationOTP);
 
-// Token verification and user info
+// Authentication
+router.post('/login', loginUser);
+router.post('/logout', authMiddleware, logoutUser);
+
+// Protected routes
 router.get('/verify-token', authMiddleware, verifyToken);
 router.get('/me', authMiddleware, getCurrentUser);
+router.put('/profile', authMiddleware, upload.single('profileImage'), updateProfile);
+router.put('/change-password', authMiddleware, multer().none(), changePassword);
 
-// Protected API routes
-router.put('/users/:id', authMiddleware, upload.single('profileImage'), updateUser);
-router.put('/change-password', authMiddleware, changePassword);
-router.delete('/users/:id', authMiddleware, deleteUser);
 
-// Simple 2-step registration
-router.post('/register', upload.single('profileImage'), registerAndSendOTP);
-router.post('/verify-otp', verifyOTPAndRegister);
-
-// Advanced OTP-based registration flow
-router.post('/send-registration-otp', validateRegistrationOTP, handleValidationErrors, sendRegistrationOTP);
-router.get('/registration-status', checkRegistrationStatus);
-router.post('/resend-registration-otp', resendRegistrationOTP);
-router.post('/register-with-otp', upload.single('profileImage'), validateRegistration, handleValidationErrors, registerUser);
-
-// Auth & password reset (no auth)
-router.post('/login', loginUser);
-router.post('/forgot-password', forgetPassword);
-router.post('/reset-password', resetPassword);
-
-// Logout route
-router.post('/logout',authMiddleware, logoutUser);
 
 module.exports = router;

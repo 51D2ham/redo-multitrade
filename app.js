@@ -28,7 +28,7 @@ app.use(createRateLimit());
 
 // CORS & Express setup
 app.use(cors({
-  origin: '*',
+  origin: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
   credentials: true,
@@ -65,9 +65,9 @@ app.use(session({
     touchAfter: 24 * 3600
   }),
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: false,
     httpOnly: true,
-    sameSite: 'strict',
+    sameSite: 'lax',
     maxAge: 24 * 60 * 60 * 1000
   }
 }));
@@ -87,6 +87,8 @@ app.use((req, res, next) => {
   res.locals.currentPath = req.path;
   next();
 });
+
+
 
 // Request logging (only for errors and important routes)
 app.use((req, res, next) => {
@@ -177,6 +179,11 @@ app.get('/admin/dashboard', (req, res) => res.redirect('/admin/reports/comprehen
 app.get('/dashboard', (req, res) => res.redirect('/admin/reports/comprehensive'));
 app.get('/admin/v1/parameters', (req, res) => res.redirect('/admin/v1/staff/parameter-dashboard'));
 app.get('/', (req, res) => res.redirect('/admin/reports/comprehensive'));
+
+// Debug route (development only)
+if (process.env.NODE_ENV !== 'production') {
+  app.use('/debug', require('./src/routes/debug'));
+}
 
 // Reports 
 app.use('/admin', salesReport);

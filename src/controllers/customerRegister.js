@@ -1,794 +1,452 @@
 const User = require('../models/userRegisterModel');
 const bcrypt = require('bcrypt');
-const fs = require('fs');
 const jwt = require('jsonwebtoken');
-const sendMail = require('../config/mail');
-const path = require('path');
 const { StatusCodes } = require('http-status-codes');
-require('dotenv').config();
+const generateOtp = require('../utils/generateOtp');
+const NotificationService = require('../services/notificationService');
 
-// Step 1: Send Registration OTP
-const sendRegistrationOTP = async (req, res) => {
-  try {
-    const { username, email, phone } = req.body;
-
-    // Validate required fields
-    if (!username || !email || !phone) {
-      return res.status(StatusCodes.BAD_REQUEST).json({ 
-        success: false, 
-        message: 'Username, email, and phone are required' 
-      });
-    }
-
-    // Check if user already exists
-    const existingUsername = await User.findOne({ username });
-    const existingEmail = await User.findOne({ email });
-    const existingPhone = await User.findOne({ phone });
-
-    let errors = [];
-    if (existingUsername) errors.push('Username already registered');
-    if (existingEmail) errors.push('Email already registered');
-    if (existingPhone) errors.push('Phone already registered');
-
-    if (errors.length > 0) {
-      return res.status(StatusCodes.CONFLICT).json({ success: false, message: errors.join(', ') });
-    }
-
-    // Generate OTP
-    const otpCode = generateOtp();
-    const expiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
-
-    // Store OTP temporarily (you might want to use Redis for this in production)
-    // For now, we'll store it in a temporary collection or session
-    req.session.registrationData = {
-      username,
-      email,
-      phone,
-      otp: otpCode,
-      otpExpires: expiry
+// Rate limiting helper
+const checkOTPRateLimit = async (email) => {
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+  
+  // Count OTP requests in last hour
+  const otpCount = await User.countDocuments({
+    email,
+    otpRequestedAt: { $gte: oneHourAgo }
+  });
+  
+  if (otpCount >= 3) {
+    return {
+      allowed: false,
+      message: 'Too many OTP requests. Please try again after 1 hour.'
     };
-
-    // Send OTP email
-    const NotificationService = require('../services/notificationService');
-    const emailResult = await NotificationService.sendEmailVerification(email, username, otpCode);
-    
-    if (!emailResult.success) {
-      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ 
-        success: false, 
-        message: 'Failed to send verification email. Please try again.' 
-      });
-    }
-
-    return res.status(StatusCodes.OK).json({ 
-      success: true, 
-      message: 'Verification code sent to your email. Please check your inbox.',
-      email: email.replace(/(.{2})(.*)(@.*)/, '$1***$3') // Mask email for security
-    });
-  } catch (error) {
-    console.error('Send registration OTP error:', error.message);
-    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ 
-      success: false, 
-      message: 'Server error. Please try again later.' 
-    });
   }
+  
+  return { allowed: true };
 };
 
-// Check Registration Session Status
-const checkRegistrationStatus = async (req, res) => {
-  try {
-    const registrationData = req.session.registrationData;
-    
-    if (!registrationData) {
-      return res.status(StatusCodes.OK).json({ 
-        success: true, 
-        hasActiveSession: false,
-        message: 'No active registration session found.' 
-      });
-    }
-
-    const now = new Date();
-    const isOTPExpired = !registrationData.otpExpires || registrationData.otpExpires < now;
-
-    return res.status(StatusCodes.OK).json({ 
-      success: true, 
-      hasActiveSession: true,
-      isOTPExpired,
-      email: registrationData.email.replace(/(.{2})(.*)(@.*)/, '$1***$3'),
-      username: registrationData.username,
-      expiresAt: registrationData.otpExpires
-    });
-  } catch (error) {
-    console.error('Check registration status error:', error);
-    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ 
-      success: false, 
-      message: 'Server error. Please try again later.' 
-    });
-  }
-};
-
-// Resend Registration OTP
-const resendRegistrationOTP = async (req, res) => {
-  try {
-    const registrationData = req.session.registrationData;
-    if (!registrationData) {
-      return res.status(StatusCodes.BAD_REQUEST).json({ 
-        success: false, 
-        message: 'No active registration session found. Please start registration again.' 
-      });
-    }
-
-    // Generate new OTP
-    const otpCode = generateOtp();
-    const expiry = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
-
-    // Update session with new OTP
-    req.session.registrationData.otp = otpCode;
-    req.session.registrationData.otpExpires = expiry;
-
-    // Send new OTP email
-    const NotificationService = require('../services/notificationService');
-    const emailResult = await NotificationService.sendEmailVerification(
-      registrationData.email, 
-      registrationData.username, 
-      otpCode
-    );
-    
-    if (!emailResult.success) {
-      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ 
-        success: false, 
-        message: 'Failed to resend verification email. Please try again.' 
-      });
-    }
-
-    return res.status(StatusCodes.OK).json({ 
-      success: true, 
-      message: 'New verification code sent to your email.',
-      email: registrationData.email.replace(/(.{2})(.*)(@.*)/, '$1***$3')
-    });
-  } catch (error) {
-    console.error('Resend registration OTP error:', error);
-    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ 
-      success: false, 
-      message: 'Server error. Please try again later.' 
-    });
-  }
-};
-
-// Step 1: Register and Send OTP (all data at once)
+// Register and Send OTP
 const registerAndSendOTP = async (req, res) => {
   try {
-    const { username, email, phone, fullname } = req.body;
-
-    // Check if user already exists
-    const existingUsername = await User.findOne({ username });
-    const existingEmail = await User.findOne({ email });
-    const existingPhone = await User.findOne({ phone });
-
-    let errors = [];
-    if (existingUsername) errors.push('Username already registered');
-    if (existingEmail) errors.push('Email already registered');
-    if (existingPhone) errors.push('Phone already registered');
-
-    if (errors.length > 0) {
-      if (req.file) fs.unlink(req.file.path, () => {});
-      return res.status(StatusCodes.CONFLICT).json({ success: false, message: errors.join(', ') });
-    }
-
-    // Generate OTP
-    const otpCode = generateOtp();
-    const expiry = new Date(Date.now() + 5 * 60 * 1000);
-
-    // Store specific registration data in session
-    req.session.registrationData = {
-      username,
-      email, 
-      phone,
-      fullname,
-      password: req.body.password,
-      gender: req.body.gender,
-      dob: req.body.dob,
-      permanentAddress: req.body.permanentAddress,
-      tempAddress: req.body.tempAddress,
-      otp: otpCode,
-      otpExpires: expiry,
-      ...(req.file && { profileImagePath: req.file.path, profileImageFilename: req.file.filename })
-    };
-
-    // Send OTP email
-    const NotificationService = require('../services/notificationService');
-    const emailResult = await NotificationService.sendEmailVerification(email, fullname, otpCode);
+    const { email, password, fullname } = req.body;
     
-    if (!emailResult.success) {
-      if (req.file) fs.unlink(req.file.path, () => {});
-      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ 
-        success: false, 
-        message: 'Failed to send verification email. Please try again.' 
-      });
-    }
-
-    return res.status(StatusCodes.OK).json({ 
-      success: true, 
-      message: `OTP sent to ${email}. Please verify to complete registration.`,
-      email: email.replace(/(.{2})(.*)(@.*)/, '$1***$3')
-    });
-  } catch (error) {
-    if (req.file) fs.unlink(req.file.path, () => {});
-    console.error('Register and send OTP error:', error);
-    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ 
-      success: false, 
-      message: 'Server error. Please try again later.' 
-    });
-  }
-};
-
-// Step 2: Verify OTP and Complete Registration
-const verifyOTPAndRegister = async (req, res) => {
-  try {
-    const { otp } = req.body;
-
-    // Get registration data from session
-    const registrationData = req.session.registrationData;
-    if (!registrationData) {
+    if (!email || !password || !fullname) {
       return res.status(StatusCodes.BAD_REQUEST).json({ 
         success: false, 
-        message: 'Registration session expired. Please start registration again.' 
+        message: 'Email, password, and fullname are required' 
       });
     }
 
-    // Verify OTP
-    const now = new Date();
-    if (!otp || registrationData.otp !== otp || registrationData.otpExpires < now) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return res.status(StatusCodes.BAD_REQUEST).json({ 
         success: false, 
-        message: 'Invalid or expired verification code.' 
+        message: 'Invalid email format' 
       });
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(registrationData.password, 10);
-
-    // Create user with all stored data
-    const userData = {
-      username: registrationData.username,
-      email: registrationData.email,
-      phone: registrationData.phone,
-      fullname: registrationData.fullname,
-      password: hashedPassword,
-      gender: registrationData.gender,
-      dob: new Date(registrationData.dob),
-      permanentAddress: registrationData.permanentAddress,
-      tempAddress: registrationData.tempAddress,
-      isEmailVerified: true,
-      ...(registrationData.profileImageFilename && { profileImage: registrationData.profileImageFilename }),
-    };
-
-    const newUser = new User(userData);
-    await newUser.save();
-
-    // Clear session
-    delete req.session.registrationData;
-
-    // Send welcome email
-    try {
-      const NotificationService = require('../services/notificationService');
-      await NotificationService.sendWelcomeEmail(newUser.email, newUser.fullname);
-    } catch (emailError) {
-      console.error('Welcome email failed:', emailError);
-    }
-
-    return res.status(StatusCodes.CREATED).json({ 
-      success: true, 
-      message: 'Registration completed successfully! Welcome to Multitrade!' 
-    });
-  } catch (error) {
-    console.error('Verify OTP error:', error);
-    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ 
-      success: false, 
-      message: 'Server error. Please try again later.' 
-    });
-  }
-};
-
-// Step 2: Verify OTP and Complete Registration (old method)
-const registerUser = async (req, res) => {
-  try {
-    const {
-      otp,
-      fullname,
-      password,
-      gender,
-      dob,
-      permanentAddress,
-      tempAddress,
-    } = req.body;
-
-    // Get registration data from session
-    const registrationData = req.session.registrationData;
-    if (!registrationData) {
-      if (req.file) fs.unlink(req.file.path, () => {});
+    if (password.length < 8) {
       return res.status(StatusCodes.BAD_REQUEST).json({ 
         success: false, 
-        message: 'Registration session expired. Please start registration again.' 
+        message: 'Password must be at least 8 characters' 
       });
     }
 
-    // Verify OTP
-    const now = new Date();
-    if (!otp || registrationData.otp !== otp || registrationData.otpExpires < now) {
-      if (req.file) fs.unlink(req.file.path, () => {});
-      return res.status(StatusCodes.BAD_REQUEST).json({ 
+    const existingUser = await User.findOne({ email, isEmailVerified: true });
+    if (existingUser) {
+      return res.status(StatusCodes.CONFLICT).json({ 
         success: false, 
-        message: 'Invalid or expired verification code.' 
+        message: 'Email already registered' 
       });
     }
 
-    // Double-check if user still doesn't exist (race condition protection)
-    const existingUsername = await User.findOne({ username: registrationData.username });
-    const existingEmail = await User.findOne({ email: registrationData.email });
-    const existingPhone = await User.findOne({ phone: registrationData.phone });
-
-    let errors = [];
-    if (existingUsername) errors.push('Username already registered');
-    if (existingEmail) errors.push('Email already registered');
-    if (existingPhone) errors.push('Phone already registered');
-
-    if (errors.length > 0) {
-      if (req.file) fs.unlink(req.file.path, () => {});
-      return res.status(StatusCodes.CONFLICT).json({ success: false, message: errors.join(', ') });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const userData = {
-      username: registrationData.username,
-      email: registrationData.email,
-      phone: registrationData.phone,
-      fullname,
-      password: hashedPassword,
-      gender,
-      dob: new Date(dob),
-      permanentAddress,
-      tempAddress,
-      isEmailVerified: true, // Email is verified through OTP
-      ...(req.file && { profileImage: req.file.filename }),
-    };
-
-    const newUser = new User(userData);
-    await newUser.save();
-
-    // Clear registration session data
-    delete req.session.registrationData;
-
-    // Send welcome email
-    try {
-      const NotificationService = require('../services/notificationService');
-      await NotificationService.sendWelcomeEmail(newUser.email, newUser.fullname);
-    } catch (emailError) {
-      console.error('Welcome email failed:', emailError);
-      // Don't fail registration if welcome email fails
-    }
-
-    return res.status(StatusCodes.CREATED).json({ 
-      success: true, 
-      message: 'Registration completed successfully! Welcome to Multitrade!' 
-    });
-  } catch (error) {
-    if (req.file) fs.unlink(req.file.path, () => {});
-    console.error('Registration error:', error);
-    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ 
-      success: false, 
-      message: 'Server error. Please try again later.' 
-    });
-  }
-};
-
-// Login User
-const loginUser = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(404).json({ success: false, message: "User doesn't exist" });
-    }
-
-    const isPasswordMatch = await bcrypt.compare(password, user.password);
-    if (!isPasswordMatch) {
-      return res.status(401).json({ success: false, message: 'Invalid Password' });
-    }
-
-    const accessToken = jwt.sign(
-      { userId: user._id, email: user.email, fullName: user.fullname, photo: user.profileImage, tokenVersion: user.tokenVersion },
-      process.env.JWT_SECRET_KEY,
-      { expiresIn: '5d' }
-    );
-
-    res.status(200).json({ success: true, message: 'Logged in successfully', accessToken });
-  } catch (error) {
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ success: false, message: 'Server error. Please try again later.' });
-  }
-};
-
-// OTP Generation
-const generateOtp = (length = 6) => {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-};
-
-// Forgot Password
-const forgetPassword = async (req, res) => {
-  try {
-    const { email } = req.body;
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(StatusCodes.NOT_FOUND).json({ success: false, message: "User not found. Please register." });
-    }
-
-    const otpCode = generateOtp();
-    const expiry = new Date(Date.now() + 5 * 60 * 1000);
-    user.resOTP = otpCode;
-    user.OTP_Expires = expiry;
-    await user.save();
-
-    const NotificationService = require('../services/notificationService');
-    await NotificationService.sendPasswordResetEmail(email, user.fullname, otpCode);
-    res.status(StatusCodes.OK).json({ success: true, message: "Password reset OTP sent to email." });
-  } catch (error) {
-    console.error('Mail error:', error);
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ success: false, message: 'Failed to send OTP email.' });
-  }
-};
-
-// Reset Password
-const resetPassword = async (req, res) => {
-  try {
-    const { email, otpCode, newPassword } = req.body;
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(StatusCodes.NOT_FOUND).json({ success: false, message: "User not found. Please register." });
-    }
-
-    const now = new Date();
-    if (!user.resOTP || !user.OTP_Expires || user.resOTP !== otpCode || user.OTP_Expires < now) {
-      return res.status(StatusCodes.BAD_REQUEST).json({ success: false, message: "Invalid or expired OTP." });
-    }
-
-    user.password = await bcrypt.hash(newPassword, 10);
-    user.resOTP = undefined;
-    user.OTP_Expires = undefined;
-    await user.save({ validateBeforeSave: false });
-
-    res.status(StatusCodes.OK).json({ success: true, message: "Password reset successfully!" });
-  } catch (error) {
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ success: false, message: 'Server error. Please try again later.' });
-  }
-};
-
-// Update User
-const updateUser = async (req, res) => {
-  try {
-    const userId = req.params.id;
-    const updates = { ...req.body };
-
-    if (req.file) {
-      const user = await User.findById(userId);
-      if (user.profileImage && /^[a-zA-Z0-9._-]+$/.test(user.profileImage)) {
-        const oldImagePath = path.join(__dirname, '../uploads', user.profileImage);
-        if (fs.existsSync(oldImagePath)) {
-          fs.unlinkSync(oldImagePath);
-        }
-      }
-      updates.profileImage = req.file.filename;
-    }
-
-    const updatedUser = await User.findByIdAndUpdate(userId, updates, { new: true });
-    res.status(200).json({ success: true, message: 'User updated successfully', user: updatedUser });
-  } catch (error) {
-    if (req.file) fs.unlink(req.file.path, () => {});
-    console.error(error);
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ success: false, message: 'Server error. Please try again later.' });
-  }
-};
-
-// Delete User
-const deleteUser = async (req, res) => {
-  try {
-    const userId = req.params.id;
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
-    }
-
-    if (user.profileImage && /^[a-zA-Z0-9._-]+$/.test(user.profileImage)) {
-      const imagePath = path.join(__dirname, '../uploads', user.profileImage);
-      if (fs.existsSync(imagePath)) {
-        fs.unlink(imagePath, err => {
-          if (err) console.error('Error deleting photo:', err.message);
+    // Check for existing unverified user
+    const existingUnverified = await User.findOne({ email, isEmailVerified: false });
+    if (existingUnverified) {
+      // Check if OTP is still valid
+      if (existingUnverified.OTP_Expires && new Date() < existingUnverified.OTP_Expires) {
+        return res.status(StatusCodes.OK).json({
+          success: true,
+          action: 'verify_existing',
+          message: 'Account exists. Please check your email for OTP or use resend option.',
+          canResend: false
+        });
+      } else {
+        // OTP expired, allow resend
+        return res.status(StatusCodes.OK).json({
+          success: true,
+          action: 'resend_required',
+          message: 'Account exists but OTP expired. Please use resend OTP.',
+          canResend: true
         });
       }
     }
 
-    await User.findByIdAndDelete(userId);
-    res.status(200).json({ success: true, message: 'User deleted successfully' });
+    // Rate limiting check for new registrations only
+    const rateLimitCheck = await checkOTPRateLimit(email);
+    if (!rateLimitCheck.allowed) {
+      return res.status(StatusCodes.TOO_MANY_REQUESTS).json({
+        success: false,
+        message: rateLimitCheck.message
+      });
+    }
+
+    // Clean up expired unverified users (older than 1 hour)
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    await User.deleteMany({ 
+      email, 
+      isEmailVerified: false,
+      createdAt: { $lt: oneHourAgo }
+    });
+
+    const otp = generateOtp();
+    const hashedPassword = await bcrypt.hash(password, 12);
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
+
+    const newUser = new User({
+      email,
+      password: hashedPassword,
+      fullname: fullname.trim(),
+      isEmailVerified: false,
+      resOTP: otp,
+      OTP_Expires: otpExpires,
+      status: 'inactive',
+      otpRequestedAt: new Date()
+    });
+
+    await newUser.save();
+    await NotificationService.sendEmailVerification(email, fullname, otp);
+
+    return res.status(StatusCodes.OK).json({ 
+      success: true,
+      action: 'new_registration',
+      message: 'OTP sent to your email. Valid for 10 minutes.',
+      canResend: true
+    });
+
   } catch (error) {
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ success: false, message: 'Server error. Please try again later.' });
+    console.error('Registration error:', error.message);
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ 
+      success: false, 
+      message: 'Registration failed' 
+    });
+  }
+};
+
+// Verify OTP and Complete Registration
+const verifyOTPAndRegister = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    
+    if (!email || !otp) {
+      return res.status(StatusCodes.BAD_REQUEST).json({ 
+        success: false, 
+        message: 'Email and OTP required' 
+      });
+    }
+
+    const user = await User.findOne({ email, isEmailVerified: false });
+    if (!user) {
+      return res.status(StatusCodes.NOT_FOUND).json({ 
+        success: false, 
+        message: 'Registration session expired. Please register again.' 
+      });
+    }
+
+    if (new Date() > user.OTP_Expires) {
+      await User.deleteOne({ email, isEmailVerified: false });
+      return res.status(StatusCodes.BAD_REQUEST).json({ 
+        success: false, 
+        message: 'OTP expired. Please register again.' 
+      });
+    }
+
+    if (!user.resOTP || user.resOTP.toLowerCase() !== otp.toString().trim().toLowerCase()) {
+      return res.status(StatusCodes.BAD_REQUEST).json({ 
+        success: false, 
+        message: 'Invalid OTP'
+      });
+    }
+
+    user.isEmailVerified = true;
+    user.status = 'active';
+    user.resOTP = undefined;
+    user.OTP_Expires = undefined;
+    await user.save();
+
+    try {
+      await NotificationService.sendWelcomeEmail(user.email, user.fullname);
+    } catch (emailError) {
+      console.error('Welcome email failed:', emailError);
+    }
+
+    return res.status(StatusCodes.OK).json({ 
+      success: true, 
+      message: 'Registration completed successfully!',
+      user: {
+        id: user._id,
+        email: user.email,
+        fullname: user.fullname
+      }
+    });
+
+  } catch (error) {
+    console.error('OTP verification error:', error.message);
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ 
+      success: false, 
+      message: 'Server error. Please try again later.'
+    });
+  }
+};
+
+// Resend OTP
+const resendRegistrationOTP = async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: 'Email required'
+      });
+    }
+
+    // Rate limiting check
+    const rateLimitCheck = await checkOTPRateLimit(email);
+    if (!rateLimitCheck.allowed) {
+      return res.status(StatusCodes.TOO_MANY_REQUESTS).json({
+        success: false,
+        message: rateLimitCheck.message
+      });
+    }
+
+    const user = await User.findOne({ email, isEmailVerified: false });
+    if (!user) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        success: false,
+        message: 'User not found or already verified'
+      });
+    }
+
+    const otp = generateOtp();
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
+
+    user.resOTP = otp;
+    user.OTP_Expires = otpExpires;
+    user.otpRequestedAt = new Date();
+    await user.save();
+
+    await NotificationService.sendEmailVerification(email, user.fullname, otp);
+
+    return res.status(StatusCodes.OK).json({
+      success: true,
+      message: 'New OTP sent'
+    });
+
+  } catch (error) {
+    console.error('Resend OTP error:', error);
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ 
+      success: false, 
+      message: 'Failed to resend OTP' 
+    });
+  }
+};
+
+// Login
+const loginUser = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    if (!email || !password) {
+      return res.status(StatusCodes.BAD_REQUEST).json({ 
+        success: false, 
+        message: 'Email and password required' 
+      });
+    }
+
+    const user = await User.findOne({ 
+      email, 
+      isEmailVerified: true,
+      status: 'active'
+    });
+
+    if (!user || !await bcrypt.compare(password, user.password)) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({ 
+        success: false, 
+        message: 'Invalid credentials' 
+      });
+    }
+
+    const token = jwt.sign(
+      { 
+        userId: user._id, 
+        email: user.email,
+        tokenVersion: user.tokenVersion || 0
+      },
+      process.env.JWT_SECRET_KEY,
+      { expiresIn: '7d' }
+    );
+
+    return res.status(StatusCodes.OK).json({ 
+      success: true, 
+      message: 'Login successful',
+      token,
+      user: {
+        id: user._id,
+        email: user.email,
+        fullname: user.fullname
+      }
+    });
+
+  } catch (error) {
+    console.error('Login error:', error);
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ 
+      success: false, 
+      message: 'Login failed' 
+    });
+  }
+};
+
+// Verify Token
+const verifyToken = async (req, res) => {
+  return res.status(StatusCodes.OK).json({
+    success: true,
+    message: 'Token is valid',
+    user: {
+      id: req.userInfo.userId,
+      email: req.userInfo.email
+    }
+  });
+};
+
+// Get Current User
+const getCurrentUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.userInfo.userId).select('-password -resOTP -OTP_Expires');
+    
+    if (!user) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    return res.status(StatusCodes.OK).json({
+      success: true,
+      user
+    });
+
+  } catch (error) {
+    console.error('Get user error:', error);
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ 
+      success: false, 
+      message: 'Failed to get user' 
+    });
+  }
+};
+
+// Logout
+const logoutUser = async (req, res) => {
+  try {
+    await User.findByIdAndUpdate(
+      req.userInfo.userId,
+      { $inc: { tokenVersion: 1 } }
+    );
+
+    return res.status(StatusCodes.OK).json({
+      success: true,
+      message: 'Logged out successfully'
+    });
+
+  } catch (error) {
+    console.error('Logout error:', error);
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ 
+      success: false, 
+      message: 'Logout failed' 
+    });
+  }
+};
+
+// Update Profile
+const updateProfile = async (req, res) => {
+  try {
+    const { fullname, phone, gender, dob } = req.body;
+    const userId = req.userInfo.userId;
+
+    const updateData = {};
+    if (fullname) updateData.fullname = fullname;
+    if (phone) updateData.phone = phone;
+    if (gender) updateData.gender = gender;
+    if (dob) updateData.dob = new Date(dob);
+    if (req.file) updateData.profileImage = req.file.filename;
+    if (req.file) updateData.profileImage = req.file.filename;
+
+    const user = await User.findByIdAndUpdate(userId, updateData, { new: true })
+      .select('-password -resOTP -OTP_Expires -tokenVersion');
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: 'Profile updated successfully',
+      user
+    });
+  } catch (error) {
+    console.error('Profile update error:', error.message);
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: 'Profile update failed'
+    });
   }
 };
 
 // Change Password
 const changePassword = async (req, res) => {
   try {
-    const userId = req.userInfo.userId;
-    const { oldPassword, newPassword } = req.body;
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(400).json({ success: false, message: 'User not found' });
-    }
-
-    const isPasswordMatch = await bcrypt.compare(oldPassword, user.password);
-    if (!isPasswordMatch) {
-      return res.status(400).json({ success: false, message: 'Old password is incorrect' });
-    }
-
-    user.password = await bcrypt.hash(newPassword, 10);
-    await user.save();
-
-    // Send password changed notification
-    try {
-      const NotificationService = require('../services/notificationService');
-      await NotificationService.sendPasswordChangedEmail(user.email, user.fullname);
-    } catch (emailError) {
-      console.error('Password change email failed:', emailError);
-    }
-
-    res.status(200).json({ success: true, message: 'Password changed successfully!' });
-  } catch (error) {
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ success: false, message: 'Server error. Please try again later.' });
-  }
-};
-
-// EJS Rendering Functions
-const getAllUsersRender = async (req, res) => {
-  try {
-    let { search, sortBy, sortOrder, page, limit } = req.query;
-    page = parseInt(page) || 1;
-    limit = parseInt(limit) || 10;
-    sortOrder = sortOrder === 'desc' ? -1 : 1;
-
-    const query = {};
-    if (search) {
-      query.$or = [
-        { username: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } },
-      ];
-    }
-
-    const sortCriteria = {};
-    if (sortBy) sortCriteria[sortBy] = sortOrder;
-
-    const users = await User.find(query)
-      .sort(sortCriteria)
-      .skip((page - 1) * limit)
-      .limit(limit);
-    const totalUsers = await User.countDocuments(query);
-
-    const pagination = {
-      currentPage: page,
-      totalPages: Math.ceil(totalUsers / limit),
-      total: totalUsers,
-      hasPrev: page > 1,
-      hasNext: page < Math.ceil(totalUsers / limit),
-    };
-
-    res.render('customer/index', {
-      users,
-      pagination,
-      filters: { search, sortBy, sortOrder },
-      success: req.flash('success'),
-      error: req.flash('error')
-    });
-  } catch (error) {
-    console.error(error);
-    res.render('error', { message: 'Failed to load users.', error });
-  }
-};
-
-const getUserProfileRender = async (req, res) => {
-  try {
-    const user = await User.findById(req.params.id).lean();
-    if (!user) {
-      return res.render('error', { message: 'User not found', error: {} });
-    }
-
-    const permanentAddress = user.permanentAddress || '';
-    const tempAddress = user.tempAddress || '';
-
-    // Extract the photo filename safely
-    let photoFilename = null;
-    if (user.profileImage) {
-      // Since we now store only filenames, just validate the filename
-      const filename = user.profileImage;
-      if (/^[a-zA-Z0-9._-]+$/.test(filename)) {
-        photoFilename = filename;
-      }
-    }
-
-    res.render('customer/profile', {
-      user,
-      permanentAddress,
-      tempAddress,
-      photoFilename 
-    });
-  } catch (error) {
-    console.error(error);
-    res.render('error', { message: 'Failed to load profile', error });
-  }
-};
-
-const showEditUserRender = async (req, res) => {
-  try {
-    const user = await User.findById(req.params.id).lean();
-    if (!user) {
-      return res.render('error', { message: 'User not found', error: {} });
-    }
-
-    const permanentAddress = user.permanentAddress || '';
-    const tempAddress = user.tempAddress || '';
-
-    // Extract the photo filename
-    const photoFilename = user.profileImage || null;
-
-    res.render('customer/edit', {
-      user,
-      photoFilename, //the filename to the view
-      permanentAddress,
-      tempAddress
-    });
-  } catch (error) {
-    console.error(error);
-    res.render('error', { message: 'Failed to load edit page', error });
-  }
-};
-
-const updateUserRender = async (req, res) => {
-  try {
-    const userId = req.params.id;
-    const updates = { ...req.body };
-
-    if (req.file) {
-      const user = await User.findById(userId);
-      if (user.profileImage) {
-        const oldImagePath = path.join(__dirname, '../uploads', user.profileImage);
-        if (fs.existsSync(oldImagePath)) fs.unlinkSync(oldImagePath);
-      }
-      updates.profileImage = req.file.filename;
-    }
-
-    await User.findByIdAndUpdate(userId, updates);
-    res.redirect(`/admin/v1/customers/users/${userId}`);
-  } catch (error) {
-    if (req.file) fs.unlink(req.file.path, () => {});
-    console.error(error);
-    res.render('error', { message: 'Failed to update user', error });
-  }
-};
-
-const deleteUserRender = async (req, res) => {
-  try {
-    const userId = req.params.id;
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.render('error', { message: 'User not found', error: {} });
-    }
-
-    if (user.profileImage && /^[a-zA-Z0-9._-]+$/.test(user.profileImage)) {
-      const imagePath = path.join(__dirname, '../uploads', user.profileImage);
-      if (fs.existsSync(imagePath)) {
-        fs.unlink(imagePath, err => {
-          if (err) console.error('Error deleting photo:', err.message);
-        });
-      }
-    }
-
-    await User.findByIdAndDelete(userId);
-    res.redirect('/admin/v1/customers/users');
-  } catch (error) {
-    console.error(error.message);
-    res.render('error', { message: 'Failed to delete user', error });
-  }
-};
-
-// Verify Token and Get User Info
-const verifyToken = async (req, res) => {
-  try {
-    const user = await User.findById(req.userInfo.userId).select('-password -resOTP -OTP_Expires -registrationOTP -registrationOTPExpires');
-    
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
-    }
-
-    // Check if token version matches (for logout invalidation)
-    if (user.tokenVersion !== req.userInfo.tokenVersion) {
-      return res.status(401).json({ success: false, message: 'Token has been invalidated. Please login again.' });
-    }
-
-    res.status(200).json({ 
-      success: true, 
-      message: 'Token is valid',
-      user: {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        fullname: user.fullname,
-        phone: user.phone,
-        gender: user.gender,
-        dob: user.dob,
-        profileImage: user.profileImage,
-        permanentAddress: user.permanentAddress,
-        tempAddress: user.tempAddress,
-        isEmailVerified: user.isEmailVerified,
-        status: user.status,
-        createdAt: user.createdAt
-      }
-    });
-  } catch (error) {
-    console.error('Token verification error:', error);
-    res.status(500).json({ success: false, message: 'Token verification failed' });
-  }
-};
-
-// Get Current User Profile
-const getCurrentUser = async (req, res) => {
-  try {
-    const user = await User.findById(req.userInfo.userId).select('-password -resOTP -OTP_Expires -registrationOTP -registrationOTPExpires -tokenVersion');
-    
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
-    }
-
-    res.status(200).json({ 
-      success: true, 
-      user
-    });
-  } catch (error) {
-    console.error('Get current user error:', error);
-    res.status(500).json({ success: false, message: 'Failed to get user profile' });
-  }
-};
-
-// Logout User
-const logoutUser = async (req, res) => {
-  try {
+    const { currentPassword, newPassword } = req.body;
     const userId = req.userInfo.userId;
 
-    // tokenVersion to invalidate all existing tokens
-    await User.findByIdAndUpdate(userId, { $inc: { tokenVersion: 1 } });
+    if (!currentPassword || !newPassword) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: 'Current password and new password are required'
+      });
+    }
 
-    res.status(200).json({ success: true, message: 'Logged out successfully. Token invalidated.' });
+    const user = await User.findById(userId);
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    
+    if (!isCurrentPasswordValid) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: 'Current password is incorrect'
+      });
+    }
+
+    const hashedNewPassword = await bcrypt.hash(newPassword, 12);
+    await User.findByIdAndUpdate(userId, { 
+      password: hashedNewPassword,
+      tokenVersion: user.tokenVersion + 1 // Invalidate existing tokens
+    });
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: 'Password changed successfully. Please login again.'
+    });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: 'Logout failed. Try again.' });
+    console.error('Password change error:', error.message);
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: 'Password change failed'
+    });
   }
 };
 
 module.exports = {
   registerAndSendOTP,
   verifyOTPAndRegister,
-  sendRegistrationOTP,
-  checkRegistrationStatus,
   resendRegistrationOTP,
-  registerUser,
   loginUser,
   verifyToken,
   getCurrentUser,
-  updateUser,
-  deleteUser,
-  changePassword,
-  forgetPassword,
-  resetPassword,
-  getAllUsersRender,
-  getUserProfileRender,
-  showEditUserRender,
-  updateUserRender,
-  deleteUserRender,
-  logoutUser
+  logoutUser,
+  updateProfile,
+  changePassword
 };
