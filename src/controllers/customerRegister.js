@@ -439,6 +439,111 @@ const changePassword = async (req, res) => {
   }
 };
 
+// Forgot Password
+const forgotPassword = async (req, res) => {
+  try {
+    console.log('Forgot password request received:', req.body);
+    const { email } = req.body;
+    
+    if (!email) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: 'Email required'
+      });
+    }
+
+    const user = await User.findOne({ email, isEmailVerified: true, status: 'active' });
+    if (!user) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        success: false,
+        message: 'Email not found or account not verified'
+      });
+    }
+
+    const otp = generateOtp();
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
+
+    user.resOTP = otp;
+    user.OTP_Expires = otpExpires;
+    await user.save();
+
+    await NotificationService.sendPasswordResetEmail(email, user.fullname, otp);
+
+    return res.status(StatusCodes.OK).json({
+      success: true,
+      message: 'Password reset OTP sent to your email'
+    });
+
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: 'Failed to send reset email'
+    });
+  }
+};
+
+// Reset Password
+const resetPassword = async (req, res) => {
+  try {
+    const { email, otpCode, newPassword } = req.body;
+    
+    if (!email || !otpCode || !newPassword) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: 'Email, OTP code, and new password are required'
+      });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: 'Password must be at least 8 characters'
+      });
+    }
+
+    const user = await User.findOne({ email, isEmailVerified: true, status: 'active' });
+    if (!user) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    if (!user.resOTP || user.resOTP !== otpCode || new Date() > user.OTP_Expires) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: 'Invalid or expired OTP'
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    user.password = hashedPassword;
+    user.resOTP = undefined;
+    user.OTP_Expires = undefined;
+    user.tokenVersion = (user.tokenVersion || 0) + 1;
+    await user.save();
+
+    try {
+      await NotificationService.sendPasswordChangedEmail(user.email, user.fullname);
+    } catch (emailError) {
+      console.error('Password changed email failed:', emailError);
+    }
+
+    return res.status(StatusCodes.OK).json({
+      success: true,
+      message: 'Password reset successfully. Please login with your new password.'
+    });
+
+  } catch (error) {
+    console.error('Reset password error:', error);
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: 'Failed to reset password'
+    });
+  }
+};
+
 module.exports = {
   registerAndSendOTP,
   verifyOTPAndRegister,
@@ -448,5 +553,7 @@ module.exports = {
   getCurrentUser,
   logoutUser,
   updateProfile,
-  changePassword
+  changePassword,
+  forgotPassword,
+  resetPassword
 };

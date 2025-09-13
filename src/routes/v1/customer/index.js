@@ -7,7 +7,7 @@ const renderRoutes = require('./render');
 const router = express.Router();
 
 // Mount the routes
-router.use('/api', apiRoutes);  // All API routes start with /api
-router.use('/', renderRoutes);  // All Render routes start with / (root)
+router.use('/', apiRoutes);     // API routes mounted at root since app.js already has /api/v1/customers
+router.use('/', renderRoutes);  // Render routes at root
 
 module.exports = router;

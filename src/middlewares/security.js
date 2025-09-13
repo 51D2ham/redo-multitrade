@@ -89,13 +89,53 @@ const createRateLimit = (windowMs = 15 * 60 * 1000, max = 200) => {
     message: { error: 'Too many requests, please try again later' },
     standardHeaders: true,
     legacyHeaders: false,
+    skip: (req) => {
+      // Skip rate limiting for static assets
+      return req.path.startsWith('/uploads/') || req.path.endsWith('.css') || req.path.endsWith('.js');
+    }
   });
 };
 
-// Security headers - CSP disabled for CSS loading
+// Security headers with proper CSP for production
 const securityHeaders = helmet({
-  contentSecurityPolicy: false,
-  crossOriginEmbedderPolicy: false,
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: [
+        "'self'",
+        "'unsafe-inline'",
+        "'unsafe-eval'",
+        "https://cdn.jsdelivr.net",
+        "https://unpkg.com"
+      ],
+      styleSrc: [
+        "'self'",
+        "'unsafe-inline'",
+        "https://cdn.jsdelivr.net",
+        "https://fonts.googleapis.com",
+        "https://cdnjs.cloudflare.com"
+      ],
+      fontSrc: [
+        "'self'",
+        "https://fonts.gstatic.com",
+        "https://cdn.jsdelivr.net",
+        "https://cdnjs.cloudflare.com"
+      ],
+      imgSrc: [
+        "'self'",
+        "data:",
+        "https:",
+        "http:"
+      ],
+      connectSrc: [
+        "'self'",
+        "https://cdn.jsdelivr.net",
+        "https://api.github.com",
+        "data:"
+      ]
+    }
+  },
+  crossOriginEmbedderPolicy: false
 });
 
 // Log sanitization

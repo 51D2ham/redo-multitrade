@@ -4,11 +4,19 @@
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
-    "dev": "nodemon --exec \"node --no-deprecation --no-warnings\" app.js",
+    "dev": "npm run build:css:once && nodemon --exec \"node --no-deprecation --no-warnings\" app.js",
+    "build:css": "tailwindcss -i ./src/input.css -o ./public/css/styles.css --watch",
+    "build:css:once": "tailwindcss -i ./src/input.css -o ./public/css/styles.css",
+    "build:css:prod": "tailwindcss -i ./src/input.css -o ./public/css/styles.css --minify",
     "seed:admin": "node src/seed/devSeed.js",
     "clean:db": "node src/seed/cleanDatabase.js"
   },
-  "keywords": ["ecommerce", "nodejs", "express", "mongodb"],
+  "keywords": [
+    "ecommerce",
+    "nodejs",
+    "express",
+    "mongodb"
+  ],
   "author": "Multitrade Team",
   "license": "MIT",
   "description": "A comprehensive e-commerce platform built with Node.js, Express, and MongoDB",
@@ -36,6 +44,11 @@
     "validator": "^13.12.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.10"
+    "@tailwindcss/forms": "^0.5.10",
+    "@tailwindcss/typography": "^0.5.16",
+    "autoprefixer": "^10.4.21",
+    "nodemon": "^3.1.10",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.17"
   }
 }

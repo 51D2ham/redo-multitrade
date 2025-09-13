@@ -49,8 +49,12 @@ if (!fs.existsSync(uploadsPath)) {
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 app.use(methodOverride('_method'));
+// Static file serving
 app.use('/uploads', express.static(path.join(__dirname, 'src', 'uploads'), { maxAge: '7d' }));
 app.use('/uploads', express.static(uploadsPath, { maxAge: '7d' }));
+app.use('/css', express.static(path.join(__dirname, 'public', 'css'), { maxAge: '7d' }));
+app.use('/js', express.static(path.join(__dirname, 'public', 'js'), { maxAge: '7d' }));
+app.use(express.static(path.join(__dirname, 'public'), { maxAge: '7d' }));
 
 
 // Session
@@ -134,6 +138,16 @@ const brandCarouselRoutes = require('./src/routes/v1/brandCarousel/render');
 const brandCarouselApiRoutes = require('./src/routes/v1/brandCarousel/api');
 const salesReport = require('./src/routes/salesRoutes');
 const reviewsApi = require('./src/routes/v1/reviews/api');
+
+// Favicon route
+app.get('/favicon.ico', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'favicon.ico'));
+});
+
+// Test route
+app.get('/api/v1/test', (req, res) => {
+  res.json({ success: true, message: 'Direct route works' });
+});
 
 // API Routes
 app.use('/api/v1/customers', customerApiRouter);
