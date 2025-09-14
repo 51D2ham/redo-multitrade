@@ -77,11 +77,9 @@ jspm_packages/
 # Stores VSCode versions used for testing VSCode extensions
 .vscode-test
 
-# Uploads (keep structure but ignore content)
-src/uploads/*
-!src/uploads/.gitkeep
-public/uploads/*
-!public/uploads/.gitkeep
+# Uploads (allow product images, ignore temp files)
+src/uploads/temp/
+public/uploads/temp/
 uploads/temp/
 
 # OS generated files
