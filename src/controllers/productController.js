@@ -809,7 +809,7 @@ module.exports = {
         title: productObj.title,
         description: productObj.description,
         shortDescription: productObj.shortDescription,
-        images: product.images?.map(img => `/uploads/products/${img}`) || [],
+        images: product.images?.length ? product.images.map(img => `/uploads/products/${img}`) : ['https://via.placeholder.com/400x400?text=No+Image'],
         category: productObj.category,
         subCategory: productObj.subCategory,
         type: productObj.type,

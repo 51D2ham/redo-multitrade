@@ -128,7 +128,7 @@ productSchema.virtual('priceStatus').get(function() {
 });
 
 productSchema.virtual('thumbnail').get(function() {
-  if (!this.images?.[0]) return null;
+  if (!this.images?.[0]) return 'https://via.placeholder.com/300x300?text=No+Image';
   return `/uploads/products/${this.images[0]}`;
 });
 
