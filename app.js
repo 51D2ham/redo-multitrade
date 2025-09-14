@@ -23,7 +23,7 @@ app.use((req, res, next) => {
 });
 
 // Security middleware
-app.use(securityHeaders);
+// app.use(securityHeaders);
 app.use(createRateLimit());
 
 // CORS & Express setup
@@ -49,9 +49,9 @@ if (!fs.existsSync(uploadsPath)) {
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 app.use(methodOverride('_method'));
-// Static file serving
-app.use('/uploads', express.static(path.join(__dirname, 'src', 'uploads'), { maxAge: '7d' }));
+// Static file serving - prioritize public/uploads for production
 app.use('/uploads', express.static(uploadsPath, { maxAge: '7d' }));
+app.use('/uploads', express.static(path.join(__dirname, 'src', 'uploads'), { maxAge: '7d' }));
 app.use('/css', express.static(path.join(__dirname, 'public', 'css'), { maxAge: '7d' }));
 app.use('/js', express.static(path.join(__dirname, 'public', 'js'), { maxAge: '7d' }));
 app.use(express.static(path.join(__dirname, 'public'), { maxAge: '7d' }));

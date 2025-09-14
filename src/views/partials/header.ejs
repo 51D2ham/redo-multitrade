@@ -3,11 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval'; script-src * 'unsafe-inline' 'unsafe-eval'; connect-src * 'unsafe-inline'; img-src * data: blob: 'unsafe-inline'; frame-src *; style-src * 'unsafe-inline';">
   <title><%= title %> - Multitrade Admin</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link rel="stylesheet" href="/css/styles.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" nonce="<%= cspNonce %>"></script>
-  <style nonce="<%= cspNonce %>">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+  <style>
     .glass { backdrop-filter: blur(16px); background: rgba(255, 255, 255, 0.9); }
     .nav-item { transition: all 0.2s ease; }
     .nav-item:hover { transform: translateX(3px); }
@@ -195,7 +196,7 @@
     <!-- Page Content -->
     <main class="p-6 min-h-screen">
 
-<script nonce="<%= cspNonce %>">
+<script>
 // Enhanced Order Notifications System
 class OrderNotifications {
   constructor() {

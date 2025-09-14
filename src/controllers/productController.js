@@ -8,7 +8,7 @@ const fs = require('fs');
 // Configure multer for image uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadPath = path.join(__dirname, '../uploads/products');
+    const uploadPath = path.join(__dirname, '../../public/uploads/products');
     if (!fs.existsSync(uploadPath)) {
       fs.mkdirSync(uploadPath, { recursive: true });
     }
@@ -484,7 +484,7 @@ module.exports = {
         try {
           const removedImages = JSON.parse(req.body.removedImages);
           removedImages.forEach(filename => {
-            const filePath = path.join(__dirname, '../uploads/products', filename);
+            const filePath = path.join(__dirname, '../../public/uploads/products', filename);
             if (fs.existsSync(filePath)) {
               fs.unlinkSync(filePath);
             }
@@ -605,7 +605,7 @@ module.exports = {
 
       if (product.images && product.images.length > 0) {
         product.images.forEach(filename => {
-          const filePath = path.join(__dirname, '../uploads/products', filename);
+          const filePath = path.join(__dirname, '../../public/uploads/products', filename);
           if (fs.existsSync(filePath)) {
             fs.unlinkSync(filePath);
           }
