@@ -16,8 +16,8 @@
         <a href="/admin/v1/products/featured/ranking" class="w-full sm:w-auto px-4 py-2.5 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-center font-medium flex items-center gap-2">
           <i class="fa fa-star"></i> Featured Ranking
         </a>
-        <a href="/admin/v1/products/new" class="w-full sm:w-auto px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-center font-medium">
-          Add Product
+        <a href="/admin/v1/products/new" class="w-full sm:w-auto px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-center font-medium flex items-center gap-2">
+          <i class="fa fa-plus"></i> Add Product
         </a>
       </div>
     </div>
@@ -342,16 +342,16 @@
                   </td>
                   <td class="px-6 py-4">
                     <div class="flex items-center justify-center gap-1">
-                      <a href="/admin/v1/products/<%= product._id %>" class="p-2 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors border border-blue-200" title="View Details">
-                        <i class="fas fa-eye"></i>
+                      <a href="/admin/v1/products/<%= product._id %>" class="p-2 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors border border-blue-200" title="View Product Details">
+                        <i class="fa fa-eye text-xs"></i>
                       </a>
-                      <a href="/admin/v1/products/<%= product._id %>/edit" class="p-2 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition-colors border border-green-200" title="Edit Product">
-                        <i class="fas fa-edit"></i>
+                      <a href="/admin/v1/products/<%= product._id %>/edit" class="p-2 rounded-lg bg-gray-50 text-gray-700 hover:bg-gray-100 transition-colors border border-gray-200" title="Edit Product">
+                        <i class="fa fa-edit text-xs"></i>
                       </a>
                       <form action="/admin/v1/products/<%= product._id %>?_method=DELETE" method="POST" class="inline" onsubmit="return confirm('Delete <%= product.title %>?')">
                         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                         <button type="submit" class="p-2 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition-colors border border-red-200" title="Delete Product">
-                          <i class="fas fa-trash"></i>
+                          <i class="fa fa-trash text-xs"></i>
                         </button>
                       </form>
                     </div>

@@ -33,31 +33,48 @@
     <form action="<%= baseUrl %>" method="POST" class="space-y-6">
       <div>
         <label for="brand" class="block font-semibold mb-2 text-gray-700">Brand *</label>
-        <select 
-          id="brand" 
-          name="brand" 
-          required
-          class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
-        >
-          <option value="">Select a brand</option>
-          <% brands.forEach(brand => { %>
-            <option value="<%= brand._id %>"><%= brand.name %></option>
-          <% }) %>
-        </select>
+        <% if (brands.length === 0) { %>
+          <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p class="text-yellow-800 text-sm">
+              <i class="fa fa-exclamation-triangle mr-2"></i>
+              All brands are already added to the carousel. Please add more brands first.
+            </p>
+            <a href="/admin/v1/parameters/brands/new" class="inline-block mt-2 text-blue-600 hover:text-blue-700 text-sm">
+              Add New Brand →
+            </a>
+          </div>
+        <% } else { %>
+          <select 
+            id="brand" 
+            name="brand" 
+            required
+            class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
+          >
+            <option value="">Select a brand</option>
+            <% brands.forEach(brand => { %>
+              <option value="<%= brand._id %>"><%= brand.name %></option>
+            <% }) %>
+          </select>
+          <p class="mt-1 text-sm text-gray-500"><%= brands.length %> available brand(s)</p>
+        <% } %>
       </div>
       
       <div>
-        <label for="order" class="block font-semibold mb-2 text-gray-700">Display Order</label>
+        <label for="order" class="block font-semibold mb-2 text-gray-700">Display Order *</label>
         <input 
           id="order" 
           name="order" 
           type="number" 
-          value="0"
-          min="0"
-          placeholder="0"
+          value="<%= nextOrder %>"
+          min="1"
+          required
+          placeholder="<%= nextOrder %>"
           class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
         >
-        <p class="mt-1 text-sm text-gray-500">Lower numbers appear first</p>
+        <p class="mt-1 text-sm text-gray-500">
+          <i class="fa fa-info-circle mr-1"></i>
+          Next available position: <strong><%= nextOrder %></strong> (Lower numbers appear first)
+        </p>
       </div>
       
       <div>
@@ -76,7 +93,7 @@
         <a href="<%= baseUrl %>" class="px-4 py-3 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition flex items-center justify-center gap-2">
           <i class="fa fa-times"></i> Cancel
         </a>
-        <button type="submit" class="px-4 py-3 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition flex items-center justify-center gap-2">
+        <button type="submit" class="px-4 py-3 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition flex items-center justify-center gap-2" <% if (brands.length === 0) { %>disabled class="px-4 py-3 rounded-lg bg-gray-400 text-white font-semibold cursor-not-allowed"<% } %>>
           <i class="fa fa-save"></i> Add to Carousel
         </button>
       </div>

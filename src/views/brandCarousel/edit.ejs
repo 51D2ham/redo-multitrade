@@ -61,16 +61,23 @@
       </div>
       
       <div>
-        <label for="order" class="block font-semibold mb-2 text-gray-700">Display Order</label>
+        <label for="order" class="block font-semibold mb-2 text-gray-700">Display Order *</label>
         <input 
           id="order" 
           name="order" 
           type="number" 
           value="<%= item.order %>"
-          min="0"
+          min="1"
+          required
           class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
         >
-        <p class="mt-1 text-sm text-gray-500">Lower numbers appear first</p>
+        <% if (usedOrders && usedOrders.length > 0) { %>
+          <p class="mt-1 text-sm text-gray-500">
+            <i class="fa fa-exclamation-triangle mr-1 text-yellow-500"></i>
+            Used positions: <span class="font-mono bg-gray-100 px-1 rounded"><%= usedOrders.join(', ') %></span>
+          </p>
+        <% } %>
+        <p class="mt-1 text-sm text-gray-500">Lower numbers appear first. Current: <strong><%= item.order %></strong></p>
       </div>
       
       <div>

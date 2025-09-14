@@ -23,10 +23,10 @@ const reviewController = {
         });
       }
 
-      if (rating < 1 || rating > 5) {
+      if (rating < 0.5 || rating > 5 || rating % 0.5 !== 0) {
         return res.status(400).json({
           success: false,
-          message: 'Rating must be between 1 and 5'
+          message: 'Rating must be between 0.5 and 5 in 0.5 increments (0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0)'
         });
       }
 
@@ -59,7 +59,7 @@ const reviewController = {
       const newReview = await Review.create({
         product: productId,
         user: userId,
-        rating: parseInt(rating),
+        rating: parseFloat(rating),
         review: review.trim(),
         status: 'pending'
       });
@@ -133,7 +133,7 @@ const reviewController = {
       ]);
 
       const ratingDistribution = {
-        5: 0, 4: 0, 3: 0, 2: 0, 1: 0
+        5: 0, 4.5: 0, 4: 0, 3.5: 0, 3: 0, 2.5: 0, 2: 0, 1.5: 0, 1: 0, 0.5: 0
       };
       ratingStats.forEach(stat => {
         ratingDistribution[stat._id] = stat.count;
@@ -224,10 +224,10 @@ const reviewController = {
       }
 
       // Validation
-      if (rating && (rating < 1 || rating > 5)) {
+      if (rating && (rating < 0.5 || rating > 5 || rating % 0.5 !== 0)) {
         return res.status(400).json({
           success: false,
-          message: 'Rating must be between 1 and 5'
+          message: 'Rating must be between 0.5 and 5 in 0.5 increments'
         });
       }
 
@@ -249,7 +249,7 @@ const reviewController = {
 
       // Update review and reset status to pending
       const updateData = { status: 'pending' };
-      if (rating) updateData.rating = parseInt(rating);
+      if (rating) updateData.rating = parseFloat(rating);
       if (review) updateData.review = review.trim();
 
       const updatedReview = await Review.findByIdAndUpdate(

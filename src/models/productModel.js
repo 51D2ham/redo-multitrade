@@ -193,7 +193,18 @@ productSpecsSchema.index({ specList: 1, value: 1 });
 const reviewSchema = new Schema({
   product: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
   user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-  rating: { type: Number, required: true, min: 1, max: 5 },
+  rating: { 
+    type: Number, 
+    required: true, 
+    min: 0.5, 
+    max: 5,
+    validate: {
+      validator: function(v) {
+        return v % 0.5 === 0;
+      },
+      message: 'Rating must be in 0.5 increments (0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0)'
+    }
+  },
   title: { type: String, trim: true, maxlength: 60 },
   review: { type: String, required: true, trim: true, minlength: 10, maxlength: 500 },
   verified: { type: Boolean, default: false },
