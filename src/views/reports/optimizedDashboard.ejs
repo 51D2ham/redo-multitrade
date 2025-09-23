@@ -160,12 +160,18 @@
           <% 
             const growthRate = (revenueStats && revenueStats.growthRate !== undefined) ? revenueStats.growthRate : 0;
             const hasGrowthData = revenueStats && revenueStats.growthRate !== undefined;
+            const isPositive = growthRate >= 0;
+            const bgClass = isPositive ? 'bg-green-50' : 'bg-red-50';
+            const iconClass = isPositive ? 'fa-arrow-up' : 'fa-arrow-down';
+            const iconColor = isPositive ? 'text-green-600' : 'text-red-600';
+            const textColor = isPositive ? 'text-green-700' : 'text-red-700';
+            const prefix = isPositive ? '+' : '';
           %>
           <% if (hasGrowthData) { %>
-            <div class="flex items-center gap-2 bg-<%= growthRate >= 0 ? 'green' : 'red' %>-50 px-3 py-2 rounded-lg">
-              <i class="fas fa-<%= growthRate >= 0 ? 'arrow-up' : 'arrow-down' %> text-<%= growthRate >= 0 ? 'green' : 'red' %>-600 text-sm"></i>
-              <p class="text-sm font-medium text-<%= growthRate >= 0 ? 'green' : 'red' %>-700">
-                <%= growthRate >= 0 ? '+' : '' %><%= growthRate %>% vs last period
+            <div class="flex items-center gap-2 <%= bgClass %> px-3 py-2 rounded-lg">
+              <i class="fas <%= iconClass %> <%= iconColor %> text-sm"></i>
+              <p class="text-sm font-medium <%= textColor %>">
+                <%= prefix %><%= growthRate %>% vs last period
               </p>
             </div>
           <% } else { %>
@@ -225,9 +231,9 @@
     </div>
 
     <!-- Charts Row -->
-    <div class="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+    <div class="space-y-6 mb-6 sm:mb-8">
       <!-- Sales Trend Chart -->
-      <div class="xl:col-span-2 bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 shadow-sm hover:shadow-lg transition-shadow">
+      <div class="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 shadow-sm hover:shadow-lg transition-shadow">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-3">
           <div>
             <h3 class="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
@@ -251,28 +257,25 @@
         </div>
         
         <% if (salesTrend && salesTrend.length > 0) { %>
-          <div class="h-80">
-            <canvas id="salesTrendChart"></canvas>
+          <div class="relative w-full h-64 sm:h-80 lg:h-96">
+            <canvas id="salesTrendChart" class="w-full h-full"></canvas>
           </div>
         <% } else { %>
-          <div class="h-80 flex items-center justify-center text-gray-400">
+          <div class="h-64 sm:h-80 lg:h-96 flex items-center justify-center text-gray-400">
             <div class="text-center">
-              <i class="fas fa-chart-line text-5xl mb-4"></i>
-              <p class="text-lg font-medium">No sales data available</p>
-              <p class="text-sm">Data will appear once orders are placed</p>
+              <i class="fas fa-chart-line text-3xl sm:text-4xl mb-3"></i>
+              <p class="text-sm sm:text-base font-medium">No sales data available</p>
+              <p class="text-xs sm:text-sm">Data will appear once orders are placed</p>
             </div>
           </div>
         <% } %>
       </div>
 
       <!-- Order Status Distribution -->
-      <div class="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 shadow-sm hover:shadow-lg transition-shadow">
-        <div class="mb-4 sm:mb-6">
-          <h3 class="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
-            <i class="fas fa-chart-pie text-purple-600"></i>
-            Order Status
-          </h3>
-          <p class="text-xs sm:text-sm text-gray-500 mt-1">Current period breakdown</p>
+      <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-4 sm:p-6">
+        <div class="flex items-center justify-between mb-4 sm:mb-6">
+          <h3 class="text-base sm:text-lg font-semibold text-gray-800">📊 Order Status Distribution</h3>
+          <a href="/admin/v1/order" class="text-xs sm:text-sm text-blue-600 hover:text-blue-800">View All</a>
         </div>
         
         <% if (orderStatusAnalytics && orderStatusAnalytics.raw && orderStatusAnalytics.raw.length > 0) { %>
@@ -285,7 +288,7 @@
             });
           %>
           <% if (mixedOrders.length > 0) { %>
-            <div class="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+            <div class="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-xl">
               <div class="flex items-center gap-2 text-orange-800">
                 <i class="fas fa-exclamation-triangle text-orange-600"></i>
                 <span class="text-sm font-medium"><%= mixedOrders.length %> Mixed Status Orders</span>
@@ -298,45 +301,47 @@
             <% ['delivered', 'shipped', 'processing', 'pending', 'cancelled'].forEach(status => { %>
               <% const statusData = orderStatusAnalytics[status]; %>
               <% if (statusData && statusData.count > 0) { %>
-                <div class="flex items-center justify-between">
+                <% 
+                  let bgColor = 'bg-red-100';
+                  let dotColor = 'bg-red-500';
+                  if (status === 'pending') {
+                    bgColor = 'bg-yellow-100';
+                    dotColor = 'bg-yellow-500';
+                  } else if (status === 'processing') {
+                    bgColor = 'bg-blue-100';
+                    dotColor = 'bg-blue-500';
+                  } else if (status === 'shipped') {
+                    bgColor = 'bg-purple-100';
+                    dotColor = 'bg-purple-500';
+                  } else if (status === 'delivered') {
+                    bgColor = 'bg-green-100';
+                    dotColor = 'bg-green-500';
+                  }
+                  const revenue = statusData.revenue ? statusData.revenue.toLocaleString() : '0';
+                %>
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                   <div class="flex items-center gap-3">
-                    <div class="w-3 h-3 rounded-full <%= 
-                      status === 'pending' ? 'bg-yellow-500' :
-                      status === 'processing' ? 'bg-blue-500' :
-                      status === 'shipped' ? 'bg-purple-500' :
-                      status === 'delivered' ? 'bg-green-500' :
-                      'bg-red-500'
-                    %>"></div>
-                    <span class="text-sm font-medium text-gray-700 capitalize"><%= status %></span>
+                    <div class="w-8 h-8 <%= bgColor %> rounded-full flex items-center justify-center">
+                      <div class="w-3 h-3 rounded-full <%= dotColor %>"></div>
+                    </div>
+                    <div>
+                      <p class="font-medium text-gray-900 text-sm capitalize"><%= status %></p>
+                      <p class="text-xs text-gray-500"><%= statusData.count %> orders</p>
+                    </div>
                   </div>
                   <div class="text-right">
-                    <div class="text-sm font-semibold text-gray-900">
-                      <%= statusData.count %>
-                    </div>
-                    <div class="text-xs text-gray-500">
-                      Rs <%= statusData.revenue.toLocaleString() %>
-                    </div>
+                    <p class="text-sm font-semibold text-gray-900">
+                      Rs <%= revenue %>
+                    </p>
                   </div>
-                </div>
-                <div class="w-full bg-gray-200 rounded-full h-2">
-                  <div class="h-2 rounded-full <%= 
-                    status === 'pending' ? 'bg-yellow-500' :
-                    status === 'processing' ? 'bg-blue-500' :
-                    status === 'shipped' ? 'bg-purple-500' :
-                    status === 'delivered' ? 'bg-green-500' :
-                    'bg-red-500'
-                  %>" style="width: <%= Math.min(100, (statusData.count / (orderStats?.totalOrders || 1)) * 100) %>%"></div>
                 </div>
               <% } %>
             <% }) %>
           </div>
         <% } else { %>
-          <div class="h-64 flex items-center justify-center text-gray-400">
-            <div class="text-center">
-              <i class="fas fa-chart-pie text-4xl mb-3"></i>
-              <p class="font-medium">No order data</p>
-              <p class="text-xs">Orders will appear here</p>
-            </div>
+          <div class="text-center py-8 text-gray-500">
+            <i class="fas fa-chart-pie text-3xl mb-2"></i>
+            <p>No order status data</p>
           </div>
         <% } %>
       </div>
@@ -548,19 +553,38 @@
         <div class="space-y-4">
           <% if (recentInventoryMovements && recentInventoryMovements.length > 0) { %>
             <% recentInventoryMovements.slice(0, 5).forEach((movement, index) => { %>
+              <% 
+                const movementType = movement.type || 'unknown';
+                let bgColor = 'bg-blue-100';
+                let textColor = 'text-blue-600';
+                if (movementType === 'sale') {
+                  bgColor = 'bg-red-100';
+                  textColor = 'text-red-600';
+                } else if (movementType === 'restock') {
+                  bgColor = 'bg-green-100';
+                  textColor = 'text-green-600';
+                }
+                
+                const productTitle = movement.productTitle || (movement.product && movement.product.title) || 'Unknown Product';
+                const truncatedTitle = productTitle.length > 20 ? productTitle.substring(0, 20) + '...' : productTitle;
+                const capitalizedType = movementType.charAt(0).toUpperCase() + movementType.slice(1);
+                const quantityPrefix = movementType === 'sale' ? '-' : '+';
+                const quantity = movement.quantity || 0;
+                const variantSku = movement.variantSku || 'N/A';
+              %>
               <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                 <div class="flex items-center gap-3">
-                  <div class="w-8 h-8 bg-<%= movement.type === 'sale' ? 'red' : movement.type === 'restock' ? 'green' : 'blue' %>-100 rounded-full flex items-center justify-center">
-                    <span class="text-sm font-bold text-<%= movement.type === 'sale' ? 'red' : movement.type === 'restock' ? 'green' : 'blue' %>-600"><%= index + 1 %></span>
+                  <div class="w-8 h-8 <%= bgColor %> rounded-full flex items-center justify-center">
+                    <span class="text-sm font-bold <%= textColor %>"><%= index + 1 %></span>
                   </div>
                   <div>
-                    <p class="font-medium text-gray-900 text-sm"><%= (movement.productTitle || movement.product?.title || 'Unknown Product').substring(0, 20) %><%= (movement.productTitle || movement.product?.title || 'Unknown Product').length > 20 ? '...' : '' %></p>
-                    <p class="text-xs text-gray-500"><%= movement.type.charAt(0).toUpperCase() + movement.type.slice(1) %> • <%= movement.variantSku || 'N/A' %></p>
+                    <p class="font-medium text-gray-900 text-sm"><%= truncatedTitle %></p>
+                    <p class="text-xs text-gray-500"><%= capitalizedType %> • <%= variantSku %></p>
                   </div>
                 </div>
                 <div class="text-right">
                   <p class="text-sm font-semibold text-gray-900">
-                    <%= movement.type === 'sale' ? '-' : '+' %><%= movement.quantity || 0 %> units
+                    <%= quantityPrefix %><%= quantity %> units
                   </p>
                 </div>
               </div>
@@ -647,18 +671,26 @@
           
           <% if (inventoryAlertsList.length > 0) { %>
             <% inventoryAlertsList.slice(0, 5).forEach((alert, index) => { %>
+              <% 
+                const isCritical = alert.status === 'critical';
+                const bgColor = isCritical ? 'bg-red-100' : 'bg-orange-100';
+                const textColor = isCritical ? 'text-red-600' : 'text-orange-600';
+                const statusText = isCritical ? 'Out of Stock' : 'Low Stock';
+                const titleText = (alert.title || 'Unknown Product');
+                const truncatedTitle = titleText.length > 20 ? titleText.substring(0, 20) + '...' : titleText;
+              %>
               <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                 <div class="flex items-center gap-3">
-                  <div class="w-8 h-8 bg-<%= alert.status === 'critical' ? 'red' : 'orange' %>-100 rounded-full flex items-center justify-center">
-                    <span class="text-sm font-bold text-<%= alert.status === 'critical' ? 'red' : 'orange' %>-600"><%= index + 1 %></span>
+                  <div class="w-8 h-8 <%= bgColor %> rounded-full flex items-center justify-center">
+                    <span class="text-sm font-bold <%= textColor %>"><%= index + 1 %></span>
                   </div>
                   <div>
-                    <p class="font-medium text-gray-900 text-sm"><%= (alert.title || 'Unknown Product').substring(0, 20) %><%= (alert.title || 'Unknown Product').length > 20 ? '...' : '' %></p>
-                    <p class="text-xs text-gray-500"><%= alert.status === 'critical' ? 'Out of Stock' : 'Low Stock' %> • <%= alert.sku || 'N/A' %></p>
+                    <p class="font-medium text-gray-900 text-sm"><%= truncatedTitle %></p>
+                    <p class="text-xs text-gray-500"><%= statusText %> • <%= alert.sku || 'N/A' %></p>
                   </div>
                 </div>
                 <div class="text-right">
-                  <p class="text-sm font-semibold text-<%= alert.status === 'critical' ? 'red' : 'orange' %>-700">
+                  <p class="text-sm font-semibold <%= isCritical ? 'text-red-700' : 'text-orange-700' %>">
                     <%= alert.stock %> units
                   </p>
                 </div>
@@ -686,28 +718,35 @@
         <div class="space-y-4">
           <% if (recentOrders && recentOrders.length > 0) { %>
             <% recentOrders.slice(0, 5).forEach((order, index) => { %>
+              <% 
+                const orderStatus = order.status || 'pending';
+                let statusClass = 'bg-yellow-100 text-yellow-700';
+                if (orderStatus === 'processing') statusClass = 'bg-blue-100 text-blue-700';
+                else if (orderStatus === 'shipped') statusClass = 'bg-purple-100 text-purple-700';
+                else if (orderStatus === 'delivered') statusClass = 'bg-green-100 text-green-700';
+                else if (orderStatus === 'cancelled') statusClass = 'bg-red-100 text-red-700';
+                
+                const orderId = order._id ? order._id.toString().slice(-6).toUpperCase() : 'N/A';
+                const customerName = (order.user && order.user.fullname) ? order.user.fullname : 'Guest';
+                const itemCount = (order.items && order.items.length) ? order.items.length : 0;
+                const totalPrice = order.totalPrice ? order.totalPrice.toLocaleString() : '0';
+              %>
               <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                 <div class="flex items-center gap-3">
                   <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
                     <span class="text-sm font-bold text-green-600"><%= index + 1 %></span>
                   </div>
                   <div>
-                    <p class="font-medium text-gray-900 text-sm">#<%= order._id.toString().slice(-6).toUpperCase() %></p>
-                    <p class="text-xs text-gray-500"><%= order.user?.fullname || 'Guest' %> • <%= order.items?.length || 0 %> items</p>
+                    <p class="font-medium text-gray-900 text-sm">#<%= orderId %></p>
+                    <p class="text-xs text-gray-500"><%= customerName %> • <%= itemCount %> items</p>
                   </div>
                 </div>
                 <div class="text-right">
                   <p class="text-sm font-semibold text-gray-900">
-                    Rs <%= (order.totalPrice || 0).toLocaleString() %>
+                    Rs <%= totalPrice %>
                   </p>
-                  <span class="inline-flex px-2 py-1 rounded-full text-xs font-medium <%= 
-                    order.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                    order.status === 'processing' ? 'bg-blue-100 text-blue-700' :
-                    order.status === 'shipped' ? 'bg-purple-100 text-purple-700' :
-                    order.status === 'delivered' ? 'bg-green-100 text-green-700' :
-                    'bg-red-100 text-red-700'
-                  %>">
-                    <%= order.status %>
+                  <span class="inline-flex px-2 py-1 rounded-full text-xs font-medium <%= statusClass %>">
+                    <%= orderStatus %>
                   </span>
                 </div>
               </div>
@@ -728,195 +767,229 @@
 
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<% if (salesTrend && salesTrend.length > 0) { %>
+<div id="salesTrendData" style="display:none;"><%- JSON.stringify(salesTrend) %></div>
 <script>
-  <% if (salesTrend && salesTrend.length > 0) { %>
-  // Sales Trend Chart
-  const salesTrendCtx = document.getElementById('salesTrendChart').getContext('2d');
-  const salesTrendData = <%- JSON.stringify(salesTrend || []) %>;
+  let chartInstance = null;
+  const chartElement = document.getElementById('salesTrendChart');
   
-  new Chart(salesTrendCtx, {
-    type: 'line',
-    data: {
-      labels: salesTrendData.map(item => {
-        const date = new Date(item._id);
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      }),
-      datasets: [{
-        label: 'Revenue',
-        data: salesTrendData.map(item => item.revenue || 0),
-        borderColor: '#3B82F6',
-        backgroundColor: function(context) {
-          const chart = context.chart;
-          const {ctx, chartArea} = chart;
-          if (!chartArea) return null;
-          const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-          gradient.addColorStop(0, 'rgba(59, 130, 246, 0.05)');
-          gradient.addColorStop(1, 'rgba(59, 130, 246, 0.3)');
-          return gradient;
-        },
-        borderWidth: 4,
-        tension: 0.4,
-        fill: true,
-        pointBackgroundColor: '#3B82F6',
-        pointBorderColor: '#ffffff',
-        pointBorderWidth: 3,
-        pointRadius: 6,
-        pointHoverRadius: 8,
-        pointHoverBorderWidth: 4
-      }, {
-        label: 'Orders',
-        data: salesTrendData.map(item => item.orders || 0),
-        borderColor: '#10B981',
-        backgroundColor: 'transparent',
-        borderWidth: 4,
-        tension: 0.4,
-        fill: false,
-        pointBackgroundColor: '#10B981',
-        pointBorderColor: '#ffffff',
-        pointBorderWidth: 3,
-        pointRadius: 6,
-        pointHoverRadius: 8,
-        pointHoverBorderWidth: 4,
-        yAxisID: 'y1'
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: {
-        intersect: false,
-        mode: 'index'
+  if (chartElement) {
+    const salesTrendCtx = chartElement.getContext('2d');
+    const salesTrendData = JSON.parse(document.getElementById('salesTrendData').textContent);
+    
+    const isMobile = window.innerWidth < 640;
+    const isTablet = window.innerWidth < 1024;
+    
+    chartInstance = new Chart(salesTrendCtx, {
+      type: 'line',
+      data: {
+        labels: salesTrendData.map(item => {
+          const date = new Date(item._id);
+          if (isMobile) {
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).replace(' ', '\n');
+          }
+          return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }),
+        datasets: [{
+          label: 'Revenue',
+          data: salesTrendData.map(item => item.revenue || 0),
+          borderColor: '#3B82F6',
+          backgroundColor: function(context) {
+            const chart = context.chart;
+            const {ctx, chartArea} = chart;
+            if (!chartArea) return null;
+            const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+            gradient.addColorStop(0, 'rgba(59, 130, 246, 0.05)');
+            gradient.addColorStop(1, 'rgba(59, 130, 246, 0.2)');
+            return gradient;
+          },
+          borderWidth: isMobile ? 2 : 3,
+          tension: 0.4,
+          fill: true,
+          pointBackgroundColor: '#3B82F6',
+          pointBorderColor: '#ffffff',
+          pointBorderWidth: isMobile ? 2 : 3,
+          pointRadius: isMobile ? 3 : 5,
+          pointHoverRadius: isMobile ? 5 : 7,
+          pointHoverBorderWidth: isMobile ? 3 : 4
+        }, {
+          label: 'Orders',
+          data: salesTrendData.map(item => item.orders || 0),
+          borderColor: '#10B981',
+          backgroundColor: 'transparent',
+          borderWidth: isMobile ? 2 : 3,
+          tension: 0.4,
+          fill: false,
+          pointBackgroundColor: '#10B981',
+          pointBorderColor: '#ffffff',
+          pointBorderWidth: isMobile ? 2 : 3,
+          pointRadius: isMobile ? 3 : 5,
+          pointHoverRadius: isMobile ? 5 : 7,
+          pointHoverBorderWidth: isMobile ? 3 : 4,
+          yAxisID: 'y1'
+        }]
       },
-      plugins: {
-        legend: {
-          display: false
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          intersect: false,
+          mode: 'index'
         },
-        tooltip: {
-          backgroundColor: 'rgba(17, 24, 39, 0.95)',
-          titleColor: '#ffffff',
-          bodyColor: '#ffffff',
-          borderColor: 'rgba(59, 130, 246, 0.3)',
-          borderWidth: 2,
-          cornerRadius: 12,
-          displayColors: true,
-          padding: 12,
-          titleFont: {
-            size: 14,
-            weight: 'bold'
+        layout: {
+          padding: {
+            top: isMobile ? 10 : 15,
+            right: isMobile ? 10 : 15,
+            bottom: isMobile ? 10 : 15,
+            left: isMobile ? 5 : 10
+          }
+        },
+        plugins: {
+          legend: {
+            display: false
           },
-          bodyFont: {
-            size: 13
-          },
-          callbacks: {
-            title: function(context) {
-              return context[0].label;
+          tooltip: {
+            backgroundColor: 'rgba(17, 24, 39, 0.95)',
+            titleColor: '#ffffff',
+            bodyColor: '#ffffff',
+            borderColor: 'rgba(59, 130, 246, 0.3)',
+            borderWidth: 1,
+            cornerRadius: 8,
+            displayColors: true,
+            padding: isMobile ? 8 : 12,
+            titleFont: {
+              size: isMobile ? 12 : 14,
+              weight: 'bold'
             },
-            label: function(context) {
-              if (context.datasetIndex === 0) {
-                const value = context.parsed.y;
-                let formattedValue;
-                if (value >= 10000000) {
-                  formattedValue = 'Rs ' + (value / 10000000).toFixed(2) + ' Cr';
-                } else if (value >= 100000) {
-                  formattedValue = 'Rs ' + (value / 100000).toFixed(2) + ' L';
-                } else if (value >= 1000) {
-                  formattedValue = 'Rs ' + (value / 1000).toFixed(0) + 'K';
+            bodyFont: {
+              size: isMobile ? 11 : 13
+            },
+            callbacks: {
+              title: function(context) {
+                return context[0].label;
+              },
+              label: function(context) {
+                if (context.datasetIndex === 0) {
+                  const value = context.parsed.y;
+                  let formattedValue;
+                  if (value >= 10000000) {
+                    formattedValue = 'Rs ' + (value / 10000000).toFixed(1) + 'Cr';
+                  } else if (value >= 100000) {
+                    formattedValue = 'Rs ' + (value / 100000).toFixed(1) + 'L';
+                  } else if (value >= 1000) {
+                    formattedValue = 'Rs ' + (value / 1000).toFixed(0) + 'K';
+                  } else {
+                    formattedValue = 'Rs ' + value.toLocaleString('en-IN');
+                  }
+                  return '💰 Revenue: ' + formattedValue;
                 } else {
-                  formattedValue = 'Rs ' + value.toLocaleString('en-IN');
+                  return '📦 Orders: ' + context.parsed.y;
                 }
-                return '💰 Revenue: ' + formattedValue;
-              } else {
-                return '📦 Orders: ' + context.parsed.y;
               }
             }
           }
-        }
-      },
-      scales: {
-        x: {
-          grid: {
-            display: false
-          },
-          border: {
-            display: false
-          },
-          ticks: {
-            color: '#6B7280',
-            font: {
-              size: 12,
-              weight: '500'
-            },
-            maxTicksLimit: 8,
-            padding: 8
-          }
         },
-        y: {
-          type: 'linear',
-          display: true,
-          position: 'left',
-          grid: {
-            color: 'rgba(107, 114, 128, 0.08)',
-            drawBorder: false,
-            lineWidth: 1
-          },
-          border: {
-            display: false
-          },
-          ticks: {
-            color: '#6B7280',
-            font: {
-              size: 12,
-              weight: '500'
+        scales: {
+          x: {
+            grid: {
+              display: !isMobile,
+              color: 'rgba(107, 114, 128, 0.1)',
+              drawBorder: false
             },
-            padding: 8,
-            callback: function(value) {
-              if (value >= 10000000) {
-                return 'Rs ' + (value / 10000000).toFixed(1) + 'Cr';
-              } else if (value >= 100000) {
-                return 'Rs ' + (value / 100000).toFixed(1) + 'L';
-              } else if (value >= 1000) {
-                return 'Rs ' + (value / 1000).toFixed(0) + 'K';
-              }
-              return 'Rs ' + value.toLocaleString('en-IN');
+            border: {
+              display: false
+            },
+            ticks: {
+              color: '#6B7280',
+              font: {
+                size: isMobile ? 9 : 11,
+                weight: '500'
+              },
+              maxTicksLimit: isMobile ? 4 : isTablet ? 6 : 10,
+              padding: isMobile ? 5 : 8,
+              maxRotation: isMobile ? 0 : 45
             }
-          }
-        },
-        y1: {
-          type: 'linear',
-          display: true,
-          position: 'right',
-          grid: {
-            drawOnChartArea: false,
-            display: false
           },
-          border: {
-            display: false
-          },
-          ticks: {
-            color: '#6B7280',
-            font: {
-              size: 12,
-              weight: '500'
+          y: {
+            type: 'linear',
+            display: true,
+            position: 'left',
+            grid: {
+              color: 'rgba(107, 114, 128, 0.1)',
+              drawBorder: false,
+              lineWidth: 1
             },
-            padding: 8,
-            stepSize: 1,
-            callback: function(value) {
-              return Math.floor(value) === value ? value : '';
+            border: {
+              display: false
+            },
+            beginAtZero: true,
+            ticks: {
+              color: '#6B7280',
+              font: {
+                size: isMobile ? 9 : 11,
+                weight: '500'
+              },
+              padding: isMobile ? 5 : 8,
+              maxTicksLimit: isMobile ? 4 : 6,
+              callback: function(value) {
+                if (value >= 10000000) {
+                  return isMobile ? (value / 10000000).toFixed(0) + 'Cr' : 'Rs ' + (value / 10000000).toFixed(1) + 'Cr';
+                } else if (value >= 100000) {
+                  return isMobile ? (value / 100000).toFixed(0) + 'L' : 'Rs ' + (value / 100000).toFixed(1) + 'L';
+                } else if (value >= 1000) {
+                  return isMobile ? (value / 1000).toFixed(0) + 'K' : 'Rs ' + (value / 1000).toFixed(0) + 'K';
+                }
+                return isMobile ? value.toString() : 'Rs ' + value.toLocaleString('en-IN');
+              }
+            }
+          },
+          y1: {
+            type: 'linear',
+            display: !isMobile,
+            position: 'right',
+            grid: {
+              drawOnChartArea: false,
+              display: false
+            },
+            border: {
+              display: false
+            },
+            beginAtZero: true,
+            ticks: {
+              color: '#10B981',
+              font: {
+                size: isMobile ? 9 : 11,
+                weight: '500'
+              },
+              padding: isMobile ? 5 : 8,
+              maxTicksLimit: isMobile ? 4 : 6,
+              stepSize: 1,
+              callback: function(value) {
+                return Math.floor(value) === value ? (isMobile ? value.toString() : value + ' orders') : '';
+              }
             }
           }
         }
       }
+    });
+  }
+  
+  window.addEventListener('resize', function() {
+    if (chartInstance) {
+      setTimeout(() => {
+        chartInstance.resize();
+      }, 100);
     }
   });
-  <% } %>
-  
-  // Export menu toggle
+</script>
+<% } %>
+
+<script>
   function toggleExportMenu() {
     const menu = document.getElementById('exportMenu');
     menu.classList.toggle('hidden');
   }
   
-  // Close menu when clicking outside
   document.addEventListener('click', function(event) {
     const menu = document.getElementById('exportMenu');
     const button = event.target.closest('button');
