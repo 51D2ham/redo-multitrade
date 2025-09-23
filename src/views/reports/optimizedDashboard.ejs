@@ -1,51 +1,76 @@
 <%- include('../partials/header.ejs', { title: 'Business Dashboard' }) %>
 
 <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+    
+    <!-- Breadcrumb Navigation -->
+    <nav class="flex items-center gap-2 text-sm text-gray-600 mb-6">
+      <a href="/admin/v1/dashboard" class="hover:text-blue-600 transition-colors">Dashboard</a>
+      <i class="fas fa-chevron-right text-xs text-gray-400"></i>
+      <span class="text-gray-900 font-medium">Comprehensive Reports</span>
+    </nav>
     
     <!-- Header -->
-    <div class="flex flex-col lg:flex-row lg:justify-between lg:items-center mb-8 gap-4">
-      <div>
-        <h1 class="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
-          <div class="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
-            <i class="fas fa-chart-line text-white text-lg"></i>
+    <div class="flex flex-col lg:flex-row lg:justify-between lg:items-start mb-6 sm:mb-8 gap-4">
+      <div class="flex-1">
+        <div class="flex items-center gap-3 mb-3">
+          <div class="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
+            <i class="fas fa-chart-line text-white text-xl"></i>
           </div>
-          Business Dashboard
-        </h1>
-        <p class="text-gray-600 flex items-center gap-2">
-          <i class="fas fa-clock text-gray-400"></i>
-          Real-time insights and analytics • <%= new Date().toLocaleDateString() %>
-        </p>
+          <div>
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Business Dashboard</h1>
+            <p class="text-sm text-gray-600 mt-1">Comprehensive analytics and insights</p>
+          </div>
+        </div>
+        <div class="flex flex-wrap items-center gap-4 text-sm text-gray-500">
+          <span class="flex items-center gap-2">
+            <i class="fas fa-clock text-gray-400"></i>
+            Last updated: <%= new Date().toLocaleString() %>
+          </span>
+          <span class="flex items-center gap-2">
+            <i class="fas fa-sync-alt text-gray-400"></i>
+            Real-time data
+          </span>
+        </div>
       </div>
       
       <!-- Controls -->
-      <div class="flex items-center gap-3">
-        <form method="GET" class="flex gap-2">
-          <select name="period" onchange="this.form.submit()" 
-                  class="px-4 py-2 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
-            <% const currentPeriod = typeof period !== 'undefined' ? period : 'today'; %>
-            <option value="today" <%= currentPeriod === 'today' ? 'selected' : '' %>>Today</option>
-            <option value="yesterday" <%= currentPeriod === 'yesterday' ? 'selected' : '' %>>Yesterday</option>
-            <option value="week" <%= currentPeriod === 'week' ? 'selected' : '' %>>This Week</option>
-            <option value="month" <%= currentPeriod === 'month' ? 'selected' : '' %>>This Month</option>
-            <option value="quarter" <%= currentPeriod === 'quarter' ? 'selected' : '' %>>This Quarter</option>
-            <option value="year" <%= currentPeriod === 'year' ? 'selected' : '' %>>This Year</option>
-            <option value="last7days" <%= currentPeriod === 'last7days' ? 'selected' : '' %>>Last 7 Days</option>
-            <option value="last30days" <%= currentPeriod === 'last30days' ? 'selected' : '' %>>Last 30 Days</option>
-            <option value="last90days" <%= currentPeriod === 'last90days' ? 'selected' : '' %>>Last 90 Days</option>
-          </select>
+      <div class="flex flex-col sm:flex-row gap-3 lg:gap-4 lg:items-center lg:justify-end">
+        <!-- Period Filter -->
+        <form method="GET" class="flex-1 sm:flex-none">
+          <div class="relative">
+            <select name="period" onchange="this.form.submit()" 
+                    class="w-full sm:w-auto px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-medium shadow-sm hover:border-gray-300 transition-all appearance-none pr-10">
+              <% const currentPeriod = typeof period !== 'undefined' ? period : 'today'; %>
+              <option value="today" <%= currentPeriod === 'today' ? 'selected' : '' %>>📅 Today</option>
+              <option value="yesterday" <%= currentPeriod === 'yesterday' ? 'selected' : '' %>>📅 Yesterday</option>
+              <option value="week" <%= currentPeriod === 'week' ? 'selected' : '' %>>📅 This Week</option>
+              <option value="month" <%= currentPeriod === 'month' ? 'selected' : '' %>>📅 This Month</option>
+              <option value="quarter" <%= currentPeriod === 'quarter' ? 'selected' : '' %>>📅 This Quarter</option>
+              <option value="year" <%= currentPeriod === 'year' ? 'selected' : '' %>>📅 This Year</option>
+              <option value="last7days" <%= currentPeriod === 'last7days' ? 'selected' : '' %>>📊 Last 7 Days</option>
+              <option value="last30days" <%= currentPeriod === 'last30days' ? 'selected' : '' %>>📊 Last 30 Days</option>
+              <option value="last90days" <%= currentPeriod === 'last90days' ? 'selected' : '' %>>📊 Last 90 Days</option>
+            </select>
+            <i class="fas fa-chevron-down absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+          </div>
         </form>
         
-        <div class="flex gap-3">
+        <!-- Action Buttons -->
+        <div class="flex gap-2 sm:gap-3">
           <a href="/admin/v1/order" 
-             class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all text-sm font-medium text-gray-700 shadow-sm">
-            <i class="fas fa-shopping-cart text-gray-500"></i>Orders
+             class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-3 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all text-sm font-medium text-gray-700 shadow-sm">
+            <i class="fas fa-shopping-cart text-gray-500"></i>
+            <span class="hidden sm:inline">Orders</span>
           </a>
-          <div class="relative">
-            <button onclick="toggleExportMenu()" class="inline-flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all text-sm font-medium shadow-lg hover:shadow-xl">
-              <i class="fas fa-download"></i>Export <i class="fas fa-chevron-down text-xs ml-1"></i>
+          
+          <div class="relative flex-1 sm:flex-none">
+            <button onclick="toggleExportMenu()" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all text-sm font-medium shadow-lg hover:shadow-xl">
+              <i class="fas fa-download"></i>
+              <span>Export</span>
+              <i class="fas fa-chevron-down text-xs"></i>
             </button>
-            <div id="exportMenu" class="hidden absolute right-0 mt-3 w-52 bg-white rounded-xl shadow-xl border border-gray-200 z-20 overflow-hidden">
+            <div id="exportMenu" class="hidden absolute right-0 mt-3 w-full sm:w-56 bg-white rounded-xl shadow-xl border border-gray-200 z-20 overflow-hidden">
               <div class="p-2">
                 <a href="/admin/dashboard/export/excel" class="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 rounded-lg transition-colors">
                   <i class="fas fa-file-excel text-green-600 text-lg"></i>
@@ -92,7 +117,7 @@
     <% } %>
 
     <!-- Key Metrics Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
       <!-- Total Orders -->
       <div class="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden">
         <div class="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-full -mr-10 -mt-10"></div>
@@ -200,27 +225,27 @@
     </div>
 
     <!-- Charts Row -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
       <!-- Sales Trend Chart -->
-      <div class="lg:col-span-2 bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-lg transition-shadow">
-        <div class="flex items-center justify-between mb-6">
+      <div class="xl:col-span-2 bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 shadow-sm hover:shadow-lg transition-shadow">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-3">
           <div>
-            <h3 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+            <h3 class="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
               <i class="fas fa-chart-line text-blue-600"></i>
               Sales Trend
             </h3>
-            <p class="text-sm text-gray-500 mt-1">
+            <p class="text-xs sm:text-sm text-gray-500 mt-1">
               <%= new Date(dateRange.startDate).toLocaleDateString() %> - <%= new Date(dateRange.endDate).toLocaleDateString() %>
             </p>
           </div>
-          <div class="flex items-center gap-4">
-            <div class="flex items-center gap-2 bg-blue-50 px-3 py-2 rounded-lg">
-              <div class="w-3 h-3 bg-blue-500 rounded-full"></div>
-              <span class="text-sm font-medium text-blue-700">Revenue</span>
+          <div class="flex items-center gap-2 sm:gap-4">
+            <div class="flex items-center gap-2 bg-blue-50 px-2 sm:px-3 py-1 sm:py-2 rounded-lg">
+              <div class="w-2 h-2 sm:w-3 sm:h-3 bg-blue-500 rounded-full"></div>
+              <span class="text-xs sm:text-sm font-medium text-blue-700">Revenue</span>
             </div>
-            <div class="flex items-center gap-2 bg-green-50 px-3 py-2 rounded-lg">
-              <div class="w-3 h-3 bg-green-500 rounded-full"></div>
-              <span class="text-sm font-medium text-green-700">Orders</span>
+            <div class="flex items-center gap-2 bg-green-50 px-2 sm:px-3 py-1 sm:py-2 rounded-lg">
+              <div class="w-2 h-2 sm:w-3 sm:h-3 bg-green-500 rounded-full"></div>
+              <span class="text-xs sm:text-sm font-medium text-green-700">Orders</span>
             </div>
           </div>
         </div>
@@ -241,13 +266,13 @@
       </div>
 
       <!-- Order Status Distribution -->
-      <div class="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-lg transition-shadow">
-        <div class="mb-6">
-          <h3 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+      <div class="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 shadow-sm hover:shadow-lg transition-shadow">
+        <div class="mb-4 sm:mb-6">
+          <h3 class="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-2">
             <i class="fas fa-chart-pie text-purple-600"></i>
             Order Status
           </h3>
-          <p class="text-sm text-gray-500 mt-1">Current period breakdown</p>
+          <p class="text-xs sm:text-sm text-gray-500 mt-1">Current period breakdown</p>
         </div>
         
         <% if (orderStatusAnalytics && orderStatusAnalytics.raw && orderStatusAnalytics.raw.length > 0) { %>
@@ -318,12 +343,12 @@
     </div>
 
     <!-- Top Performance Section -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
       <!-- Top Products -->
-      <div class="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-lg transition-all duration-300">
-        <div class="flex items-center justify-between mb-4">
+      <div class="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 shadow-sm hover:shadow-lg transition-all duration-300">
+        <div class="flex items-center justify-between mb-3 sm:mb-4">
           <div>
-            <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+            <h3 class="text-base sm:text-lg font-bold text-gray-900 flex items-center gap-2">
               <i class="fas fa-trophy text-yellow-500"></i>
               Top Products
             </h3>
@@ -360,10 +385,10 @@
       </div>
 
       <!-- Top Categories -->
-      <div class="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-lg transition-all duration-300">
-        <div class="flex items-center justify-between mb-4">
+      <div class="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 shadow-sm hover:shadow-lg transition-all duration-300">
+        <div class="flex items-center justify-between mb-3 sm:mb-4">
           <div>
-            <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+            <h3 class="text-base sm:text-lg font-bold text-gray-900 flex items-center gap-2">
               <i class="fas fa-tags text-purple-500"></i>
               Top Categories
             </h3>
@@ -398,10 +423,10 @@
       </div>
 
       <!-- Top Brands -->
-      <div class="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-lg transition-all duration-300">
-        <div class="flex items-center justify-between mb-4">
+      <div class="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 shadow-sm hover:shadow-lg transition-all duration-300">
+        <div class="flex items-center justify-between mb-3 sm:mb-4">
           <div>
-            <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+            <h3 class="text-base sm:text-lg font-bold text-gray-900 flex items-center gap-2">
               <i class="fas fa-award text-orange-500"></i>
               Top Brands
             </h3>
@@ -437,12 +462,12 @@
     </div>
 
     <!-- Secondary Analytics -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
       <!-- Top SubCategories -->
-      <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-        <div class="flex items-center justify-between mb-6">
-          <h3 class="text-lg font-semibold text-gray-800">📋 Top SubCategories</h3>
-          <a href="/admin/v1/parameters/subcategories" class="text-sm text-blue-600 hover:text-blue-800">View All</a>
+      <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-4 sm:p-6">
+        <div class="flex items-center justify-between mb-4 sm:mb-6">
+          <h3 class="text-base sm:text-lg font-semibold text-gray-800">📋 Top SubCategories</h3>
+          <a href="/admin/v1/parameters/subcategories" class="text-xs sm:text-sm text-blue-600 hover:text-blue-800">View All</a>
         </div>
         
         <div class="space-y-4">
@@ -475,10 +500,10 @@
       </div>
 
       <!-- Top Types -->
-      <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-        <div class="flex items-center justify-between mb-6">
-          <h3 class="text-lg font-semibold text-gray-800">🔖 Top Types</h3>
-          <a href="/admin/v1/parameters/types" class="text-sm text-blue-600 hover:text-blue-800">View All</a>
+      <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-4 sm:p-6">
+        <div class="flex items-center justify-between mb-4 sm:mb-6">
+          <h3 class="text-base sm:text-lg font-semibold text-gray-800">🔖 Top Types</h3>
+          <a href="/admin/v1/parameters/types" class="text-xs sm:text-sm text-blue-600 hover:text-blue-800">View All</a>
         </div>
         
         <div class="space-y-4">
@@ -512,12 +537,12 @@
     </div>
 
     <!-- SubCategories and Types -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
       <!-- Recent Movements -->
-      <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-        <div class="flex items-center justify-between mb-6">
-          <h3 class="text-lg font-semibold text-gray-800">📈 Recent Movements</h3>
-          <a href="/admin/inventory/movements" class="text-sm text-blue-600 hover:text-blue-800">View All</a>
+      <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-4 sm:p-6">
+        <div class="flex items-center justify-between mb-4 sm:mb-6">
+          <h3 class="text-base sm:text-lg font-semibold text-gray-800">📈 Recent Movements</h3>
+          <a href="/admin/inventory/movements" class="text-xs sm:text-sm text-blue-600 hover:text-blue-800">View All</a>
         </div>
         
         <div class="space-y-4">
@@ -550,10 +575,10 @@
       </div>
 
       <!-- Inventory Alerts -->
-      <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-        <div class="flex items-center justify-between mb-6">
-          <h3 class="text-lg font-semibold text-gray-800">⚠️ Inventory Alerts</h3>
-          <a href="/admin/inventory/low-stock" class="text-sm text-blue-600 hover:text-blue-800">View All</a>
+      <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-4 sm:p-6">
+        <div class="flex items-center justify-between mb-4 sm:mb-6">
+          <h3 class="text-base sm:text-lg font-semibold text-gray-800">⚠️ Inventory Alerts</h3>
+          <a href="/admin/inventory/low-stock" class="text-xs sm:text-sm text-blue-600 hover:text-blue-800">View All</a>
         </div>
         
         <div class="space-y-4">
@@ -650,12 +675,12 @@
     </div>
 
     <!-- Activity & Alerts Section -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
       <!-- Recent Orders -->
-      <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-        <div class="flex items-center justify-between mb-6">
-          <h3 class="text-lg font-semibold text-gray-800">🛒 Recent Orders</h3>
-          <a href="/admin/v1/order" class="text-sm text-blue-600 hover:text-blue-800">View All</a>
+      <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-4 sm:p-6">
+        <div class="flex items-center justify-between mb-4 sm:mb-6">
+          <h3 class="text-base sm:text-lg font-semibold text-gray-800">🛒 Recent Orders</h3>
+          <a href="/admin/v1/order" class="text-xs sm:text-sm text-blue-600 hover:text-blue-800">View All</a>
         </div>
         
         <div class="space-y-4">

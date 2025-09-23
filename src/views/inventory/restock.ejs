@@ -1,37 +1,37 @@
 <%- include('../partials/header', { title: title }) %>
 
-<div class="max-w-4xl mx-auto">
+<div class="max-w-4xl mx-auto px-4 sm:px-6">
   <!-- Header -->
-  <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-    <div class="flex items-center justify-between">
+  <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 mb-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-3">
+        <h1 class="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-3">
           <div class="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center">
             <i class="fas fa-plus text-white"></i>
           </div>
           Restock Inventory
         </h1>
-        <p class="text-gray-600 mt-1">Add stock to existing products</p>
+        <p class="text-gray-600 mt-1 text-sm sm:text-base">Add stock to existing products</p>
       </div>
-      <a href="/admin/v1/inventory/low-stock" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors">
-        <i class="fas fa-arrow-left mr-2"></i>
-        Back to Alerts
+      <a href="/admin/v1/inventory/low-stock" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors text-sm font-medium flex items-center justify-center gap-2">
+        <i class="fas fa-arrow-left"></i>
+        <span>Back to Alerts</span>
       </a>
     </div>
   </div>
 
   <!-- Restock Form -->
-  <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-    <form action="/admin/v1/inventory/restock" method="POST" class="space-y-6">
+  <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+    <form action="/admin/v1/inventory/restock" method="POST" class="space-y-4 sm:space-y-6">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       <!-- Product Selection -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <div>
           <label for="productId" class="block text-sm font-medium text-gray-700 mb-2">
             <i class="fas fa-box text-blue-500 mr-2"></i>
             Select Product
           </label>
-          <select id="productId" name="productId" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          <select id="productId" name="productId" required class="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base">
             <option value="">Choose a product...</option>
             <% products.forEach(product => { %>
               <option value="<%= product._id %>" <%= productId === product._id.toString() ? 'selected' : '' %>>
@@ -46,47 +46,37 @@
             <i class="fas fa-tag text-purple-500 mr-2"></i>
             Variant SKU
           </label>
-          <select id="variantSku" name="variantSku" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          <select id="variantSku" name="variantSku" required class="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base">
             <option value="">Select product first...</option>
           </select>
         </div>
       </div>
 
       <!-- Current Stock Info -->
-      <div id="currentStockInfo" class="hidden bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <div class="flex items-center gap-3">
-          <i class="fas fa-info-circle text-blue-500"></i>
+      <div id="currentStockInfo" class="hidden bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4">
+        <div class="flex items-start sm:items-center gap-3">
+          <i class="fas fa-info-circle text-blue-500 mt-1 sm:mt-0"></i>
           <div>
-            <p class="font-medium text-blue-900">Current Stock Information</p>
-            <p class="text-sm text-blue-700">
-              Current Stock: <span id="currentStock" class="font-semibold">0</span> units
-              | Low Stock Alert: <span id="lowStockAlert" class="font-semibold">0</span> units
-            </p>
+            <p class="font-medium text-blue-900 text-sm sm:text-base">Current Stock Information</p>
+            <div class="text-xs sm:text-sm text-blue-700 mt-1">
+              <div class="flex flex-col sm:flex-row sm:gap-4">
+                <span>Current Stock: <span id="currentStock" class="font-semibold">0</span> units</span>
+                <span>Low Stock Alert: <span id="lowStockAlert" class="font-semibold">0</span> units</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- Restock Details -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label for="quantity" class="block text-sm font-medium text-gray-700 mb-2">
-            <i class="fas fa-plus-circle text-green-500 mr-2"></i>
-            Quantity to Add
-          </label>
-          <input type="number" id="quantity" name="quantity" min="1" required 
-                 class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                 placeholder="Enter quantity to add">
-        </div>
-
-        <div>
-          <label for="unitCost" class="block text-sm font-medium text-gray-700 mb-2">
-            <i class="fas fa-rupee-sign text-yellow-500 mr-2"></i>
-            Unit Cost (Optional)
-          </label>
-          <input type="number" id="unitCost" name="unitCost" min="0" step="0.01"
-                 class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                 placeholder="Cost per unit">
-        </div>
+      <div>
+        <label for="quantity" class="block text-sm font-medium text-gray-700 mb-2">
+          <i class="fas fa-plus-circle text-green-500 mr-2"></i>
+          Quantity to Add
+        </label>
+        <input type="number" id="quantity" name="quantity" min="1" required 
+               class="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
+               placeholder="Enter quantity to add">
       </div>
 
       <!-- Notes -->
@@ -96,33 +86,32 @@
           Notes
         </label>
         <textarea id="notes" name="notes" rows="3" 
-                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  class="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                   placeholder="Add notes about this restock (supplier, reason, etc.)"></textarea>
       </div>
 
       <!-- New Stock Preview -->
-      <div id="stockPreview" class="hidden bg-green-50 border border-green-200 rounded-lg p-4">
-        <div class="flex items-center gap-3">
-          <i class="fas fa-calculator text-green-500"></i>
+      <div id="stockPreview" class="hidden bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4">
+        <div class="flex items-start sm:items-center gap-3">
+          <i class="fas fa-calculator text-green-500 mt-1 sm:mt-0"></i>
           <div>
-            <p class="font-medium text-green-900">Stock Preview</p>
-            <p class="text-sm text-green-700">
+            <p class="font-medium text-green-900 text-sm sm:text-base">Stock Preview</p>
+            <p class="text-xs sm:text-sm text-green-700 mt-1">
               New Stock Level: <span id="newStockLevel" class="font-semibold">0</span> units
-              <span id="costInfo" class="ml-2"></span>
             </p>
           </div>
         </div>
       </div>
 
       <!-- Submit Button -->
-      <div class="flex items-center justify-between pt-4 border-t border-gray-200">
-        <a href="/admin/v1/inventory/low-stock" class="text-gray-600 hover:text-gray-800 font-medium">
-          <i class="fas fa-times mr-2"></i>
-          Cancel
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t border-gray-200">
+        <a href="/admin/v1/inventory/low-stock" class="text-gray-600 hover:text-gray-800 font-medium text-sm sm:text-base flex items-center justify-center sm:justify-start gap-2">
+          <i class="fas fa-times"></i>
+          <span>Cancel</span>
         </a>
-        <button type="submit" class="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-3 rounded-lg hover:shadow-lg transition-all font-medium">
-          <i class="fas fa-plus mr-2"></i>
-          Add Stock
+        <button type="submit" class="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-3 rounded-lg hover:shadow-lg transition-all font-medium text-sm sm:text-base flex items-center justify-center gap-2">
+          <i class="fas fa-plus"></i>
+          <span>Add Stock</span>
         </button>
       </div>
     </form>
@@ -134,13 +123,11 @@ document.addEventListener('DOMContentLoaded', function() {
   const productSelect = document.getElementById('productId');
   const variantSelect = document.getElementById('variantSku');
   const quantityInput = document.getElementById('quantity');
-  const unitCostInput = document.getElementById('unitCost');
   const currentStockInfo = document.getElementById('currentStockInfo');
   const stockPreview = document.getElementById('stockPreview');
   const currentStockSpan = document.getElementById('currentStock');
   const lowStockAlertSpan = document.getElementById('lowStockAlert');
   const newStockLevelSpan = document.getElementById('newStockLevel');
-  const costInfoSpan = document.getElementById('costInfo');
 
   let currentVariantData = null;
 
@@ -209,9 +196,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
-  // Quantity and cost input changes
+  // Quantity input changes
   quantityInput.addEventListener('input', updateStockPreview);
-  unitCostInput.addEventListener('input', updateStockPreview);
 
   function updateStockPreview() {
     if (!currentVariantData || !quantityInput.value) {
@@ -220,18 +206,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     const quantity = parseInt(quantityInput.value) || 0;
-    const unitCost = parseFloat(unitCostInput.value) || 0;
     const newStock = currentVariantData.stock + quantity;
 
     newStockLevelSpan.textContent = newStock;
-    
-    if (unitCost > 0) {
-      const totalCost = quantity * unitCost;
-      costInfoSpan.textContent = `(Total Cost: ₹${totalCost.toLocaleString()})`;
-    } else {
-      costInfoSpan.textContent = '';
-    }
-
     stockPreview.classList.remove('hidden');
   }
 

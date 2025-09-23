@@ -1,19 +1,30 @@
 ﻿<%- include('../partials/header.ejs', { title: `Reviews - ${product.title}` }) %>
 
 <!-- Navigation -->
-<nav class="flex flex-wrap gap-3 mb-8 p-4 bg-white rounded-xl shadow-sm border border-gray-100 items-center">
-  <a href="/admin/v1/staff/dashboard" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition">
-    <i class="fa fa-home"></i> Dashboard
-  </a>
-  <a href="/admin/v1/products" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-50 text-gray-700 hover:bg-gray-100 transition">
-    <i class="fa fa-box"></i> Products
-  </a>
-  <a href="/admin/v1/products/<%= product._id %>" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-50 text-gray-700 hover:bg-gray-100 transition">
-    <i class="fa fa-eye"></i> <%= product.title.length > 30 ? product.title.substring(0, 30) + '...' : product.title %>
-  </a>
-  <span class="px-4 py-2 rounded-lg bg-yellow-100 text-yellow-700 flex items-center gap-2">
-    <i class="fa fa-star"></i> Reviews
-  </span>
+<nav class="mb-6 sm:mb-8">
+  <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-3 sm:p-4">
+    <div class="flex flex-wrap items-center gap-2 text-sm">
+      <a href="/admin/v1/staff/dashboard" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors">
+        <i class="fa fa-home text-xs"></i>
+        <span class="hidden sm:inline">Dashboard</span>
+      </a>
+      <i class="fa fa-chevron-right text-gray-400 text-xs"></i>
+      <a href="/admin/v1/products" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors">
+        <i class="fa fa-box text-xs"></i>
+        <span class="hidden sm:inline">Products</span>
+      </a>
+      <i class="fa fa-chevron-right text-gray-400 text-xs"></i>
+      <a href="/admin/v1/products/<%= product._id %>" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors max-w-48">
+        <i class="fa fa-eye text-xs"></i>
+        <span class="truncate"><%= product.title.length > 25 ? product.title.substring(0, 25) + '...' : product.title %></span>
+      </a>
+      <i class="fa fa-chevron-right text-gray-400 text-xs"></i>
+      <span class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-yellow-50 text-yellow-700 font-medium">
+        <i class="fa fa-star text-xs"></i>
+        Reviews
+      </span>
+    </div>
+  </div>
 </nav>
 
 <main class="container mx-auto max-w-7xl px-4 mt-8">
@@ -38,57 +49,93 @@
     </div>
   <% } %>
 
-  <!-- Product & Review Header -->
-  <div class="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-6 mb-8 border border-yellow-100">
-    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-      <div class="flex items-center gap-4">
-        <% if (product.images && product.images.length > 0) { %>
-          <img src="/uploads/products/<%= product.images[0] %>" alt="<%= product.title %>" class="w-16 h-16 object-cover rounded-lg border">
-        <% } else { %>
-          <div class="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
-            <i class="fa fa-image text-gray-400"></i>
-          </div>
-        <% } %>
-        <div>
-          <h1 class="text-2xl font-bold text-gray-800"><%= product.title %></h1>
-          <p class="text-gray-600">Product ID: <%= product._id %></p>
-          <div class="flex items-center gap-4 mt-2">
-            <span class="px-3 py-1 text-sm font-medium rounded-full <%= product.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' %>">
-              <%= product.status.charAt(0).toUpperCase() + product.status.slice(1) %>
-            </span>
-            <span class="text-sm text-gray-500">Rs <%= product.price %></span>
+  <!-- Product Header -->
+  <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6 mb-6">
+    <div class="flex flex-col sm:flex-row gap-4 sm:gap-6">
+      <% if (product.images && product.images.length > 0) { %>
+        <img src="/uploads/products/<%= product.images[0] %>" alt="<%= product.title %>" class="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-xl border-2 border-gray-100 flex-shrink-0">
+      <% } else { %>
+        <div class="w-20 h-20 sm:w-24 sm:h-24 bg-gray-100 rounded-xl flex items-center justify-center flex-shrink-0">
+          <i class="fa fa-image text-gray-400 text-xl"></i>
+        </div>
+      <% } %>
+      <div class="min-w-0 flex-1">
+        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+          <div class="min-w-0">
+            <h1 class="text-xl sm:text-2xl font-bold text-gray-900 break-words mb-2"><%= product.title %></h1>
+            <div class="flex flex-wrap items-center gap-3 text-sm text-gray-600">
+              <span class="flex items-center gap-1">
+                <i class="fa fa-tag text-xs"></i>
+                ID: <span class="font-mono text-xs"><%= product._id.toString().slice(-8) %></span>
+              </span>
+              <span class="flex items-center gap-1">
+                <i class="fa fa-rupee-sign text-xs"></i>
+                <%= product.price %>
+              </span>
+              <span class="px-2 py-1 text-xs font-medium rounded-full <%= product.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700' %>">
+                <%= product.status.charAt(0).toUpperCase() + product.status.slice(1) %>
+              </span>
+            </div>
           </div>
         </div>
       </div>
-      
-      <!-- Review Stats -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white rounded-lg p-4 text-center shadow-sm">
-          <div class="text-2xl font-bold text-yellow-600"><%= product.rating || 0 %></div>
-          <div class="text-xs text-gray-500">Average Rating</div>
+    </div>
+  </div>
+
+  <!-- Review Stats -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-4 border border-yellow-200">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-2xl font-bold text-yellow-700"><%= product.rating || 0 %></div>
+          <div class="text-sm text-yellow-600 font-medium">Average Rating</div>
         </div>
-        <div class="bg-white rounded-lg p-4 text-center shadow-sm">
-          <div class="text-2xl font-bold text-blue-600"><%= reviews.length %></div>
-          <div class="text-xs text-gray-500">Total Reviews</div>
+        <div class="w-10 h-10 bg-yellow-200 rounded-lg flex items-center justify-center">
+          <i class="fa fa-star text-yellow-600"></i>
         </div>
-        <div class="bg-white rounded-lg p-4 text-center shadow-sm">
-          <div class="text-2xl font-bold text-yellow-600"><%= reviews.filter(r => r.status === 'pending').length %></div>
-          <div class="text-xs text-gray-500">Pending</div>
+      </div>
+    </div>
+    <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-2xl font-bold text-blue-700"><%= reviews.length %></div>
+          <div class="text-sm text-blue-600 font-medium">Total Reviews</div>
         </div>
-        <div class="bg-white rounded-lg p-4 text-center shadow-sm">
-          <div class="text-2xl font-bold text-green-600"><%= reviews.filter(r => r.status === 'approved').length %></div>
-          <div class="text-xs text-gray-500">Approved</div>
+        <div class="w-10 h-10 bg-blue-200 rounded-lg flex items-center justify-center">
+          <i class="fa fa-comments text-blue-600"></i>
+        </div>
+      </div>
+    </div>
+    <div class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4 border border-orange-200">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-2xl font-bold text-orange-700"><%= reviews.filter(function(r) { return r.status === 'pending'; }).length %></div>
+          <div class="text-sm text-orange-600 font-medium">Pending</div>
+        </div>
+        <div class="w-10 h-10 bg-orange-200 rounded-lg flex items-center justify-center">
+          <i class="fa fa-clock text-orange-600"></i>
+        </div>
+      </div>
+    </div>
+    <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border border-green-200">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="text-2xl font-bold text-green-700"><%= reviews.filter(function(r) { return r.status === 'approved'; }).length %></div>
+          <div class="text-sm text-green-600 font-medium">Approved</div>
+        </div>
+        <div class="w-10 h-10 bg-green-200 rounded-lg flex items-center justify-center">
+          <i class="fa fa-check text-green-600"></i>
         </div>
       </div>
     </div>
   </div>
 
   <!-- Filters & Bulk Actions -->
-  <div class="bg-white rounded-xl shadow-sm p-6 mb-6 border border-gray-100">
-    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+  <div class="bg-white rounded-xl shadow-sm p-4 sm:p-6 mb-6 border border-gray-100">
+    <div class="flex flex-col gap-4">
       <!-- Filters -->
-      <form method="GET" class="flex flex-wrap gap-4 items-end">
-        <div class="min-w-48">
+      <form method="GET" class="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-end">
+        <div class="flex-1 min-w-0">
           <label class="block text-sm font-medium text-gray-700 mb-2">Filter by Status</label>
           <select name="status" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
             <option value="all" <%= filters.status === 'all' ? 'selected' : '' %>>All Reviews</option>
@@ -97,21 +144,23 @@
             <option value="rejected" <%= filters.status === 'rejected' ? 'selected' : '' %>>Rejected</option>
           </select>
         </div>
-        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2">
-          <i class="fa fa-filter"></i> Apply
-        </button>
-        <a href="/admin/v1/products/<%= product._id %>/reviews" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition flex items-center gap-2">
-          <i class="fa fa-refresh"></i> Clear
-        </a>
+        <div class="flex gap-2">
+          <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2 whitespace-nowrap">
+            <i class="fa fa-filter"></i> Apply
+          </button>
+          <a href="/admin/v1/products/<%= product._id %>/reviews" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition flex items-center gap-2 whitespace-nowrap">
+            <i class="fa fa-refresh"></i> Clear
+          </a>
+        </div>
       </form>
       
       <!-- Bulk Actions -->
-      <% if (reviews.filter(r => r.status === 'pending').length > 0) { %>
-        <div class="flex items-center gap-3">
+      <% if (reviews.filter(function(r) { return r.status === 'pending'; }).length > 0) { %>
+        <div class="flex flex-col sm:flex-row sm:items-center gap-3 pt-4 border-t border-gray-100">
           <span class="text-sm text-gray-600">
-            <%= reviews.filter(r => r.status === 'pending').length %> pending reviews
+            <%= reviews.filter(function(r) { return r.status === 'pending'; }).length %> pending reviews
           </span>
-          <button onclick="bulkApprove()" class="px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition text-sm">
+          <button onclick="bulkApprove()" class="px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition text-sm whitespace-nowrap">
             <i class="fa fa-check"></i> Approve All Pending
           </button>
         </div>
@@ -124,84 +173,107 @@
     <% if (reviews && reviews.length > 0) { %>
       <div class="divide-y divide-gray-200">
         <% reviews.forEach((review, index) => { %>
-          <div class="p-6 hover:bg-gray-50 transition-colors">
-            <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+          <div class="p-4 sm:p-6 hover:bg-gray-50/50 transition-all duration-200">
+            <div class="flex flex-col lg:flex-row gap-4 lg:gap-6">
               <!-- Review Content -->
-              <div class="flex-1">
-                <div class="flex items-center gap-4 mb-3">
-                  <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+              <div class="flex-1 min-w-0">
+                <!-- User Info -->
+                <div class="flex items-start gap-3 mb-4">
+                  <div class="w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center flex-shrink-0">
                     <i class="fa fa-user text-blue-600"></i>
                   </div>
-                  <div>
-                    <h4 class="font-semibold text-gray-900"><%= review.user?.fullname || 'Anonymous User' %></h4>
-                    <div class="flex items-center gap-3">
-                      <div class="flex items-center gap-1">
-                        <% for (let i = 1; i <= 5; i++) { %>
-                          <% if (i <= review.rating) { %>
-                            <i class="fa fa-star text-sm text-yellow-400"></i>
-                          <% } else if (i - 0.5 <= review.rating) { %>
-                            <i class="fa fa-star-half-alt text-sm text-yellow-400"></i>
-                          <% } else { %>
-                            <i class="fa fa-star text-sm text-gray-300"></i>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <div>
+                        <h4 class="font-semibold text-gray-900 break-words"><%= review.user?.fullname || 'Anonymous User' %></h4>
+                        <div class="flex flex-wrap items-center gap-2 text-sm text-gray-500">
+                          <span class="flex items-center gap-1">
+                            <i class="fa fa-calendar text-xs"></i>
+                            <%= new Date(review.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) %>
+                          </span>
+                          <% if (review.verified) { %>
+                            <span class="flex items-center gap-1 text-green-600 font-medium">
+                              <i class="fa fa-shield-check text-xs"></i>
+                              Verified
+                            </span>
                           <% } %>
-                        <% } %>
+                        </div>
                       </div>
-                      <span class="text-sm font-medium text-gray-700"><%= review.rating %>/5</span>
-                      <span class="text-sm text-gray-500">•</span>
-                      <span class="text-sm text-gray-500"><%= new Date(review.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) %></span>
+                      <!-- Status Badge -->
+                      <span class="px-3 py-1 text-sm font-medium rounded-full <%= review.status === 'approved' ? 'bg-green-100 text-green-700 border border-green-200' : review.status === 'pending' ? 'bg-orange-100 text-orange-700 border border-orange-200' : 'bg-red-100 text-red-700 border border-red-200' %>">
+                        <%= review.status.charAt(0).toUpperCase() + review.status.slice(1) %>
+                      </span>
                     </div>
                   </div>
                 </div>
                 
-                <div class="bg-gray-50 rounded-lg p-4 mb-3">
-                  <p class="text-gray-700 leading-relaxed"><%= review.review %></p>
+                <!-- Rating -->
+                <div class="flex items-center gap-3 mb-4">
+                  <div class="flex items-center gap-1">
+                    <% for (let i = 1; i <= 5; i++) { %>
+                      <% if (i <= review.rating) { %>
+                        <i class="fa fa-star text-yellow-400"></i>
+                      <% } else if (i - 0.5 <= review.rating) { %>
+                        <i class="fa fa-star-half-alt text-yellow-400"></i>
+                      <% } else { %>
+                        <i class="fa fa-star text-gray-300"></i>
+                      <% } %>
+                    <% } %>
+                  </div>
+                  <span class="text-sm font-semibold text-gray-700 bg-gray-100 px-2 py-1 rounded"><%= review.rating %>/5</span>
                 </div>
                 
-                <!-- Review Metadata -->
-                <div class="flex items-center gap-4 text-xs text-gray-500">
-                  <span>ID: <%= review._id %></span>
-                  <span>User: <%= review.user?.email || 'N/A' %></span>
-                  <% if (review.verified) { %>
-                    <span class="flex items-center gap-1 text-green-600">
-                      <i class="fa fa-shield-check"></i> Verified
-                    </span>
-                  <% } %>
-                  <span>Updated: <%= new Date(review.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) %></span>
+                <!-- Review Text -->
+                <div class="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-4 mb-4 border border-gray-200">
+                  <p class="text-gray-700 leading-relaxed break-words"><%= review.review %></p>
+                </div>
+                
+                <!-- Metadata -->
+                <div class="flex flex-wrap items-center gap-3 text-xs text-gray-500 bg-gray-50 rounded-lg p-3">
+                  <span class="flex items-center gap-1">
+                    <i class="fa fa-hashtag"></i>
+                    <span class="font-mono"><%= review._id.toString().slice(-8) %></span>
+                  </span>
+                  <span class="flex items-center gap-1">
+                    <i class="fa fa-envelope"></i>
+                    <span class="break-all"><%= review.user?.email || 'N/A' %></span>
+                  </span>
+                  <span class="flex items-center gap-1">
+                    <i class="fa fa-clock"></i>
+                    Updated <%= new Date(review.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) %>
+                  </span>
                 </div>
               </div>
               
               <!-- Actions -->
-              <div class="flex flex-col items-end gap-3">
-                <span class="px-3 py-1 text-sm font-medium rounded-full <%= review.status === 'approved' ? 'bg-green-100 text-green-800' : review.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800' %>">
-                  <%= review.status.charAt(0).toUpperCase() + review.status.slice(1) %>
-                </span>
-                
-                <div class="flex items-center gap-2">
-                  <% if (review.status !== 'approved') { %>
-                    <form method="POST" action="/admin/v1/reviews/<%= review._id %>/approve" class="inline">
-                      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                      <button type="submit" class="px-3 py-2 text-sm bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition flex items-center gap-1">
-                        <i class="fa fa-check"></i> Approve
-                      </button>
-                    </form>
-                  <% } %>
-                  
-                  <% if (review.status !== 'rejected') { %>
-                    <form method="POST" action="/admin/v1/reviews/<%= review._id %>/reject" class="inline">
-                      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                      <button type="submit" class="px-3 py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition flex items-center gap-1">
-                        <i class="fa fa-times"></i> Reject
-                      </button>
-                    </form>
-                  <% } %>
-                  
-                  <form method="POST" action="/admin/v1/reviews/<%= review._id %>?_method=DELETE" class="inline">
+              <div class="flex lg:flex-col gap-2 lg:w-32">
+                <% if (review.status !== 'approved') { %>
+                  <form method="POST" action="/admin/v1/reviews/<%= review._id %>/approve" class="flex-1 lg:flex-none">
                     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                    <button type="submit" class="px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition flex items-center gap-1" onclick="return confirm('Are you sure you want to delete this review?')">
-                      <i class="fa fa-trash"></i> Delete
+                    <button type="submit" class="w-full px-4 py-2 text-sm bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors flex items-center justify-center gap-2 border border-green-200 font-medium">
+                      <i class="fa fa-check"></i>
+                      <span class="hidden sm:inline">Approve</span>
                     </button>
                   </form>
-                </div>
+                <% } %>
+                
+                <% if (review.status !== 'rejected') { %>
+                  <form method="POST" action="/admin/v1/reviews/<%= review._id %>/reject" class="flex-1 lg:flex-none">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <button type="submit" class="w-full px-4 py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors flex items-center justify-center gap-2 border border-red-200 font-medium">
+                      <i class="fa fa-times"></i>
+                      <span class="hidden sm:inline">Reject</span>
+                    </button>
+                  </form>
+                <% } %>
+                
+                <form method="POST" action="/admin/v1/reviews/<%= review._id %>?_method=DELETE" class="flex-1 lg:flex-none">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <button type="submit" class="w-full px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 border border-gray-200 font-medium" onclick="return confirm('Are you sure you want to delete this review?')">
+                    <i class="fa fa-trash"></i>
+                    <span class="hidden sm:inline">Delete</span>
+                  </button>
+                </form>
               </div>
             </div>
           </div>
@@ -210,20 +282,22 @@
       
       <!-- Pagination -->
       <% if (pagination && pagination.total > 1) { %>
-        <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-xl">
-          <div class="flex items-center justify-between">
-            <div class="text-sm text-gray-700">
-              Showing page <%= pagination.current %> of <%= pagination.total %>
+        <div class="px-4 sm:px-6 py-4 border-t border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100 rounded-b-xl">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div class="text-sm text-gray-600 text-center sm:text-left">
+              Page <span class="font-semibold text-gray-900"><%= pagination.current %></span> of <span class="font-semibold text-gray-900"><%= pagination.total %></span>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center justify-center gap-2">
               <% if (pagination.hasPrev) { %>
-                <a href="?page=<%= pagination.current - 1 %>&status=<%= filters.status %>" class="px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">
-                  <i class="fa fa-chevron-left"></i> Previous
+                <a href="?page=<%= pagination.current - 1 %>&status=<%= filters.status %>" class="flex items-center gap-2 px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-colors shadow-sm">
+                  <i class="fa fa-chevron-left"></i>
+                  <span class="hidden sm:inline">Previous</span>
                 </a>
               <% } %>
               <% if (pagination.hasNext) { %>
-                <a href="?page=<%= pagination.current + 1 %>&status=<%= filters.status %>" class="px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">
-                  Next <i class="fa fa-chevron-right"></i>
+                <a href="?page=<%= pagination.current + 1 %>&status=<%= filters.status %>" class="flex items-center gap-2 px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-colors shadow-sm">
+                  <span class="hidden sm:inline">Next</span>
+                  <i class="fa fa-chevron-right"></i>
                 </a>
               <% } %>
             </div>
@@ -266,11 +340,21 @@
   </div>
 </main>
 
+<% 
+  var pendingReviewsCount = 0;
+  for (var i = 0; i < reviews.length; i++) {
+    if (reviews[i].status === 'pending') {
+      pendingReviewsCount++;
+    }
+  }
+%>
+
 <!-- Scripts -->
+<div id="reviewData" data-pending-count="<%= pendingReviewsCount %>" style="display: none;"></div>
 <script>
   function bulkApprove() {
-    const pendingCount = <%= reviews.filter(r => r.status === 'pending').length %>;
-    if (confirm(`Are you sure you want to approve all ${pendingCount} pending reviews for this product?`)) {
+    var pendingCount = parseInt(document.getElementById('reviewData').getAttribute('data-pending-count'));
+    if (confirm('Are you sure you want to approve all ' + pendingCount + ' pending reviews for this product?')) {
       alert('Bulk approve feature will be implemented soon. Please use individual approve buttons for now.');
     }
   }

@@ -5,12 +5,27 @@ const path = require('path');
 const secureDeleteFile = (filename) => {
   if (!filename || typeof filename !== 'string') return false;
   
-  // Sanitize filename - remove any path traversal attempts
-  const sanitizedFilename = path.basename(filename);
+  // Remove leading slash and normalize path
+  let cleanPath = filename.replace(/^\/+/, '');
+  
+  // Ensure path starts with 'uploads/'
+  if (!cleanPath.startsWith('uploads/')) {
+    console.warn('Invalid path - must start with uploads/:', filename);
+    return false;
+  }
+  
+  // Remove 'uploads/' prefix to get relative path within uploads dir
+  const relativePath = cleanPath.substring(8); // Remove 'uploads/'
+  
+  // Sanitize path - prevent traversal attacks
+  if (relativePath.includes('..') || relativePath.includes('\\')) {
+    console.warn('Path traversal attempt blocked:', filename);
+    return false;
+  }
   
   // Define allowed upload directory
   const uploadsDir = path.resolve(__dirname, '../../public/uploads');
-  const filePath = path.join(uploadsDir, sanitizedFilename);
+  const filePath = path.join(uploadsDir, relativePath);
   
   // Ensure the resolved path is within the uploads directory
   if (!filePath.startsWith(uploadsDir)) {
