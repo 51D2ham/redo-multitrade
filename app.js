@@ -153,10 +153,12 @@ app.get('/favicon.ico', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'favicon.ico'));
 });
 
-// Test route
-app.get('/api/v1/test', (req, res) => {
-  res.json({ success: true, message: 'Direct route works' });
-});
+// Test route (development only)
+if (process.env.NODE_ENV !== 'production') {
+  app.get('/api/v1/test', (req, res) => {
+    res.json({ success: true, message: 'Direct route works' });
+  });
+}
 
 // API Routes
 app.use('/api/v1/customers', customerApiRouter);
@@ -197,11 +199,14 @@ app.use('/admin/v1/order', orderManagementRoutes);
 app.use('/admin/inventory', inventoryRoutes);
 app.use('/admin/v1/inventory', inventoryRoutes);
 
-// Dashboard redirects
-app.get('/admin/dashboard', (req, res) => res.redirect('/admin/reports/comprehensive'));
-app.get('/dashboard', (req, res) => res.redirect('/admin/reports/comprehensive'));
-app.get('/admin/v1/parameters', (req, res) => res.redirect('/admin/v1/staff/parameter-dashboard'));
-app.get('/', (req, res) => res.redirect('/admin/reports/comprehensive'));
+// Import auth middleware
+const requireAuth = require('./src/middlewares/auth');
+
+// Dashboard redirects (protected)
+app.get('/admin/dashboard', requireAuth, (req, res) => res.redirect('/admin/reports/comprehensive'));
+app.get('/dashboard', requireAuth, (req, res) => res.redirect('/admin/reports/comprehensive'));
+app.get('/admin/v1/parameters', requireAuth, (req, res) => res.redirect('/admin/v1/staff/parameter-dashboard'));
+app.get('/', (req, res) => res.redirect('/admin/v1/staff/login'));
 
 // Debug route (development only)
 if (process.env.NODE_ENV !== 'production') {

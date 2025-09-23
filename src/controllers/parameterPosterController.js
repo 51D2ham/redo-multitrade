@@ -225,7 +225,9 @@ const parameterPosterController = {
       }
 
       if (poster.image) {
-        await upload.deleteFile(poster.image);
+        const { secureDeleteFile } = require('../utils/secureFileHandler');
+        const filename = poster.image.replace('/uploads/', '');
+        secureDeleteFile(filename);
       }
 
       await ParameterPoster.findByIdAndDelete(req.params.id);

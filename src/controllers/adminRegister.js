@@ -457,16 +457,8 @@ const updateAdminRender = async (req, res) => {
     if (req.file) {
       // Delete old image if exists
       if (admin.profileImage) {
-        const oldImagePath = path.resolve(path.join(__dirname, '..', 'public', admin.profileImage));
-        const allowedDir = path.resolve('./src/uploads');
-        if (oldImagePath.startsWith(allowedDir)) {
-          try {
-            await fs.access(oldImagePath);
-            await fs.unlink(oldImagePath);
-          } catch (err) {
-            console.error('Error deleting old profile image:', err);
-          }
-        }
+        const { secureDeleteFile } = require('../utils/secureFileHandler');
+        secureDeleteFile(admin.profileImage);
       }
       
       // Set new image path
@@ -535,16 +527,8 @@ const deleteAdminRender = async (req, res) => {
 
     // Delete profile image if exists
     if (admin.profileImage) {
-      const imagePath = path.resolve(path.join(__dirname, '..', 'public', admin.profileImage));
-      const allowedDir = path.resolve('./src/uploads');
-      if (imagePath.startsWith(allowedDir)) {
-        try {
-          await fs.access(imagePath);
-          await fs.unlink(imagePath);
-        } catch (err) {
-          console.error('Error deleting profile image:', err);
-        }
-      }
+      const { secureDeleteFile } = require('../utils/secureFileHandler');
+      secureDeleteFile(admin.profileImage);
     }
 
     await Admin.findByIdAndDelete(adminId);

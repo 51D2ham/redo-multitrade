@@ -1,12 +1,5 @@
-const fs = require('fs');
-const path = require('path');
 const CompanyInfo = require('../models/companyInfoModel');
-
-function deleteImage(filename) {
-  if (!filename) return;
-  const filePath = path.join(__dirname, '../public/uploads', filename);
-  if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-}
+const { secureDeleteFile } = require('../utils/secureFileHandler');
 
 module.exports = {
   async listCompanyInfo(req, res) {
@@ -82,7 +75,7 @@ module.exports = {
       socialMedia: { facebook, twitter, instagram, linkedin }
     };
     if (req.file) {
-      deleteImage(item.logo);
+      secureDeleteFile(item.logo);
       data.logo = req.file.filename;
     }
     await CompanyInfo.findByIdAndUpdate(item._id, data);
@@ -96,7 +89,7 @@ module.exports = {
       req.flash('error', 'Company information not found');
       return res.redirect(req.baseUrl);
     }
-    deleteImage(item.logo);
+    secureDeleteFile(item.logo);
     await item.deleteOne();
     req.flash('success', 'Company information deleted successfully!');
     res.redirect(req.baseUrl);

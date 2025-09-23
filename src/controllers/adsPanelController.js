@@ -1,12 +1,5 @@
-const fs = require('fs');
-const path = require('path');
 const AdsPanel = require('../models/AdsPanelModel');
-
-function deleteImage(filename) {
-  if (!filename) return;
-  const filePath = path.join(__dirname, '../public/uploads', filename);
-  if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-}
+const { secureDeleteFile } = require('../utils/secureFileHandler');
 
 module.exports = {
   async listAdsPanels(req, res) {
@@ -84,7 +77,7 @@ module.exports = {
     const { title, locationId, link, status } = req.body;
     const data = { title, locationId, link, status };
     if (req.file) {
-      deleteImage(item.image);
+      secureDeleteFile(item.image);
       data.image = req.file.filename;
     }
     await AdsPanel.findByIdAndUpdate(item._id, data);
@@ -102,7 +95,7 @@ module.exports = {
       req.flash('error', 'Ads panel not found');
       return res.redirect(req.baseUrl);
     }
-    deleteImage(item.image);
+    secureDeleteFile(item.image);
     await item.deleteOne();
     req.flash('success', 'Ads panel deleted successfully!');
     res.redirect(req.baseUrl);
