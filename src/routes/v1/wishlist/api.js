@@ -7,37 +7,29 @@ const router = express.Router();
 // Security middleware
 const { sanitizeInput, createRateLimit } = require('../../../middlewares/security');
 
-// Apply security middleware
-router.use(sanitizeInput);
-router.use(createRateLimit(15 * 60 * 1000, 30)); // 30 requests per 15 minutes
-
-// Parse JSON safely
+// Parse JSON first
 router.use(express.json({ limit: '1mb' }));
+router.use(express.urlencoded({ extended: true }));
 
-// Safe JSON parsing middleware
+// Handle text/plain as JSON
+router.use(express.text({ limit: '1mb' }));
 router.use((req, res, next) => {
   if (req.headers['content-type'] === 'text/plain' && typeof req.body === 'string') {
     try {
-      // Validate JSON before parsing to prevent prototype pollution
-      const parsed = JSON.parse(req.body);
-      if (typeof parsed === 'object' && parsed !== null) {
-        req.body = parsed;
-      }
+      req.body = JSON.parse(req.body);
     } catch (e) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Invalid JSON format' 
-      });
+      // If not valid JSON, keep as string
     }
   }
   next();
 });
 
-// Wishlist routes
-router.get('/', customerAuth, wishlistController.getWishlist);
-router.get('/check/:productId', customerAuth, wishlistController.checkWishlistStatus);
-router.post('/items', customerAuth, wishlistController.addToWishlist);
-router.delete('/items/:itemId', customerAuth, wishlistController.removeWishlistItem);
-router.delete('/', customerAuth, wishlistController.clearWishlist);
+// Apply security middleware after parsing
+router.use(createRateLimit(15 * 60 * 1000, 30)); // 30 requests per 15 minutes
+
+// Clean wishlist routes - all under same URL
+router.get('/', customerAuth, wishlistController.getWishlist);        // GET all wishlist items
+router.post('/', customerAuth, wishlistController.toggleWishlist);     // POST add/remove item
+router.delete('/', customerAuth, wishlistController.clearWishlist);    // DELETE clear all
 
 module.exports = router;
