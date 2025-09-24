@@ -60,14 +60,53 @@ const sanitizeInput = (input) => {
 };
 
 // Common filter builder
-const buildProductFilter = (query) => {
+const buildProductFilter = async (query) => {
   const filter = { status: 'active' };
   
-  // ID-based filters
-  if (query.category && isValidObjectId(query.category)) filter.category = query.category;
-  if (query.brand && isValidObjectId(query.brand)) filter.brand = query.brand;
-  if (query.subcategory && isValidObjectId(query.subcategory)) filter.subCategory = query.subcategory;
-  if (query.type && isValidObjectId(query.type)) filter.type = query.type;
+  // Handle category filter (ID or slug)
+  if (query.category) {
+    if (isValidObjectId(query.category)) {
+      filter.category = query.category;
+    } else {
+      const category = await Category.findOne({ slug: query.category, isActive: true });
+      if (category) {
+        filter.category = category._id;
+      }
+    }
+  }
+  
+  // Handle brand filter (ID or slug)
+  if (query.brand) {
+    if (isValidObjectId(query.brand)) {
+      filter.brand = query.brand;
+    } else {
+      const brand = await Brand.findOne({ slug: query.brand });
+      if (brand) filter.brand = brand._id;
+    }
+  }
+  
+  // Handle subcategory filter (ID or slug) - support both subcategory and subCategory
+  const subcategoryParam = query.subcategory || query.subCategory;
+  if (subcategoryParam) {
+    if (isValidObjectId(subcategoryParam)) {
+      filter.subCategory = subcategoryParam;
+    } else {
+      const subcategory = await SubCategory.findOne({ slug: subcategoryParam, isActive: true });
+      if (subcategory) {
+        filter.subCategory = subcategory._id;
+      }
+    }
+  }
+  
+  // Handle type filter (ID or slug)
+  if (query.type) {
+    if (isValidObjectId(query.type)) {
+      filter.type = query.type;
+    } else {
+      const type = await Type.findOne({ slug: query.type });
+      if (type) filter.type = type._id;
+    }
+  }
   
   // Boolean filters
   if (query.featured === 'true') filter.featured = true;
@@ -121,11 +160,15 @@ const buildSort = (sortParam) => {
     price_asc: { 'variants.price': 1 },
     price_desc: { 'variants.price': -1 },
     rating: { rating: -1 },
+    rating_asc: { rating: 1 },
+    rating_desc: { rating: -1 },
     newest: { createdAt: -1 },
     oldest: { createdAt: 1 },
     name_asc: { title: 1 },
     name_desc: { title: -1 },
-    featured: { featured: -1, createdAt: -1 }
+    featured: { featured: -1, createdAt: -1 },
+    asc: { title: 1 },
+    desc: { title: -1 }
   };
   return sortOptions[sortParam] || { createdAt: -1 };
 };
@@ -159,6 +202,7 @@ const transformToLightweight = (product, allSpecs = []) => {
   
   return {
     _id: product._id,
+    slug: product.slug,
     title: product.title,
     thumbnail,
     price,
@@ -170,6 +214,8 @@ const transformToLightweight = (product, allSpecs = []) => {
     totalStock: product.totalStock || 0,
     featured: product.featured || false,
     category: product.category,
+    subCategory: product.subCategory,
+    type: product.type,
     brand: product.brand,
     specs: productSpecs
   };
@@ -693,14 +739,16 @@ module.exports = {
       const limit = Math.min(parseInt(req.query.limit) || 20, 50);
       const skip = (page - 1) * limit;
       
-      const filter = buildProductFilter(req.query);
+      const filter = await buildProductFilter(req.query);
       const sort = buildSort(req.query.sort);
       
       const [products, total] = await Promise.all([
         Product.find(filter)
-          .populate('category', 'name')
-          .populate('brand', 'name')
-          .select('_id title images variants rating reviewCount totalStock featured')
+          .populate('category', 'name slug')
+          .populate('brand', 'name slug')
+          .populate('subCategory', 'name slug')
+          .populate('type', 'name slug')
+          .select('_id slug title images variants rating reviewCount totalStock featured')
           .sort(sort)
           .skip(skip)
           .limit(limit),
