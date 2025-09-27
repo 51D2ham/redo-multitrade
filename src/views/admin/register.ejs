@@ -200,6 +200,10 @@
           >
         </div>
 
+        <!-- Image Validation Errors Container -->
+        <div id="imageValidationErrors" class="mb-4 p-4 rounded-lg bg-red-50 border border-red-200 text-red-800" style="display: none;">
+        </div>
+        
         <!-- Profile Photo Field -->
         <div>
           <label for="photo" class="block text-sm font-medium text-gray-700 mb-1">Profile Photo</label>
@@ -207,10 +211,17 @@
             id="photo" 
             name="photo" 
             type="file" 
-            accept="image/*"
+            accept="image/jpeg,image/jpg,image/png,image/webp"
             class="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
-          <p class="mt-1 text-sm text-gray-500">JPEG or PNG, max 2MB</p>
+          <div class="mt-2 space-y-1">
+            <p class="text-sm text-gray-500">📸 JPEG, PNG, or WebP only • Max 5MB</p>
+            <p class="text-sm text-blue-600">📏 Optional profile photo</p>
+          </div>
+          
+          <!-- Image Preview -->
+          <div id="imagePreview" class="mt-4 grid grid-cols-1 gap-4" style="display: none;">
+          </div>
         </div>
 
         <!-- Submit Buttons -->
@@ -226,5 +237,20 @@
     </div>
   </div>
 </main>
+
+<!-- Image Validation Script -->
+<script src="/js/imageValidation.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const validator = new ImageValidator({
+    maxFileSize: 5 * 1024 * 1024, // 5MB
+    maxFiles: 1,
+    allowedTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'],
+    showPreview: true
+  });
+  
+  validator.initializeInput('photo', 'imagePreview');
+});
+</script>
 
 <%- include('../partials/footer.ejs') %>

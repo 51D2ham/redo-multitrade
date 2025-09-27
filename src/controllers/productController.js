@@ -22,16 +22,31 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024, files: 10 },
+  limits: { 
+    fileSize: 5 * 1024 * 1024, // 5MB per file
+    files: 10 // Maximum 10 files
+  },
   fileFilter: (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|webp/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
+    // Allowed MIME types (matches client-side validation)
+    const allowedMimeTypes = [
+      'image/jpeg',
+      'image/jpg', 
+      'image/png',
+      'image/webp'
+    ];
+    
+    // Allowed file extensions
+    const allowedExtensions = /\.(jpeg|jpg|png|webp)$/i;
+    
+    const mimetype = allowedMimeTypes.includes(file.mimetype.toLowerCase());
+    const extname = allowedExtensions.test(file.originalname.toLowerCase());
     
     if (mimetype && extname) {
       return cb(null, true);
     } else {
-      cb(new Error('Only image files are allowed'));
+      const error = new Error(`Invalid file type: ${file.originalname}. Only JPEG, PNG, and WebP images are allowed.`);
+      error.code = 'INVALID_FILE_TYPE';
+      cb(error);
     }
   }
 });
@@ -368,6 +383,12 @@ module.exports = {
         return res.redirect('/admin/v1/products/new');
       }
 
+      // Validate uploaded images
+      if (!req.files || req.files.length === 0) {
+        req.flash('error', 'At least one product image is required');
+        return res.redirect('/admin/v1/products/new');
+      }
+
       let slug = generateSlug(title);
       const existingProduct = await Product.findOne({ slug });
       if (existingProduct) {
@@ -422,7 +443,20 @@ module.exports = {
       res.redirect('/admin/v1/products');
     } catch (error) {
       console.error('Create product error:', error);
-      req.flash('error', 'Error creating product: ' + error.message);
+      
+      // Handle specific Multer errors
+      if (error.code === 'LIMIT_FILE_SIZE') {
+        req.flash('error', 'File too large. Maximum size is 5MB per image.');
+      } else if (error.code === 'LIMIT_FILE_COUNT') {
+        req.flash('error', 'Too many files. Maximum 10 images allowed.');
+      } else if (error.code === 'INVALID_FILE_TYPE') {
+        req.flash('error', error.message);
+      } else if (error.message && error.message.includes('Only image files are allowed')) {
+        req.flash('error', 'Invalid file type. Only JPEG, PNG, and WebP images are allowed.');
+      } else {
+        req.flash('error', 'Error creating product: ' + error.message);
+      }
+      
       res.redirect('/admin/v1/products/new');
     }
   },
@@ -629,7 +663,20 @@ module.exports = {
       res.redirect('/admin/v1/products');
     } catch (error) {
       console.error('Update product error:', error);
-      req.flash('error', 'Error updating product: ' + error.message);
+      
+      // Handle specific Multer errors
+      if (error.code === 'LIMIT_FILE_SIZE') {
+        req.flash('error', 'File too large. Maximum size is 5MB per image.');
+      } else if (error.code === 'LIMIT_FILE_COUNT') {
+        req.flash('error', 'Too many files. Maximum 10 images allowed.');
+      } else if (error.code === 'INVALID_FILE_TYPE') {
+        req.flash('error', error.message);
+      } else if (error.message && error.message.includes('Only image files are allowed')) {
+        req.flash('error', 'Invalid file type. Only JPEG, PNG, and WebP images are allowed.');
+      } else {
+        req.flash('error', 'Error updating product: ' + error.message);
+      }
+      
       res.redirect(`/admin/v1/products/${req.params.id}/edit`);
     }
   },

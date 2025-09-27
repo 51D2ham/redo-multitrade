@@ -54,17 +54,28 @@
         >
       </div>
 
+      <!-- Image Validation Errors Container -->
+      <div id="imageValidationErrors" class="mb-4 p-4 rounded-lg bg-red-50 border border-red-200 text-red-800" style="display: none;">
+      </div>
+      
       <div>
         <label for="image" class="block font-semibold mb-1 text-gray-700">Image *</label>
         <input
           id="image"
           name="image"
           type="file"
-          accept="image/*"
+          accept="image/jpeg,image/jpg,image/png,image/webp"
           class="w-full p-3 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
           required
         >
-        <p class="text-sm text-gray-500 mt-1">Upload poster image (JPG, PNG, WEBP)</p>
+        <div class="mt-2 space-y-1">
+          <p class="text-sm text-gray-500">📸 JPEG, PNG, or WebP only • Max 5MB</p>
+          <p class="text-sm text-blue-600">📏 Recommended: High resolution poster image</p>
+        </div>
+        
+        <!-- Image Preview -->
+        <div id="imagePreview" class="mt-4 grid grid-cols-1 gap-4" style="display: none;">
+        </div>
       </div>
 
       <div>
@@ -116,8 +127,21 @@
   </div>
 </main>
 
+<!-- Image Validation Script -->
+<script src="/js/imageValidation.js"></script>
+
 <script nonce="<%= cspNonce %>">
 document.addEventListener('DOMContentLoaded', function() {
+  // Initialize image validation
+  const validator = new ImageValidator({
+    maxFileSize: 5 * 1024 * 1024, // 5MB
+    maxFiles: 1,
+    allowedTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'],
+    showPreview: true
+  });
+  
+  validator.initializeInput('image', 'imagePreview');
+  
   const parameterTypeSelect = document.getElementById('parameterType');
   const parameterIdSelect = document.getElementById('parameterId');
   

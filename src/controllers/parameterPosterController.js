@@ -95,7 +95,7 @@ const parameterPosterController = {
       const { title, parameterType, parameterId, status } = req.body;
       
       if (!req.file) {
-        req.flash('error', 'Image is required');
+        req.flash('error', 'Poster image is required');
         return res.redirect('/admin/v1/content/parameter-posters/new');
       }
 
@@ -119,7 +119,17 @@ const parameterPosterController = {
       req.flash('success', 'Parameter poster created successfully');
       res.redirect('/admin/v1/content/parameter-posters');
     } catch (error) {
-      req.flash('error', 'Error: ' + error.message);
+      console.error('Create parameter poster error:', error);
+      
+      // Handle specific Multer errors
+      if (error.code === 'LIMIT_FILE_SIZE') {
+        req.flash('error', 'File too large. Maximum size is 5MB.');
+      } else if (error.code === 'INVALID_FILE_TYPE') {
+        req.flash('error', error.message);
+      } else {
+        req.flash('error', 'Error creating parameter poster: ' + error.message);
+      }
+      
       res.redirect('/admin/v1/content/parameter-posters/new');
     }
   },
@@ -209,7 +219,17 @@ const parameterPosterController = {
       req.flash('success', 'Parameter poster updated successfully');
       res.redirect('/admin/v1/content/parameter-posters');
     } catch (error) {
-      req.flash('error', 'Error: ' + error.message);
+      console.error('Update parameter poster error:', error);
+      
+      // Handle specific Multer errors
+      if (error.code === 'LIMIT_FILE_SIZE') {
+        req.flash('error', 'File too large. Maximum size is 5MB.');
+      } else if (error.code === 'INVALID_FILE_TYPE') {
+        req.flash('error', error.message);
+      } else {
+        req.flash('error', 'Error updating parameter poster: ' + error.message);
+      }
+      
       res.redirect(`/admin/v1/content/parameter-posters/${req.params.id}/edit`);
     }
   },

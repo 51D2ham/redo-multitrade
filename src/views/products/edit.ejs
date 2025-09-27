@@ -135,6 +135,10 @@
       <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <h3 class="text-xl font-bold text-gray-800 mb-4">Product Gallery</h3>
         
+        <!-- Image Validation Errors Container -->
+        <div id="imageValidationErrors" class="mb-4 p-4 rounded-lg bg-red-50 border border-red-200 text-red-800" style="display: none;">
+        </div>
+        
         <!-- Existing Images -->
         <% if (product.images && product.images.length > 0) { %>
           <div class="mb-6">
@@ -159,9 +163,12 @@
         
         <div>
           <label class="block font-semibold mb-2 text-gray-700">Upload Additional Images</label>
-          <input type="file" name="images" multiple accept="image/*" id="imageInput"
+          <input type="file" name="images" multiple accept="image/jpeg,image/jpg,image/png,image/webp" id="imageInput"
                  class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
-          <p class="text-sm text-gray-500 mt-1">Add more product images (JPEG, PNG, WebP • Max 5MB each)</p>
+          <div class="mt-2 space-y-1">
+            <p class="text-sm text-gray-500">📸 Add more images (JPEG, PNG, WebP only)</p>
+            <p class="text-sm text-gray-500">📏 Maximum 5MB per image, up to 10 images total</p>
+          </div>
           
           <!-- Image Preview -->
           <div id="imagePreview" class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4" style="display: none;">
@@ -353,6 +360,9 @@
   </div>
 </div>
 
+<!-- Image Validation Script -->
+<script src="/js/imageValidation.js"></script>
+
 <!-- Server Data -->
 <script id="server-data" type="application/json">
 {
@@ -369,39 +379,15 @@ let variantCount = serverData.variantCount;
 let specificationCount = serverData.specificationCount;
 const availableSpecs = serverData.availableSpecs;
 
-// Image upload preview
-document.getElementById('imageInput').addEventListener('change', function(e) {
-  const files = Array.from(e.target.files);
-  const preview = document.getElementById('imagePreview');
-  
-  if (files.length > 0) {
-    preview.style.display = 'grid';
-    preview.innerHTML = '';
-    
-    files.forEach((file, index) => {
-      if (file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          const div = document.createElement('div');
-          div.className = 'relative border rounded-lg overflow-hidden';
-          div.innerHTML = `
-            <img src="${e.target.result}" alt="Preview ${index + 1}" class="w-full h-32 object-cover">
-            <div class="absolute top-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded">
-              ${index === 0 ? 'Thumbnail' : `Image ${index + 1}`}
-            </div>
-            <div class="absolute bottom-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
-              ${(file.size / 1024 / 1024).toFixed(1)}MB
-            </div>
-          `;
-          preview.appendChild(div);
-        };
-        reader.readAsDataURL(file);
-      }
-    });
-  } else {
-    preview.style.display = 'none';
-  }
+// Initialize image validation
+const validator = new ImageValidator({
+  maxFileSize: 5 * 1024 * 1024, // 5MB
+  maxFiles: 10,
+  allowedTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'],
+  showPreview: true
 });
+
+validator.initializeInput('imageInput', 'imagePreview');
 
 // Image removal functionality
 document.addEventListener('click', function(e) {

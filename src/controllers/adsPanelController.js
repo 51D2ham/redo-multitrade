@@ -21,11 +21,32 @@ module.exports = {
   },
 
   async createAdsPanel(req, res) {
-    const { title, locationId, link, status } = req.body;
-    const image = req.file ? req.file.filename : null;
-    await AdsPanel.create({ title, locationId, link, status, image, admin: req.user._id });
-    req.flash('success', 'Ads panel created successfully!');
-    res.redirect(req.baseUrl);
+    try {
+      const { title, locationId, link, status } = req.body;
+      
+      if (!req.file) {
+        req.flash('error', 'Ad image is required');
+        return res.redirect(`${req.baseUrl}/create`);
+      }
+      
+      const image = req.file.filename;
+      await AdsPanel.create({ title, locationId, link, status, image, admin: req.user._id });
+      req.flash('success', 'Ads panel created successfully!');
+      res.redirect(req.baseUrl);
+    } catch (error) {
+      console.error('Create ads panel error:', error);
+      
+      // Handle specific Multer errors
+      if (error.code === 'LIMIT_FILE_SIZE') {
+        req.flash('error', 'File too large. Maximum size is 5MB.');
+      } else if (error.code === 'INVALID_FILE_TYPE') {
+        req.flash('error', error.message);
+      } else {
+        req.flash('error', 'Error creating ads panel: ' + error.message);
+      }
+      
+      res.redirect(`${req.baseUrl}/create`);
+    }
   },
 
   async showAdsPanel(req, res) {
@@ -65,24 +86,39 @@ module.exports = {
   },
 
   async updateAdsPanel(req, res) {
-    if (!req.params.id.match(/^[0-9a-fA-F]{24}$/)) {
-      req.flash('error', 'Invalid ads panel ID');
-      return res.redirect(req.baseUrl);
+    try {
+      if (!req.params.id.match(/^[0-9a-fA-F]{24}$/)) {
+        req.flash('error', 'Invalid ads panel ID');
+        return res.redirect(req.baseUrl);
+      }
+      const item = await AdsPanel.findById(req.params.id);
+      if (!item) {
+        req.flash('error', 'Ads panel not found');
+        return res.redirect(req.baseUrl);
+      }
+      const { title, locationId, link, status } = req.body;
+      const data = { title, locationId, link, status };
+      if (req.file) {
+        secureDeleteFile(item.image);
+        data.image = req.file.filename;
+      }
+      await AdsPanel.findByIdAndUpdate(item._id, data);
+      req.flash('success', 'Ads panel updated successfully!');
+      res.redirect(`${req.baseUrl}/${item._id}/edit`);
+    } catch (error) {
+      console.error('Update ads panel error:', error);
+      
+      // Handle specific Multer errors
+      if (error.code === 'LIMIT_FILE_SIZE') {
+        req.flash('error', 'File too large. Maximum size is 5MB.');
+      } else if (error.code === 'INVALID_FILE_TYPE') {
+        req.flash('error', error.message);
+      } else {
+        req.flash('error', 'Error updating ads panel: ' + error.message);
+      }
+      
+      res.redirect(`${req.baseUrl}/${req.params.id}/edit`);
     }
-    const item = await AdsPanel.findById(req.params.id);
-    if (!item) {
-      req.flash('error', 'Ads panel not found');
-      return res.redirect(req.baseUrl);
-    }
-    const { title, locationId, link, status } = req.body;
-    const data = { title, locationId, link, status };
-    if (req.file) {
-      secureDeleteFile(item.image);
-      data.image = req.file.filename;
-    }
-    await AdsPanel.findByIdAndUpdate(item._id, data);
-    req.flash('success', 'Ads panel updated successfully!');
-    res.redirect(`${req.baseUrl}/${item._id}/edit`);
   },
 
   async deleteAdsPanel(req, res) {
